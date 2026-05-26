@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>AJN Hourly Archive - Edge Hover Zones & Peek Panels</title>
+<title>AJN Hourly Archive - Calendar Month View</title>
 <style>
 /* ============ CSS RESET & VARIABLES ============ */
 * {
@@ -41,9 +41,12 @@
     --spacing-md: 16px;
     --spacing-lg: 24px;
     --spacing-xl: 32px;
-    --edge-zone-width: 10px;
-    --peek-panel-width: 320px;
-    --transition-delay: 200ms;
+    --week-1: #ffebee;
+    --week-2: #fce4ec;
+    --week-3: #f8bbd0;
+    --week-4: #f48fb1;
+    --week-5: #f06292;
+    --week-6: #e91e63;
 }
 
 .dark {
@@ -64,10 +67,12 @@
     --shadow-md: 0 2px 8px rgba(0,0,0,0.35);
     --shadow-lg: 0 4px 16px rgba(0,0,0,0.4);
     --shadow-xl: 0 8px 24px rgba(0,0,0,0.45);
-    --success: #4caf50;
-    --warning: #ffa726;
-    --error: #ef5350;
-    --info: #29b6f6;
+    --week-1: #3d1e1e;
+    --week-2: #4a2525;
+    --week-3: #572c2c;
+    --week-4: #643333;
+    --week-5: #713a3a;
+    --week-6: #7e4141;
 }
 
 body {
@@ -134,285 +139,247 @@ body.preload * {
     gap: var(--spacing-sm);
 }
 
-/* ============ EDGE HOVER ZONES ============ */
-.edge-zone-left,
-.edge-zone-right {
-    position: fixed;
-    top: 0;
-    width: var(--edge-zone-width);
-    height: 100vh;
-    z-index: 1000;
-    cursor: pointer;
-    background: transparent;
-    transition: background-color 0.1s ease;
+/* ============ CALENDAR SECTION ============ */
+.calendar-section {
+    margin-top: 16px;
+    padding: 0 var(--spacing-md) var(--spacing-md) var(--spacing-md);
+    border-top: 1px solid var(--border);
 }
 
-.edge-zone-left {
-    left: 0;
-}
-
-.edge-zone-right {
-    right: 0;
-}
-
-.edge-zone-left:hover,
-.edge-zone-right:hover {
-    background: rgba(211, 47, 47, 0.05);
-}
-
-.edge-zone-left:active,
-.edge-zone-right:active {
-    background: rgba(211, 47, 47, 0.1);
-}
-
-/* ============ PEEK PANELS ============ */
-.peek-panel-left,
-.peek-panel-right {
-    position: fixed;
-    top: 0;
-    width: var(--peek-panel-width);
-    height: 100vh;
+.calendar-container {
     background: var(--bg-surface);
-    box-shadow: var(--shadow-xl);
-    z-index: 1001;
-    transition: transform 200ms cubic-bezier(0.2, 0.9, 0.4, 1.1);
-    overflow-y: auto;
-    overflow-x: hidden;
-}
-
-.peek-panel-left {
-    left: 0;
-    transform: translateX(calc(-1 * var(--peek-panel-width)));
-    border-right: 1px solid var(--border);
-}
-
-.peek-panel-left.visible {
-    transform: translateX(0);
-}
-
-.peek-panel-right {
-    right: 0;
-    transform: translateX(var(--peek-panel-width));
-    border-left: 1px solid var(--border);
-}
-
-.peek-panel-right.visible {
-    transform: translateX(0);
-}
-
-.peek-panel-header {
-    padding: var(--spacing-lg);
-    border-bottom: 1px solid var(--border);
-    background: var(--bg-surface);
-    position: sticky;
-    top: 0;
-    z-index: 10;
-}
-
-.peek-panel-header h3 {
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: var(--primary);
-    margin-bottom: var(--spacing-xs);
-}
-
-.peek-panel-header p {
-    font-size: 0.8rem;
-    color: var(--text-secondary);
-}
-
-.peek-panel-content {
-    padding: var(--spacing-lg);
-}
-
-.peek-section {
-    margin-bottom: var(--spacing-lg);
-}
-
-.peek-section-title {
-    font-size: 0.85rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    color: var(--text-secondary);
-    margin-bottom: var(--spacing-md);
-    padding-bottom: var(--spacing-xs);
-    border-bottom: 1px solid var(--border-light);
-}
-
-.peek-item {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-md);
-    padding: var(--spacing-sm);
     border-radius: var(--border-radius);
-    cursor: pointer;
-    transition: background 0.2s ease;
-    margin-bottom: var(--spacing-xs);
-}
-
-.peek-item:hover {
-    background: var(--bg-surface-hover);
-}
-
-.peek-item-thumbnail {
-    width: 48px;
-    height: 48px;
-    background: linear-gradient(135deg, var(--primary-light), var(--border));
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.2rem;
-    flex-shrink: 0;
-}
-
-.peek-item-info {
-    flex: 1;
-    min-width: 0;
-}
-
-.peek-item-title {
-    font-size: 0.8rem;
-    font-weight: 500;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    margin-bottom: 2px;
-}
-
-.peek-item-date {
-    font-size: 0.65rem;
-    color: var(--text-secondary);
-}
-
-.peek-close-btn {
-    position: absolute;
-    top: var(--spacing-md);
-    right: var(--spacing-md);
-    background: var(--bg-surface-hover);
-    border: none;
-    border-radius: 50%;
-    width: 32px;
-    height: 32px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.2rem;
-    color: var(--text-secondary);
-    transition: all 0.2s ease;
-}
-
-.peek-close-btn:hover {
-    background: var(--primary-light);
-    color: var(--primary);
-    transform: scale(1.05);
-}
-
-/* ============ TEACHING TOOLTIP ============ */
-.teaching-tooltip {
-    position: fixed;
-    background: var(--primary);
-    color: white;
-    padding: 12px 16px;
-    border-radius: 12px;
-    font-size: 0.85rem;
-    font-weight: 500;
-    z-index: 1002;
-    box-shadow: var(--shadow-lg);
-    max-width: 280px;
-    animation: tooltipFadeIn 0.3s ease;
-    pointer-events: none;
-}
-
-.teaching-tooltip::before {
-    content: '';
-    position: absolute;
-    width: 0;
-    height: 0;
-    border-left: 8px solid transparent;
-    border-right: 8px solid transparent;
-    border-bottom: 8px solid var(--primary);
-    top: -8px;
-    left: 20px;
-}
-
-.teaching-tooltip.tooltip-right::before {
-    left: auto;
-    right: 20px;
-}
-
-.teaching-tooltip.tooltip-left::before {
-    left: 20px;
-    right: auto;
-}
-
-@keyframes tooltipFadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.teaching-tooltip button {
-    margin-top: 8px;
-    padding: 6px 12px;
-    background: rgba(255,255,255,0.2);
-    border: none;
-    border-radius: 6px;
-    color: white;
-    cursor: pointer;
-    font-size: 0.75rem;
-    transition: background 0.2s ease;
-    pointer-events: auto;
-}
-
-.teaching-tooltip button:hover {
-    background: rgba(255,255,255,0.3);
-}
-
-/* ============ BUTTONS ============ */
-.btn {
-    padding: 8px 16px;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 0.875rem;
-    font-weight: 500;
-    transition: all 0.2s ease;
-    background: var(--bg-surface);
-    color: var(--text-primary);
-    border: 1px solid var(--border);
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.btn-primary {
-    background: var(--primary);
-    color: white;
-    border: none;
-}
-
-.btn-primary:hover {
-    background: var(--primary-dark);
-    transform: translateY(-1px);
+    padding: var(--spacing-md);
     box-shadow: var(--shadow-sm);
 }
 
-.btn-secondary {
-    background: var(--bg-surface);
-    border: 1px solid var(--border);
+.calendar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-lg);
+    padding: 0 var(--spacing-sm);
 }
 
-.btn-secondary:hover {
+.calendar-nav-btn {
+    padding: 8px 16px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1rem;
+    color: var(--text-primary);
+    transition: all 0.2s ease;
+}
+
+.calendar-nav-btn:hover {
     background: var(--bg-surface-hover);
-    transform: translateY(-1px);
+    border-color: var(--primary);
+    transform: scale(1.02);
+}
+
+.calendar-month-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--primary);
+}
+
+.calendar-weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    margin-bottom: var(--spacing-sm);
+    padding: 0 var(--spacing-sm);
+}
+
+.calendar-weekday {
+    text-align: center;
+    padding: var(--spacing-sm);
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    background: var(--bg-surface-hover);
+    border-radius: 8px;
+}
+
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    padding: 0 var(--spacing-sm);
+}
+
+.calendar-day {
+    position: relative;
+    min-height: 100px;
+    padding: var(--spacing-sm);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: var(--bg-surface);
+}
+
+.calendar-day:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+    z-index: 5;
+}
+
+.calendar-day.other-month {
+    opacity: 0.4;
+    background: var(--bg-surface-hover);
+}
+
+.calendar-day.today {
+    border: 2px solid var(--primary);
+    background: var(--primary-light);
+}
+
+.calendar-day.selected {
+    background: var(--primary-light);
+    border-color: var(--primary);
+    box-shadow: var(--shadow-sm);
+}
+
+/* Week color blocks */
+.calendar-day.week-0 {
+    background: var(--week-1);
+}
+.calendar-day.week-1 {
+    background: var(--week-2);
+}
+.calendar-day.week-2 {
+    background: var(--week-3);
+}
+.calendar-day.week-3 {
+    background: var(--week-4);
+}
+.calendar-day.week-4 {
+    background: var(--week-5);
+}
+.calendar-day.week-5 {
+    background: var(--week-6);
+}
+
+.dark .calendar-day.week-0,
+.dark .calendar-day.week-1,
+.dark .calendar-day.week-2,
+.dark .calendar-day.week-3,
+.dark .calendar-day.week-4,
+.dark .calendar-day.week-5 {
+    background: var(--bg-surface);
+}
+
+.calendar-day-number {
+    font-weight: 600;
+    font-size: 1rem;
+    margin-bottom: var(--spacing-xs);
+    display: block;
+}
+
+.episode-indicators {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+    margin-top: 4px;
+}
+
+.dot-indicator {
+    width: 8px;
+    height: 8px;
+    background: var(--primary);
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.episode-count-badge {
+    position: absolute;
+    bottom: 4px;
+    right: 4px;
+    background: var(--primary);
+    color: white;
+    border-radius: 10px;
+    padding: 2px 5px;
+    font-size: 0.65rem;
+    font-weight: bold;
+}
+
+/* Tooltip */
+.calendar-tooltip {
+    display: none;
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: var(--spacing-sm);
+    width: 200px;
+    z-index: 100;
+    box-shadow: var(--shadow-lg);
+    font-size: 0.7rem;
+    pointer-events: none;
+    margin-bottom: 8px;
+}
+
+.calendar-tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 5px;
+    border-style: solid;
+    border-color: var(--border) transparent transparent transparent;
+}
+
+.calendar-day:hover .calendar-tooltip {
+    display: block;
+}
+
+.tooltip-episode {
+    padding: 4px 0;
+    border-bottom: 1px solid var(--border-light);
+    white-space: normal;
+    word-wrap: break-word;
+}
+
+.tooltip-episode:last-child {
+    border-bottom: none;
+}
+
+.tooltip-episode-title {
+    font-weight: 500;
+    margin-bottom: 2px;
+}
+
+.tooltip-episode-time {
+    font-size: 0.6rem;
+    color: var(--text-secondary);
+}
+
+.calendar-filter-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: var(--primary-light);
+    border-radius: 20px;
+    font-size: 0.8rem;
+    color: var(--primary);
+    margin-left: var(--spacing-sm);
+}
+
+.calendar-filter-badge .remove-filter {
+    cursor: pointer;
+    font-weight: bold;
+    padding: 0 4px;
+}
+
+.calendar-filter-badge .remove-filter:hover {
+    color: var(--primary-dark);
 }
 
 /* ============ SEARCH SECTION ============ */
@@ -489,256 +456,43 @@ body.preload * {
     align-items: center;
 }
 
-/* Calendar Filter Button */
-.calendar-filter-container {
-    position: relative;
-}
-
-.calendar-filter-btn {
+/* ============ BUTTONS ============ */
+.btn {
     padding: 8px 16px;
-    background: var(--bg-surface);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    cursor: pointer;
-    font-size: 1rem;
-    color: var(--text-primary);
-    transition: all 0.2s ease;
-    position: relative;
-}
-
-.calendar-filter-btn:hover {
-    background: var(--bg-surface-hover);
-    border-color: var(--primary);
-}
-
-.date-filter-badge {
-    position: absolute;
-    top: -5px;
-    right: -5px;
-    background: var(--primary);
-    color: white;
-    border-radius: 10px;
-    padding: 2px 6px;
-    font-size: 0.7rem;
-    font-weight: bold;
-}
-
-/* Calendar Flyout */
-.calendar-flyout-filter {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    margin-top: 8px;
-    background: var(--bg-surface);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    box-shadow: var(--shadow-lg);
-    z-index: 200;
-    min-width: 300px;
-    display: none;
-    animation: fadeIn 0.2s ease;
-}
-
-.calendar-flyout-filter.active {
-    display: block;
-}
-
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.calendar-flyout-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--border);
-}
-
-.calendar-flyout-header h4 {
-    margin: 0;
-    font-size: 1rem;
-}
-
-.close-calendar-btn {
-    background: none;
-    border: none;
-    font-size: 1.2rem;
-    cursor: pointer;
-    color: var(--text-secondary);
-    padding: 4px;
-    border-radius: 6px;
-}
-
-.close-calendar-btn:hover {
-    background: var(--bg-surface-hover);
-}
-
-.calendar-nav {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px 16px;
-    background: var(--bg-surface);
-}
-
-.calendar-nav-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-size: 1rem;
-    padding: 4px 8px;
-    border-radius: 6px;
-    color: var(--text-primary);
-}
-
-.calendar-nav-btn:hover {
-    background: var(--bg-surface-hover);
-}
-
-.calendar-weekdays {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    text-align: center;
-    padding: 8px 0;
-    font-weight: 600;
-    color: var(--text-secondary);
-    font-size: 0.8rem;
-    border-bottom: 1px solid var(--border);
-}
-
-.calendar-days-grid {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 4px;
-    padding: 12px;
-}
-
-.calendar-day {
-    aspect-ratio: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    border-radius: 8px;
-    font-size: 0.85rem;
-    transition: all 0.2s ease;
-    background: var(--bg-surface);
-    color: var(--text-primary);
-}
-
-.calendar-day:hover {
-    background: var(--bg-surface-hover);
-}
-
-.calendar-day.has-episode {
-    background: var(--primary-light);
-    color: var(--primary);
-    font-weight: bold;
-}
-
-.calendar-day.selected {
-    background: var(--primary);
-    color: white;
-}
-
-.calendar-day.other-month {
-    color: var(--text-tertiary);
-}
-
-.calendar-actions {
-    display: flex;
-    gap: 8px;
-    padding: 12px 16px;
-    border-top: 1px solid var(--border);
-}
-
-.calendar-action-btn {
-    flex: 1;
-    padding: 8px;
     border: none;
     border-radius: 8px;
     cursor: pointer;
-    background: var(--bg-surface-hover);
-    color: var(--text-primary);
+    font-size: 0.875rem;
+    font-weight: 500;
     transition: all 0.2s ease;
-}
-
-.calendar-action-btn.primary {
-    background: var(--primary);
-    color: white;
-}
-
-.calendar-action-btn.primary:hover {
-    background: var(--primary-dark);
-}
-
-.calendar-action-btn:hover {
-    transform: translateY(-1px);
-}
-
-/* Quick Filters */
-.quick-filters {
-    display: flex;
-    gap: 8px;
-}
-
-.quick-filter-btn {
-    padding: 8px 16px;
     background: var(--bg-surface);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    cursor: pointer;
-    font-size: 0.85rem;
     color: var(--text-primary);
-    transition: all 0.2s ease;
-}
-
-.quick-filter-btn:hover {
-    background: var(--bg-surface-hover);
-    border-color: var(--primary);
-}
-
-.quick-filter-btn.active {
-    background: var(--primary);
-    color: white;
-    border-color: var(--primary);
-}
-
-/* Active Filters Display */
-.active-filters {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-    align-items: center;
-}
-
-.filter-tag {
+    border: 1px solid var(--border);
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: 4px 10px;
-    background: var(--primary-light);
-    border-radius: 20px;
-    font-size: 0.8rem;
-    color: var(--primary);
 }
 
-.filter-tag .remove-filter {
-    cursor: pointer;
-    font-weight: bold;
-    padding: 0 4px;
+.btn-primary {
+    background: var(--primary);
+    color: white;
+    border: none;
 }
 
-.filter-tag .remove-filter:hover {
-    color: var(--primary-dark);
+.btn-primary:hover {
+    background: var(--primary-dark);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+}
+
+.btn-secondary {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+}
+
+.btn-secondary:hover {
+    background: var(--bg-surface-hover);
+    transform: translateY(-1px);
 }
 
 /* ============ MAIN LAYOUT ============ */
@@ -1278,38 +1032,21 @@ body.preload * {
         min-width: 140px;
     }
     
-    .filter-controls {
-        flex-direction: column;
-        align-items: stretch;
+    .calendar-grid {
+        gap: 2px;
     }
     
-    .quick-filters {
-        justify-content: space-between;
+    .calendar-day {
+        min-height: 70px;
+        padding: 4px;
     }
     
-    .quick-filter-btn {
-        flex: 1;
-        text-align: center;
+    .calendar-day-number {
+        font-size: 0.8rem;
     }
     
-    .calendar-flyout-filter {
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        width: 90%;
-        max-width: 350px;
-        margin: 0;
-    }
-    
-    .edge-zone-left,
-    .edge-zone-right {
-        width: 8px;
-    }
-    
-    .peek-panel-left,
-    .peek-panel-right {
-        width: 280px;
+    .episode-indicators {
+        display: none;
     }
 }
 
@@ -1341,9 +1078,12 @@ body.preload * {
         top: 45px;
     }
     
-    .peek-panel-left,
-    .peek-panel-right {
-        width: 260px;
+    .calendar-day {
+        min-height: 50px;
+    }
+    
+    .calendar-day-number {
+        font-size: 0.7rem;
     }
 }
 
@@ -1367,72 +1107,14 @@ body.preload * {
     .menu-trigger {
         border: 2px solid currentColor;
     }
+    
+    .calendar-day {
+        border: 2px solid currentColor;
+    }
 }
 </style>
 </head>
 <body>
-
-<!-- EDGE HOVER ZONES -->
-<div class="edge-zone-left" id="edgeZoneLeft" aria-label="Left edge - opens quick navigation" role="region"></div>
-<div class="edge-zone-right" id="edgeZoneRight" aria-label="Right edge - opens playlist peek" role="region"></div>
-
-<!-- LEFT PEEK PANEL - Quick Navigation -->
-<div class="peek-panel-left" id="peekPanelLeft" role="dialog" aria-label="Quick navigation panel">
-    <button class="peek-close-btn" id="closePeekLeft" aria-label="Close panel">✖</button>
-    <div class="peek-panel-header">
-        <h3>⚡ Quick Navigation</h3>
-        <p>Jump to recently played episodes</p>
-    </div>
-    <div class="peek-panel-content" id="peekLeftContent">
-        <div class="peek-section">
-            <div class="peek-section-title">Recently Played</div>
-            <div id="recentlyPlayedList" class="peek-recent-list">
-                <div class="loading-state" style="padding: 20px;">Loading...</div>
-            </div>
-        </div>
-        <div class="peek-section">
-            <div class="peek-section-title">Quick Actions</div>
-            <div class="peek-item" id="peekResumeLast">
-                <div class="peek-item-thumbnail">▶</div>
-                <div class="peek-item-info">
-                    <div class="peek-item-title">Resume Last Episode</div>
-                    <div class="peek-item-date">Continue where you left off</div>
-                </div>
-            </div>
-            <div class="peek-item" id="peekClearFilters">
-                <div class="peek-item-thumbnail">✖</div>
-                <div class="peek-item-info">
-                    <div class="peek-item-title">Clear All Filters</div>
-                    <div class="peek-item-date">Reset search and date filters</div>
-                </div>
-            </div>
-            <div class="peek-item" id="peekToggleDarkMode">
-                <div class="peek-item-thumbnail">🌙</div>
-                <div class="peek-item-info">
-                    <div class="peek-item-title">Toggle Dark Mode</div>
-                    <div class="peek-item-date">Switch color theme</div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- RIGHT PEEK PANEL - Playlist Preview -->
-<div class="peek-panel-right" id="peekPanelRight" role="dialog" aria-label="Playlist preview panel">
-    <button class="peek-close-btn" id="closePeekRight" aria-label="Close panel">✖</button>
-    <div class="peek-panel-header">
-        <h3>📋 Playlist Preview</h3>
-        <p>Quick peek at upcoming episodes</p>
-    </div>
-    <div class="peek-panel-content" id="peekRightContent">
-        <div class="peek-section">
-            <div class="peek-section-title">Up Next</div>
-            <div id="upcomingEpisodesList" class="peek-upcoming-list">
-                <div class="loading-state" style="padding: 20px;">Loading...</div>
-            </div>
-        </div>
-    </div>
-</div>
 
 <!-- STICKY HEADER -->
 <header class="sticky-header">
@@ -1443,6 +1125,23 @@ body.preload * {
         </div>
         <div class="header-controls">
             <button id="darkModeToggle" class="btn btn-secondary" aria-label="Switch to dark mode">🌙 Dark</button>
+        </div>
+    </div>
+    
+    <!-- Calendar Section -->
+    <div class="calendar-section">
+        <div class="calendar-container">
+            <div class="calendar-header">
+                <button id="calendarPrevMonth" class="calendar-nav-btn" aria-label="Previous month">◀ Previous</button>
+                <h2 id="calendarMonthTitle" class="calendar-month-title">Loading...</h2>
+                <button id="calendarNextMonth" class="calendar-nav-btn" aria-label="Next month">Next ▶</button>
+            </div>
+            <div class="calendar-weekdays" id="calendarWeekdays"></div>
+            <div id="calendarGrid" class="calendar-grid"></div>
+            <div id="calendarFilterBadge" class="calendar-filter-badge" style="display: none;">
+                📅 <span id="activeCalendarDate"></span>
+                <span class="remove-filter" id="clearCalendarFilter">✖</span>
+            </div>
         </div>
     </div>
     
@@ -1458,37 +1157,7 @@ body.preload * {
                        aria-label="Search episodes">
                 <button id="clearSearchBtn" class="clear-search-btn" aria-label="Clear search">✖</button>
             </div>
-            
             <div class="filter-controls">
-                <div class="calendar-filter-container">
-                    <button id="calendarFilterBtn" class="calendar-filter-btn" aria-label="Filter by date">
-                        📅 <span id="activeDateFilterBadge" class="date-filter-badge" style="display:none"></span>
-                    </button>
-                    <div id="calendarFlyout" class="calendar-flyout-filter">
-                        <div class="calendar-flyout-header">
-                            <h4>Filter by Date</h4>
-                            <button id="closeCalendarBtn" class="close-calendar-btn" aria-label="Close calendar">✖</button>
-                        </div>
-                        <div class="calendar-nav">
-                            <button id="calendarPrevMonth" class="calendar-nav-btn">◀</button>
-                            <span id="calendarMonthYear"></span>
-                            <button id="calendarNextMonth" class="calendar-nav-btn">▶</button>
-                        </div>
-                        <div class="calendar-weekdays">
-                            <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
-                        </div>
-                        <div id="calendarDaysGrid" class="calendar-days-grid"></div>
-                        <div class="calendar-actions">
-                            <button id="clearDateFilter" class="calendar-action-btn">Clear Date Filter</button>
-                            <button id="applyDateFilter" class="calendar-action-btn primary">Apply Filter</button>
-                        </div>
-                    </div>
-                </div>
-                <div class="quick-filters">
-                    <button class="quick-filter-btn" data-days="7">Last 7 days</button>
-                    <button class="quick-filter-btn" data-days="30">Last 30 days</button>
-                    <button class="quick-filter-btn" data-days="90">Last 90 days</button>
-                </div>
                 <div id="activeFilters" class="active-filters"></div>
             </div>
         </div>
@@ -1553,19 +1222,17 @@ body.preload * {
 </main>
 
 <script>
-// ============ MAIN APPLICATION WITH EDGE HOVER ZONES ============
+// ============ MAIN APPLICATION WITH CALENDAR MONTH VIEW ============
 
 document.addEventListener('DOMContentLoaded', () => {
-    console.log("DOM is ready. Initializing edge hover zones...");
+    console.log("DOM is ready. Initializing calendar month view...");
     
     // ============ STORAGE KEYS ============
     const STORAGE_KEYS = {
         PLAYBACK_POSITIONS: 'ajn_playback_positions',
         LAST_EPISODE_ID: 'ajn_last_episode_id',
-        LAST_POSITION: 'ajn_last_position',
         AUTOPLAY_STATE: 'autoplayEnabled',
-        DARK_MODE: 'darkMode',
-        TEACHING_TOOLTIP_SHOWN: 'ajn_teaching_tooltip_shown'
+        DARK_MODE: 'darkMode'
     };
     
     // ============ GLOBAL STATE ============
@@ -1577,16 +1244,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let saveTimeout = null;
     let saveInterval = null;
     let currentSearchTerm = '';
-    let currentDateFilter = null;
-    let debounceTimeout = null;
+    let currentCalendarDate = new Date();
     let selectedCalendarDate = null;
-    let currentCalendarYear = new Date().getFullYear();
-    let currentCalendarMonth = new Date().getMonth();
-    let recentlyPlayed = [];
-    let peekLeftTimeout = null;
-    let peekRightTimeout = null;
-    let isPeekLeftVisible = false;
-    let isPeekRightVisible = false;
+    let debounceTimeout = null;
     
     // ============ DOM ELEMENTS ============
     const videoPlayer = document.getElementById('videoPlayer');
@@ -1610,37 +1270,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const nextBtn = document.getElementById('nextBtn');
     const searchInput = document.getElementById('globalSearchInput');
     const clearSearchBtn = document.getElementById('clearSearchBtn');
-    const calendarFilterBtn = document.getElementById('calendarFilterBtn');
-    const calendarFlyout = document.getElementById('calendarFlyout');
-    const closeCalendarBtn = document.getElementById('closeCalendarBtn');
+    const activeFiltersContainer = document.getElementById('activeFilters');
     const calendarPrevMonth = document.getElementById('calendarPrevMonth');
     const calendarNextMonth = document.getElementById('calendarNextMonth');
-    const calendarMonthYear = document.getElementById('calendarMonthYear');
-    const calendarDaysGrid = document.getElementById('calendarDaysGrid');
-    const clearDateFilterBtn = document.getElementById('clearDateFilter');
-    const applyDateFilterBtn = document.getElementById('applyDateFilter');
-    const activeFiltersContainer = document.getElementById('activeFilters');
-    const dateFilterBadge = document.getElementById('activeDateFilterBadge');
-    
-    // Edge zone elements
-    const edgeZoneLeft = document.getElementById('edgeZoneLeft');
-    const edgeZoneRight = document.getElementById('edgeZoneRight');
-    const peekPanelLeft = document.getElementById('peekPanelLeft');
-    const peekPanelRight = document.getElementById('peekPanelRight');
-    const closePeekLeft = document.getElementById('closePeekLeft');
-    const closePeekRight = document.getElementById('closePeekRight');
-    const recentlyPlayedList = document.getElementById('recentlyPlayedList');
-    const upcomingEpisodesList = document.getElementById('upcomingEpisodesList');
-    const peekResumeLast = document.getElementById('peekResumeLast');
-    const peekClearFilters = document.getElementById('peekClearFilters');
-    const peekToggleDarkMode = document.getElementById('peekToggleDarkMode');
+    const calendarMonthTitle = document.getElementById('calendarMonthTitle');
+    const calendarWeekdays = document.getElementById('calendarWeekdays');
+    const calendarGrid = document.getElementById('calendarGrid');
+    const calendarFilterBadge = document.getElementById('calendarFilterBadge');
+    const activeCalendarDate = document.getElementById('activeCalendarDate');
+    const clearCalendarFilter = document.getElementById('clearCalendarFilter');
     
     // ============ CONSTANTS ============
     const ROW_HEIGHT = 80;
     const BUFFER = 5;
-    const EDGE_HOVER_DELAY = 200;
     const RSS_URL = 'https://rss.alexjones.media/AJNHourlyVideo.xml';
     const API_URL = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(RSS_URL)}`;
+    const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     
     // ============ HELPER FUNCTIONS ============
     function transformVideoUrl(originalUrl) {
@@ -1715,228 +1360,9 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => toast.remove(), duration);
     }
     
-    // ============ TEACHING TOOLTIP ============
-    function showTeachingTooltip() {
-        const hasBeenShown = localStorage.getItem(STORAGE_KEYS.TEACHING_TOOLTIP_SHOWN);
-        if (hasBeenShown === 'true') return;
-        
-        const tooltip = document.createElement('div');
-        tooltip.className = 'teaching-tooltip';
-        tooltip.innerHTML = `
-            <strong>✨ New Feature!</strong><br>
-            Hover near the left or right edges of the screen (${EDGE_HOVER_DELAY}ms delay) to reveal quick navigation panels.<br>
-            <button id="tooltipGotIt">Got it!</button>
-        `;
-        
-        const edgeZoneRect = edgeZoneLeft.getBoundingClientRect();
-        tooltip.style.top = '100px';
-        tooltip.style.left = '30px';
-        
-        document.body.appendChild(tooltip);
-        
-        const gotItBtn = document.getElementById('tooltipGotIt');
-        if (gotItBtn) {
-            gotItBtn.addEventListener('click', () => {
-                tooltip.remove();
-                localStorage.setItem(STORAGE_KEYS.TEACHING_TOOLTIP_SHOWN, 'true');
-                showToast('Try hovering near screen edges!', 3000);
-            });
-        }
-        
-        setTimeout(() => {
-            if (tooltip.parentNode) {
-                tooltip.remove();
-                if (!localStorage.getItem(STORAGE_KEYS.TEACHING_TOOLTIP_SHOWN)) {
-                    localStorage.setItem(STORAGE_KEYS.TEACHING_TOOLTIP_SHOWN, 'true');
-                }
-            }
-        }, 10000);
+    function formatDateKey(date) {
+        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
     }
-    
-    // ============ EDGE HOVER ZONES WITH DELAY ============
-    function setupEdgeZones() {
-        if (!edgeZoneLeft || !edgeZoneRight) return;
-        
-        edgeZoneLeft.addEventListener('mouseenter', () => {
-            if (peekLeftTimeout) clearTimeout(peekLeftTimeout);
-            peekLeftTimeout = setTimeout(() => {
-                showPeekPanel('left');
-            }, EDGE_HOVER_DELAY);
-        });
-        
-        edgeZoneLeft.addEventListener('mouseleave', () => {
-            if (peekLeftTimeout) {
-                clearTimeout(peekLeftTimeout);
-                peekLeftTimeout = null;
-            }
-        });
-        
-        edgeZoneRight.addEventListener('mouseenter', () => {
-            if (peekRightTimeout) clearTimeout(peekRightTimeout);
-            peekRightTimeout = setTimeout(() => {
-                showPeekPanel('right');
-            }, EDGE_HOVER_DELAY);
-        });
-        
-        edgeZoneRight.addEventListener('mouseleave', () => {
-            if (peekRightTimeout) {
-                clearTimeout(peekRightTimeout);
-                peekRightTimeout = null;
-            }
-        });
-    }
-    
-    function showPeekPanel(side) {
-        if (side === 'left') {
-            peekPanelLeft.classList.add('visible');
-            isPeekLeftVisible = true;
-            updateRecentlyPlayedList();
-        } else if (side === 'right') {
-            peekPanelRight.classList.add('visible');
-            isPeekRightVisible = true;
-            updateUpcomingEpisodesList();
-        }
-    }
-    
-    function hidePeekPanel(side) {
-        if (side === 'left') {
-            peekPanelLeft.classList.remove('visible');
-            isPeekLeftVisible = false;
-        } else if (side === 'right') {
-            peekPanelRight.classList.remove('visible');
-            isPeekRightVisible = false;
-        }
-    }
-    
-    if (closePeekLeft) {
-        closePeekLeft.addEventListener('click', () => hidePeekPanel('left'));
-    }
-    
-    if (closePeekRight) {
-        closePeekRight.addEventListener('click', () => hidePeekPanel('right'));
-    }
-    
-    function updateRecentlyPlayedList() {
-        if (!recentlyPlayedList) return;
-        
-        const recent = recentlyPlayed.slice(0, 10);
-        if (recent.length === 0) {
-            recentlyPlayedList.innerHTML = '<div class="empty-state" style="padding: 20px;">No recently played episodes</div>';
-            return;
-        }
-        
-        recentlyPlayedList.innerHTML = recent.map(ep => `
-            <div class="peek-item" data-episode-index="${ep.index}" onclick="window.playEpisodeFromPeek(${ep.index})">
-                <div class="peek-item-thumbnail">🎬</div>
-                <div class="peek-item-info">
-                    <div class="peek-item-title">${escapeHtml(ep.title.substring(0, 40))}${ep.title.length > 40 ? '...' : ''}</div>
-                    <div class="peek-item-date">${formatCentralTime(ep.centralDate)}</div>
-                </div>
-            </div>
-        `).join('');
-    }
-    
-    function updateUpcomingEpisodesList() {
-        if (!upcomingEpisodesList) return;
-        
-        const nextEpisodes = currentPlaylist.slice(currentIndex + 1, currentIndex + 11);
-        if (nextEpisodes.length === 0) {
-            upcomingEpisodesList.innerHTML = '<div class="empty-state" style="padding: 20px;">No upcoming episodes</div>';
-            return;
-        }
-        
-        upcomingEpisodesList.innerHTML = nextEpisodes.map((ep, idx) => {
-            const actualIndex = currentIndex + idx + 1;
-            return `
-                <div class="peek-item" data-episode-index="${actualIndex}" onclick="window.playEpisodeFromPeek(${actualIndex})">
-                    <div class="peek-item-thumbnail">🎬</div>
-                    <div class="peek-item-info">
-                        <div class="peek-item-title">${escapeHtml(ep.title.substring(0, 40))}${ep.title.length > 40 ? '...' : ''}</div>
-                        <div class="peek-item-date">${formatCentralTime(ep.centralDate)}</div>
-                    </div>
-                </div>
-            `;
-        }).join('');
-    }
-    
-    function addToRecentlyPlayed(episode, index) {
-        recentlyPlayed = recentlyPlayed.filter(ep => ep.id !== episode.id);
-        recentlyPlayed.unshift({
-            id: episode.id,
-            index: index,
-            title: episode.title,
-            centralDate: episode.centralDate,
-            show: episode.show,
-            hour: episode.hour
-        });
-        if (recentlyPlayed.length > 20) recentlyPlayed.pop();
-        
-        if (isPeekLeftVisible) {
-            updateRecentlyPlayedList();
-        }
-    }
-    
-    window.playEpisodeFromPeek = function(index) {
-        playEpisode(index);
-        hidePeekPanel('left');
-        hidePeekPanel('right');
-        showToast(`Playing episode ${index + 1}`);
-    };
-    
-    if (peekResumeLast) {
-        peekResumeLast.addEventListener('click', () => {
-            const lastPlayedId = localStorage.getItem(STORAGE_KEYS.LAST_EPISODE_ID);
-            if (lastPlayedId) {
-                const episodeIndex = currentPlaylist.findIndex(ep => ep.id == lastPlayedId);
-                if (episodeIndex !== -1) {
-                    playEpisode(episodeIndex);
-                    hidePeekPanel('left');
-                    return;
-                }
-            }
-            showToast('No saved episode to resume', 2000);
-        });
-    }
-    
-    if (peekClearFilters) {
-        peekClearFilters.addEventListener('click', () => {
-            currentSearchTerm = '';
-            currentDateFilter = null;
-            selectedCalendarDate = null;
-            if (searchInput) searchInput.value = '';
-            if (clearSearchBtn) clearSearchBtn.classList.remove('visible');
-            if (dateFilterBadge) dateFilterBadge.style.display = 'none';
-            applyAllFilters();
-            hidePeekPanel('left');
-            showToast('All filters cleared');
-        });
-    }
-    
-    if (peekToggleDarkMode) {
-        peekToggleDarkMode.addEventListener('click', () => {
-            const isDark = document.body.classList.contains('dark');
-            if (isDark) {
-                document.body.classList.remove('dark');
-                localStorage.setItem(STORAGE_KEYS.DARK_MODE, 'false');
-                if (darkModeToggle) darkModeToggle.innerHTML = '🌙 Dark';
-            } else {
-                document.body.classList.add('dark');
-                localStorage.setItem(STORAGE_KEYS.DARK_MODE, 'true');
-                if (darkModeToggle) darkModeToggle.innerHTML = '☀️ Light';
-            }
-            hidePeekPanel('left');
-            showToast(`Dark mode ${!isDark ? 'enabled' : 'disabled'}`);
-        });
-    }
-    
-    document.addEventListener('click', (e) => {
-        if (!peekPanelLeft.contains(e.target) && !edgeZoneLeft.contains(e.target) && !closePeekLeft.contains(e.target)) {
-            hidePeekPanel('left');
-        }
-        if (!peekPanelRight.contains(e.target) && !edgeZoneRight.contains(e.target) && !closePeekRight.contains(e.target)) {
-            hidePeekPanel('right');
-        }
-    });
     
     // ============ PLAYBACK PERSISTENCE FUNCTIONS ============
     function loadPlaybackPositions() {
@@ -2066,6 +1492,198 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
+    // ============ CALENDAR RENDERING ============
+    function renderCalendar() {
+        const year = currentCalendarDate.getFullYear();
+        const month = currentCalendarDate.getMonth();
+        const firstDayOfMonth = new Date(year, month, 1);
+        const lastDayOfMonth = new Date(year, month + 1, 0);
+        const startDayOfWeek = firstDayOfMonth.getDay();
+        const daysInMonth = lastDayOfMonth.getDate();
+        const today = new Date();
+        const todayKey = formatDateKey(today);
+        
+        calendarMonthTitle.textContent = firstDayOfMonth.toLocaleString('default', { month: 'long', year: 'numeric' });
+        
+        calendarWeekdays.innerHTML = WEEKDAYS.map(day => `<div class="calendar-weekday">${day}</div>`).join('');
+        
+        let html = '';
+        let dayCounter = 1;
+        const totalCells = Math.ceil((daysInMonth + startDayOfWeek) / 7) * 7;
+        
+        for (let i = 0; i < totalCells; i++) {
+            if (i < startDayOfWeek || dayCounter > daysInMonth) {
+                html += `<div class="calendar-day other-month"></div>`;
+            } else {
+                const currentDate = new Date(year, month, dayCounter);
+                const dateKey = formatDateKey(currentDate);
+                const dayEpisodes = allEpisodes.filter(ep => ep.dateKey === dateKey);
+                const isToday = dateKey === todayKey;
+                const isSelected = selectedCalendarDate === dateKey;
+                const weekIndex = Math.floor((i - startDayOfWeek) / 7);
+                const weekClass = `week-${weekIndex % 6}`;
+                
+                let tooltipHtml = '';
+                if (dayEpisodes.length > 0) {
+                    tooltipHtml = `<div class="calendar-tooltip">
+                        ${dayEpisodes.slice(0, 5).map(ep => `
+                            <div class="tooltip-episode">
+                                <div class="tooltip-episode-title">${escapeHtml(ep.title.substring(0, 50))}${ep.title.length > 50 ? '...' : ''}</div>
+                                <div class="tooltip-episode-time">${ep.show} ${ep.hour}</div>
+                            </div>
+                        `).join('')}
+                        ${dayEpisodes.length > 5 ? `<div class="tooltip-episode">+${dayEpisodes.length - 5} more episodes</div>` : ''}
+                    </div>`;
+                }
+                
+                let indicatorsHtml = '';
+                if (dayEpisodes.length > 0) {
+                    indicatorsHtml = `<div class="episode-indicators">
+                        ${dayEpisodes.slice(0, 3).map(() => `<span class="dot-indicator"></span>`).join('')}
+                    </div>`;
+                }
+                
+                html += `
+                    <div class="calendar-day ${weekClass} ${isToday ? 'today' : ''} ${isSelected ? 'selected' : ''}" 
+                         data-date="${dateKey}"
+                         onclick="window.filterByCalendarDate('${dateKey}')">
+                        <span class="calendar-day-number">${dayCounter}</span>
+                        ${indicatorsHtml}
+                        ${dayEpisodes.length > 3 ? `<span class="episode-count-badge">+${dayEpisodes.length - 3}</span>` : ''}
+                        ${tooltipHtml}
+                    </div>
+                `;
+                dayCounter++;
+            }
+        }
+        
+        calendarGrid.innerHTML = html;
+    }
+    
+    // ============ FILTER FUNCTIONS ============
+    function filterByCalendarDate(dateKey) {
+        selectedCalendarDate = dateKey;
+        currentSearchTerm = '';
+        if (searchInput) searchInput.value = '';
+        if (clearSearchBtn) clearSearchBtn.classList.remove('visible');
+        
+        const selectedDate = new Date(dateKey);
+        const formattedDate = selectedDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+        
+        currentPlaylist = allEpisodes.filter(ep => ep.dateKey === dateKey);
+        currentIndex = 0;
+        
+        calendarFilterBadge.style.display = 'inline-flex';
+        activeCalendarDate.textContent = formattedDate;
+        
+        const uniqueDates = new Set(currentPlaylist.map(e => e.dateKey));
+        playlistStats.innerHTML = `${currentPlaylist.length.toLocaleString()} episodes • ${uniqueDates.size} days • CT Timezone • 📅 Filtered to ${formattedDate}`;
+        
+        renderVirtualPlaylist();
+        updateActiveFiltersDisplay();
+        
+        if (currentPlaylist.length > 0) {
+            playEpisode(0);
+        } else {
+            showToast(`No episodes found for ${formattedDate}`, 3000);
+        }
+        
+        renderCalendar();
+        showToast(`Showing ${currentPlaylist.length} episodes for ${formattedDate}`, 3000);
+    }
+    
+    function clearCalendarFilter() {
+        selectedCalendarDate = null;
+        currentPlaylist = [...allEpisodes];
+        currentIndex = 0;
+        calendarFilterBadge.style.display = 'none';
+        activeCalendarDate.textContent = '';
+        
+        applySearchFilter();
+        renderCalendar();
+        
+        const uniqueDates = new Set(currentPlaylist.map(e => e.dateKey));
+        playlistStats.innerHTML = `${currentPlaylist.length.toLocaleString()} episodes • ${uniqueDates.size} days • CT Timezone`;
+        
+        renderVirtualPlaylist();
+        if (currentPlaylist.length > 0) playEpisode(0);
+        showToast('Calendar filter cleared', 2000);
+    }
+    
+    function applySearchFilter() {
+        if (currentSearchTerm) {
+            const term = currentSearchTerm.toLowerCase();
+            currentPlaylist = allEpisodes.filter(ep => 
+                ep.title.toLowerCase().includes(term) || ep.description.toLowerCase().includes(term)
+            );
+            if (selectedCalendarDate) {
+                currentPlaylist = currentPlaylist.filter(ep => ep.dateKey === selectedCalendarDate);
+            }
+        } else if (selectedCalendarDate) {
+            currentPlaylist = allEpisodes.filter(ep => ep.dateKey === selectedCalendarDate);
+        } else {
+            currentPlaylist = [...allEpisodes];
+        }
+        currentIndex = 0;
+        renderVirtualPlaylist();
+        updateActiveFiltersDisplay();
+        if (currentPlaylist.length > 0) playEpisode(0);
+        
+        const uniqueDates = new Set(currentPlaylist.map(e => e.dateKey));
+        let filterText = '';
+        if (currentSearchTerm) filterText += ` 🔍 "${currentSearchTerm}"`;
+        if (selectedCalendarDate) filterText += ` 📅 ${new Date(selectedCalendarDate).toLocaleDateString()}`;
+        playlistStats.innerHTML = `${currentPlaylist.length.toLocaleString()} episodes • ${uniqueDates.size} days • CT Timezone${filterText}`;
+    }
+    
+    function updateActiveFiltersDisplay() {
+        if (!activeFiltersContainer) return;
+        activeFiltersContainer.innerHTML = '';
+        
+        if (currentSearchTerm) {
+            const tag = document.createElement('div');
+            tag.className = 'filter-tag';
+            tag.innerHTML = `🔍 ${escapeHtml(currentSearchTerm)} <span class="remove-filter" data-filter="search">✖</span>`;
+            activeFiltersContainer.appendChild(tag);
+        }
+        
+        document.querySelectorAll('.remove-filter').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const filterType = btn.getAttribute('data-filter');
+                if (filterType === 'search') {
+                    currentSearchTerm = '';
+                    searchInput.value = '';
+                    clearSearchBtn.classList.remove('visible');
+                    applySearchFilter();
+                }
+            });
+        });
+    }
+    
+    function debounce(func, delay) {
+        return function(...args) {
+            clearTimeout(debounceTimeout);
+            debounceTimeout = setTimeout(() => func.apply(this, args), delay);
+        };
+    }
+    
+    function setupSearch() {
+        if (!searchInput) return;
+        const debouncedSearch = debounce(() => {
+            currentSearchTerm = searchInput.value;
+            clearSearchBtn.classList.toggle('visible', currentSearchTerm.length > 0);
+            applySearchFilter();
+        }, 200);
+        searchInput.addEventListener('input', debouncedSearch);
+        if (clearSearchBtn) clearSearchBtn.addEventListener('click', () => {
+            currentSearchTerm = '';
+            searchInput.value = '';
+            clearSearchBtn.classList.remove('visible');
+            applySearchFilter();
+        });
+    }
+    
     // ============ VIRTUAL PLAYLIST RENDERING ============
     function renderVirtualPlaylist() {
         if (!currentPlaylist.length) {
@@ -2135,8 +1753,6 @@ document.addEventListener('DOMContentLoaded', () => {
         currentTitle.textContent = episode.title;
         videoPlayer.src = episode.videoUrl;
         videoPlayer.load();
-        
-        addToRecentlyPlayed(episode, index);
         
         const savedPosition = getPlaybackPosition(episode.id);
         if (savedPosition > 0 && savedPosition < videoPlayer.duration - 2) {
@@ -2223,202 +1839,11 @@ document.addEventListener('DOMContentLoaded', () => {
         modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
     };
     
+    window.filterByCalendarDate = filterByCalendarDate;
     window.clearPlaybackPosition = clearPlaybackPosition;
     
     function closeAllFlyouts() {
         document.querySelectorAll('.flyout-menu').forEach(menu => menu.classList.remove('active'));
-    }
-    
-    // ============ SEARCH AND FILTER FUNCTIONS ============
-    function debounce(func, delay) {
-        return function(...args) {
-            clearTimeout(debounceTimeout);
-            debounceTimeout = setTimeout(() => func.apply(this, args), delay);
-        };
-    }
-    
-    function applyAllFilters() {
-        let filtered = [...allEpisodes];
-        if (currentSearchTerm) {
-            const term = currentSearchTerm.toLowerCase();
-            filtered = filtered.filter(ep => ep.title.toLowerCase().includes(term) || ep.description.toLowerCase().includes(term));
-        }
-        if (currentDateFilter) {
-            filtered = filtered.filter(ep => ep.dateKey >= currentDateFilter.start && ep.dateKey <= currentDateFilter.end);
-        }
-        currentPlaylist = filtered;
-        currentIndex = 0;
-        const uniqueDates = new Set(currentPlaylist.map(e => e.dateKey));
-        let filterText = '';
-        if (currentSearchTerm) filterText += ` 🔍 "${currentSearchTerm}"`;
-        if (currentDateFilter) filterText += ` 📅 ${currentDateFilter.start} to ${currentDateFilter.end}`;
-        playlistStats.innerHTML = `${currentPlaylist.length.toLocaleString()} episodes • ${uniqueDates.size} days • CT Timezone${filterText}`;
-        updateActiveFiltersDisplay();
-        renderVirtualPlaylist();
-        if (currentPlaylist.length > 0) playEpisode(0);
-        updateQuickFilterButtons();
-        if (isPeekRightVisible) updateUpcomingEpisodesList();
-    }
-    
-    function updateActiveFiltersDisplay() {
-        if (!activeFiltersContainer) return;
-        activeFiltersContainer.innerHTML = '';
-        if (currentSearchTerm) {
-            const tag = document.createElement('div');
-            tag.className = 'filter-tag';
-            tag.innerHTML = `🔍 ${escapeHtml(currentSearchTerm)} <span class="remove-filter" data-filter="search">✖</span>`;
-            activeFiltersContainer.appendChild(tag);
-        }
-        if (currentDateFilter) {
-            const tag = document.createElement('div');
-            tag.className = 'filter-tag';
-            tag.innerHTML = `📅 ${currentDateFilter.start} – ${currentDateFilter.end} <span class="remove-filter" data-filter="date">✖</span>`;
-            activeFiltersContainer.appendChild(tag);
-        }
-        document.querySelectorAll('.remove-filter').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const filterType = btn.getAttribute('data-filter');
-                if (filterType === 'search') {
-                    currentSearchTerm = '';
-                    searchInput.value = '';
-                    clearSearchBtn.classList.remove('visible');
-                    applyAllFilters();
-                } else if (filterType === 'date') {
-                    currentDateFilter = null;
-                    selectedCalendarDate = null;
-                    if (dateFilterBadge) dateFilterBadge.style.display = 'none';
-                    applyAllFilters();
-                    renderCalendar(currentCalendarYear, currentCalendarMonth);
-                }
-            });
-        });
-    }
-    
-    function updateQuickFilterButtons() {
-        const quickBtns = document.querySelectorAll('.quick-filter-btn');
-        quickBtns.forEach(btn => btn.classList.remove('active'));
-        if (currentDateFilter) {
-            const startDate = new Date(currentDateFilter.start);
-            const endDate = new Date(currentDateFilter.end);
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const diffDays = Math.ceil((today - startDate) / (1000 * 60 * 60 * 24));
-            quickBtns.forEach(btn => {
-                const days = parseInt(btn.getAttribute('data-days'));
-                if (days === diffDays && endDate.toDateString() === today.toDateString()) btn.classList.add('active');
-            });
-        }
-    }
-    
-    function clearSearch() {
-        if (searchInput) {
-            searchInput.value = '';
-            currentSearchTerm = '';
-            clearSearchBtn.classList.remove('visible');
-            applyAllFilters();
-        }
-    }
-    
-    function renderCalendar(year, month) {
-        const firstDay = new Date(year, month, 1);
-        const startDay = firstDay.getDay();
-        const daysInMonth = new Date(year, month + 1, 0).getDate();
-        calendarMonthYear.textContent = firstDay.toLocaleString('default', { month: 'long', year: 'numeric' });
-        let html = '';
-        for (let i = 0; i < startDay; i++) html += '<div class="calendar-day other-month"></div>';
-        for (let day = 1; day <= daysInMonth; day++) {
-            const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-            const hasEpisode = allEpisodes.some(ep => ep.dateKey === dateKey);
-            const isSelected = currentDateFilter && dateKey >= currentDateFilter.start && dateKey <= currentDateFilter.end;
-            html += `<div class="calendar-day ${hasEpisode ? 'has-episode' : ''} ${isSelected ? 'selected' : ''}" data-date="${dateKey}">${day}</div>`;
-        }
-        calendarDaysGrid.innerHTML = html;
-        document.querySelectorAll('.calendar-day[data-date]').forEach(day => {
-            day.addEventListener('click', () => {
-                const date = day.getAttribute('data-date');
-                if (selectedCalendarDate === date) {
-                    selectedCalendarDate = null;
-                    day.classList.remove('selected');
-                } else {
-                    document.querySelectorAll('.calendar-day.selected').forEach(d => d.classList.remove('selected'));
-                    selectedCalendarDate = date;
-                    day.classList.add('selected');
-                }
-            });
-        });
-    }
-    
-    function setupSearch() {
-        if (!searchInput) return;
-        const debouncedSearch = debounce(() => {
-            currentSearchTerm = searchInput.value;
-            clearSearchBtn.classList.toggle('visible', currentSearchTerm.length > 0);
-            applyAllFilters();
-        }, 200);
-        searchInput.addEventListener('input', debouncedSearch);
-        if (clearSearchBtn) clearSearchBtn.addEventListener('click', clearSearch);
-    }
-    
-    function setupCalendar() {
-        if (!calendarFilterBtn) return;
-        calendarFilterBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (calendarFlyout.classList.contains('active')) calendarFlyout.classList.remove('active');
-            else calendarFlyout.classList.add('active');
-            renderCalendar(currentCalendarYear, currentCalendarMonth);
-        });
-        if (closeCalendarBtn) closeCalendarBtn.addEventListener('click', () => calendarFlyout.classList.remove('active'));
-        if (calendarPrevMonth) calendarPrevMonth.addEventListener('click', () => {
-            currentCalendarMonth--;
-            if (currentCalendarMonth < 0) { currentCalendarMonth = 11; currentCalendarYear--; }
-            renderCalendar(currentCalendarYear, currentCalendarMonth);
-        });
-        if (calendarNextMonth) calendarNextMonth.addEventListener('click', () => {
-            currentCalendarMonth++;
-            if (currentCalendarMonth > 11) { currentCalendarMonth = 0; currentCalendarYear++; }
-            renderCalendar(currentCalendarYear, currentCalendarMonth);
-        });
-        if (clearDateFilterBtn) clearDateFilterBtn.addEventListener('click', () => {
-            currentDateFilter = null;
-            selectedCalendarDate = null;
-            if (dateFilterBadge) dateFilterBadge.style.display = 'none';
-            applyAllFilters();
-            renderCalendar(currentCalendarYear, currentCalendarMonth);
-            calendarFlyout.classList.remove('active');
-        });
-        if (applyDateFilterBtn) applyDateFilterBtn.addEventListener('click', () => {
-            if (selectedCalendarDate) {
-                currentDateFilter = { start: selectedCalendarDate, end: selectedCalendarDate };
-                if (dateFilterBadge) { dateFilterBadge.textContent = '📅'; dateFilterBadge.style.display = 'inline-block'; }
-                applyAllFilters();
-            }
-            calendarFlyout.classList.remove('active');
-        });
-        document.addEventListener('click', (e) => {
-            if (!e.target.closest('.calendar-filter-container') && calendarFlyout.classList.contains('active')) {
-                calendarFlyout.classList.remove('active');
-            }
-        });
-    }
-    
-    function setupQuickFilters() {
-        const quickBtns = document.querySelectorAll('.quick-filter-btn');
-        quickBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                const days = parseInt(btn.getAttribute('data-days'));
-                if (!isNaN(days)) {
-                    const endDate = new Date();
-                    endDate.setHours(23, 59, 59, 999);
-                    const startDate = new Date();
-                    startDate.setDate(startDate.getDate() - days + 1);
-                    startDate.setHours(0, 0, 0, 0);
-                    currentDateFilter = { start: startDate.toISOString().split('T')[0], end: endDate.toISOString().split('T')[0] };
-                    if (dateFilterBadge) { dateFilterBadge.textContent = `${days}d`; dateFilterBadge.style.display = 'inline-block'; }
-                    applyAllFilters();
-                }
-            });
-        });
     }
     
     // ============ LOAD EPISODES ============
@@ -2428,6 +1853,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch(API_URL);
             const data = await response.json();
             if (data.status !== 'ok') throw new Error('Failed to load RSS feed');
+            
             allEpisodes = data.items.map((item, idx) => {
                 const utcDate = new Date(item.pubDate);
                 const centralDate = toCentralTime(utcDate);
@@ -2437,21 +1863,25 @@ document.addEventListener('DOMContentLoaded', () => {
                     title: item.title,
                     description: item.description ? item.description.replace(/<[^>]*>/g, '') : 'No description',
                     centralDate: centralDate,
-                    dateKey: centralDate.toISOString().split('T')[0],
+                    dateKey: formatDateKey(centralDate),
                     show: show,
                     hour: hour,
                     videoUrl: transformVideoUrl(item.link),
                     originalLink: item.link
                 };
             });
+            
             allEpisodes.sort((a, b) => b.centralDate - a.centralDate);
             currentPlaylist = [...allEpisodes];
+            
             const uniqueDates = new Set(currentPlaylist.map(e => e.dateKey));
             playlistStats.innerHTML = `${currentPlaylist.length.toLocaleString()} episodes • ${uniqueDates.size} days • CT Timezone`;
+            
+            renderCalendar();
             renderVirtualPlaylist();
+            
             if (currentPlaylist.length > 0) playEpisode(0);
             showToast(`Loaded ${allEpisodes.length.toLocaleString()} episodes`);
-            showTeachingTooltip();
         } catch (error) {
             console.error('Error loading episodes:', error);
             playlistStats.innerHTML = '❌ Failed to load episodes';
@@ -2473,6 +1903,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const dark = document.body.classList.contains('dark');
                 localStorage.setItem(STORAGE_KEYS.DARK_MODE, dark);
                 darkModeToggle.innerHTML = dark ? '☀️ Light' : '🌙 Dark';
+                renderCalendar();
             });
         }
     }
@@ -2503,6 +1934,24 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
+    if (calendarPrevMonth) {
+        calendarPrevMonth.addEventListener('click', () => {
+            currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1);
+            renderCalendar();
+        });
+    }
+    
+    if (calendarNextMonth) {
+        calendarNextMonth.addEventListener('click', () => {
+            currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1);
+            renderCalendar();
+        });
+    }
+    
+    if (clearCalendarFilter) {
+        clearCalendarFilter.addEventListener('click', clearCalendarFilter);
+    }
+    
     // ============ INITIALIZATION ============
     function init() {
         document.body.classList.add('preload');
@@ -2512,11 +1961,8 @@ document.addEventListener('DOMContentLoaded', () => {
         initVideoControls();
         startPositionTracking();
         setupSearch();
-        setupCalendar();
-        setupQuickFilters();
-        setupEdgeZones();
         loadEpisodes();
-        console.log('P2-1 Edge hover zones initialized with 200ms delay');
+        console.log('P2-2 Calendar month view initialized with week color blocks and tooltips');
     }
     
     init();
