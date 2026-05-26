@@ -1,0 +1,12 @@
+# Create .gitignore with the recommended content
+cat > .gitignore << 'EOF'
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log
+*.tmp
+*.bak
+.env
+node_modules/
+EOF
