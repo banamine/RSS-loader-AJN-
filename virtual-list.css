@@ -7,10 +7,8 @@
     overflow-x: hidden;
     height: 100%;
     min-height: 400px;
-    scroll-behavior: smooth;
 }
 
-/* Custom scrollbar */
 .playlist-container::-webkit-scrollbar {
     width: 8px;
 }
@@ -25,20 +23,27 @@
     border-radius: 4px;
 }
 
-/* Playlist item - fixed height for virtual scrolling */
+#virtualList {
+    will-change: transform;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+}
+
 .playlist-item {
     position: relative;
     display: flex;
     align-items: center;
-    gap: var(--spacing-md);
-    padding: var(--spacing-md);
-    border-radius: var(--border-radius);
+    gap: 16px;
+    padding: 12px 16px;
+    border-radius: 12px;
     cursor: pointer;
     transition: all 0.2s ease;
     border: 1px solid transparent;
     height: 80px;
     box-sizing: border-box;
-    overflow: visible;
 }
 
 .playlist-item:hover {
@@ -51,92 +56,60 @@
     border-color: var(--primary);
 }
 
-/* ============ THREE-DOT MENU TRIGGER ============ */
-/* CRITICAL: Hidden by default, appears on hover or focus */
+/* Three-dot menu */
 .menu-trigger {
     position: absolute;
     right: 12px;
     top: 50%;
     transform: translateY(-50%);
     opacity: 0;
-    transition: opacity 0.2s ease, background 0.2s ease;
+    transition: opacity 0.2s ease;
     cursor: pointer;
     background: var(--bg-surface);
     border: 1px solid var(--border);
     padding: 6px 10px;
     border-radius: 6px;
     font-size: 1.1rem;
-    font-weight: bold;
-    color: var(--text-primary);
     z-index: 5;
-    line-height: 1;
-    box-shadow: var(--shadow-sm);
 }
 
-/* HOVER: Shows menu trigger when hovering over playlist item */
-.playlist-item:hover .menu-trigger {
-    opacity: 1;
-}
-
-/* FOCUS-WITHIN: Shows menu trigger when keyboard navigating to it */
+.playlist-item:hover .menu-trigger,
 .playlist-item:focus-within .menu-trigger {
     opacity: 1;
-}
-
-/* Separate focus style for keyboard users */
-.menu-trigger:focus-visible {
-    outline: 2px solid var(--primary);
-    outline-offset: 2px;
-    opacity: 1;
-    background: var(--primary-light);
 }
 
 .menu-trigger:hover {
     background: var(--primary-light);
     border-color: var(--primary);
-    transform: translateY(-50%) scale(1.05);
 }
 
-/* ============ FLYOUT MENU ============ */
+/* Flyout menu */
 .flyout-menu {
     position: absolute;
     right: 12px;
     top: 50px;
     background: var(--bg-surface);
     border: 1px solid var(--border);
-    box-shadow: var(--shadow-lg);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     border-radius: 8px;
     z-index: 100;
     display: none;
-    min-width: 160px;
+    min-width: 140px;
     overflow: hidden;
-    animation: fadeIn 0.15s ease;
 }
 
 .flyout-menu.active {
     display: block;
 }
 
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(-5px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
 .flyout-menu-item {
     padding: 10px 16px;
     cursor: pointer;
-    transition: background 0.2s ease;
+    transition: background 0.2s;
     display: flex;
     align-items: center;
     gap: 10px;
     font-size: 0.85rem;
-    color: var(--text-primary);
     border-bottom: 1px solid var(--border-light);
 }
 
@@ -148,19 +121,12 @@
     background: var(--bg-surface-hover);
 }
 
-.flyout-menu-item:focus-visible {
-    outline: 2px solid var(--primary);
-    outline-offset: -2px;
-    background: var(--bg-surface-hover);
-}
-
 .flyout-menu-divider {
     height: 1px;
     background: var(--border);
     margin: 4px 0;
 }
 
-/* Thumbnail and info */
 .playlist-thumbnail {
     width: 60px;
     height: 60px;
@@ -176,9 +142,6 @@
 .playlist-info {
     flex: 1;
     min-width: 0;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
     margin-right: 40px;
 }
 
@@ -194,7 +157,6 @@
 .playlist-date {
     font-size: 0.7rem;
     color: var(--text-secondary);
-    margin-bottom: 2px;
 }
 
 .playlist-duration {
@@ -202,29 +164,22 @@
     color: var(--text-tertiary);
 }
 
-/* Dark mode support */
-.dark .menu-trigger {
-    background: var(--bg-surface);
-    border-color: var(--border);
+.empty-state {
+    text-align: center;
+    padding: 40px;
+    color: var(--text-secondary);
 }
 
-.dark .flyout-menu {
-    background: var(--bg-surface);
-    border-color: var(--border);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-}
-
-/* Responsive */
 @media (max-width: 768px) {
     .playlist-item { height: 70px; }
     .playlist-info { margin-right: 35px; }
     .menu-trigger { padding: 4px 8px; right: 8px; }
-    .flyout-menu { right: 8px; min-width: 140px; }
+    .flyout-menu { right: 8px; min-width: 130px; top: 45px; }
+    .playlist-thumbnail { width: 46px; height: 46px; font-size: 1.2rem; }
 }
 
 @media (max-width: 480px) {
-    .playlist-item { height: 65px; }
+    .playlist-item { height: 65px; padding: 10px; }
     .playlist-info { margin-right: 30px; }
     .menu-trigger { padding: 3px 6px; }
-    .flyout-menu { min-width: 130px; top: 45px; }
 }
