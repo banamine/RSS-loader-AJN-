@@ -1,7 +1,137 @@
-// ============ FLYOUT ACTION HANDLERS ============
-// All handlers accept an 'index' parameter, not relying on currentIndex
+// ============ MAIN APPLICATION - MODULAR VERSION ============
+import { transformVideoUrl, toCentralTime, formatCentralTime, parseEpisodeDetails, escapeHtml, showToast } from './utils/helpers.js';
+import { VideoControls } from './utils/videoControls.js';
+import { NowPlayingCard } from './components/NowPlayingCard.js';
+import { VirtualPlaylist } from './components/VirtualPlaylist.js';
 
-// Download episode by specific index
+// Global state
+let allEpisodes = [];
+let currentPlaylist = [];
+let currentIndex = 0;
+let nowPlayingCard = null;
+let virtualPlaylist = null;
+
+// RSS Feed URL
+const RSS_URL = 'https://rss.alexjones.media/AJNHourlyVideo.xml';
+const API_URL = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(RSS_URL)}`;
+
+// Load episodes from RSS
+async function loadEpisodes() {
+    showToast('Loading episodes...');
+    
+    try {
+        const response = await fetch(API_URL);
+        const data = await response.json();
+        
+        if (data.status !== 'ok') {
+            throw new Error('Failed to load RSS feed');
+        }
+        
+        // Process episodes
+        allEpisodes = data.items.map((item, idx) => {
+            const utcDate = new Date(item.pubDate);
+            const centralDate = toCentralTime(utcDate);
+            const { show, hour } = parseEpisodeDetails(item.title);
+            
+            return {
+                id: idx,
+                title: item.title,
+                description: item.description ? item.description.replace(/<[^>]*>/g, '') : 'No description',
+                pubDateUTC: utcDate,
+                centralDate: centralDate,
+                dateKey: centralDate.toISOString().split('T')[0],
+                show: show,
+                hour: hour,
+                videoUrl: transformVideoUrl(item.link),
+                originalLink: item.link
+            };
+        });
+        
+        // Sort by date (newest first)
+        allEpisodes.sort((a, b) => b.centralDate - a.centralDate);
+        currentPlaylist = [...allEpisodes];
+        
+        // Update stats display
+        updatePlaylistStats();
+        
+        // Initialize Virtual Playlist if not already done
+        if (!virtualPlaylist) {
+            virtualPlaylist = new VirtualPlaylist('playlistContainer', {
+                rowHeight: 80,
+                buffer: 5,
+                onItemClick: (index) => playEpisode(index),
+                onDownload: (index) => downloadEpisodeByIndex(index),
+                onShare: (index) => shareEpisodeByIndex(index),
+                onCopyLink: (index) => copyLink(index),
+                onViewDetails: (index) => viewDetails(index)
+            });
+        }
+        
+        // Set items in virtual playlist
+        virtualPlaylist.setItems(currentPlaylist);
+        
+        // Initialize Now Playing Card
+        if (!nowPlayingCard) {
+            nowPlayingCard = new NowPlayingCard();
+            nowPlayingCard.setOnEpisodeEnd(() => {
+                if (nowPlayingCard.isAutoplayEnabled() && currentIndex + 1 < currentPlaylist.length) {
+                    playEpisode(currentIndex + 1);
+                    showToast('▶ Auto-playing next episode');
+                }
+            });
+        }
+        
+        // Auto-select first episode
+        if (currentPlaylist.length > 0) {
+            playEpisode(0);
+        }
+        
+        showToast(`Loaded ${allEpisodes.length.toLocaleString()} episodes`);
+        
+    } catch (error) {
+        console.error('Error loading episodes:', error);
+        const statsElement = document.getElementById('playlistStats');
+        if (statsElement) {
+            statsElement.innerHTML = '❌ Failed to load episodes';
+        }
+        showToast('Failed to load episodes', 4000);
+    }
+}
+
+// Update playlist statistics
+function updatePlaylistStats() {
+    const uniqueDates = new Set(currentPlaylist.map(e => e.dateKey));
+    const statsElement = document.getElementById('playlistStats');
+    if (statsElement) {
+        statsElement.innerHTML = `${currentPlaylist.length.toLocaleString()} episodes • ${uniqueDates.size} days • CT Timezone`;
+    }
+}
+
+// Play episode
+function playEpisode(index) {
+    if (index < 0 || index >= currentPlaylist.length) return;
+    
+    currentIndex = index;
+    const episode = currentPlaylist[currentIndex];
+    
+    // Update Now Playing Card
+    if (nowPlayingCard) {
+        nowPlayingCard.updateEpisode(episode);
+    }
+    
+    // Update virtual playlist active state
+    if (virtualPlaylist) {
+        virtualPlaylist.setCurrentIndex(currentIndex);
+    }
+    
+    // Update document title
+    document.title = `${episode.show} - AJN Hourly Archive`;
+    
+    // Save to localStorage
+    localStorage.setItem('lastPlaylistIndex', currentIndex);
+}
+
+// Download episode by index
 function downloadEpisodeByIndex(index) {
     const episode = currentPlaylist[index];
     if (!episode) return;
@@ -17,7 +147,7 @@ function downloadEpisodeByIndex(index) {
     showToast(`Downloading: ${episode.title.substring(0, 50)}...`);
 }
 
-// Share episode by specific index
+// Share episode by index
 function shareEpisodeByIndex(index) {
     const episode = currentPlaylist[index];
     if (!episode) return;
@@ -36,7 +166,7 @@ function shareEpisodeByIndex(index) {
     }
 }
 
-// Copy link by specific index
+// Copy link by index
 function copyLink(index) {
     const episode = currentPlaylist[index];
     if (!episode) return;
@@ -46,14 +176,13 @@ function copyLink(index) {
     showToast('Link copied to clipboard');
 }
 
-// View episode details by specific index
+// View episode details
 function viewDetails(index) {
     const episode = currentPlaylist[index];
     if (!episode) return;
     
     if (virtualPlaylist) virtualPlaylist.closeAllFlyouts();
     
-    // Create modal with episode details
     const modal = document.createElement('div');
     modal.style.cssText = `
         position: fixed; top: 0; left: 0; right: 0; bottom: 0;
@@ -78,13 +207,80 @@ function viewDetails(index) {
     modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
 }
 
-// Make functions globally available
-window.downloadEpisodeByIndex = downloadEpisodeByIndex;
-window.shareEpisodeByIndex = shareEpisodeByIndex;
-window.copyLink = copyLink;
-window.viewDetails = viewDetails;
-window.toggleFlyout = (event, index) => {
-    if (window.virtualPlaylist) {
-        window.virtualPlaylist.toggleFlyout(event, index);
+// Download current episode (main button)
+function downloadCurrentEpisode() {
+    downloadEpisodeByIndex(currentIndex);
+}
+
+// Share current episode (main button)
+function shareCurrentEpisode() {
+    shareEpisodeByIndex(currentIndex);
+}
+
+// Next episode
+function nextEpisode() {
+    if (currentIndex + 1 < currentPlaylist.length) {
+        playEpisode(currentIndex + 1);
+        showToast('Playing next episode...');
+    } else {
+        showToast('End of playlist reached');
     }
-};
+}
+
+// Previous episode
+function previousEpisode() {
+    if (currentIndex - 1 >= 0) {
+        playEpisode(currentIndex - 1);
+        showToast('Playing previous episode...');
+    } else {
+        showToast('Beginning of playlist');
+    }
+}
+
+// Dark mode toggle
+function initDarkMode() {
+    const isDark = localStorage.getItem('darkMode') === 'true';
+    if (isDark) {
+        document.body.classList.add('dark');
+        const toggleBtn = document.getElementById('darkModeToggle');
+        if (toggleBtn) toggleBtn.textContent = '☀️ Light';
+    }
+    
+    const toggleBtn = document.getElementById('darkModeToggle');
+    if (toggleBtn) {
+        toggleBtn.addEventListener('click', () => {
+            document.body.classList.toggle('dark');
+            const dark = document.body.classList.contains('dark');
+            localStorage.setItem('darkMode', dark);
+            toggleBtn.textContent = dark ? '☀️ Light' : '🌙 Dark';
+        });
+    }
+}
+
+// Event Listeners
+document.getElementById('downloadBtn')?.addEventListener('click', downloadCurrentEpisode);
+document.getElementById('shareBtn')?.addEventListener('click', shareCurrentEpisode);
+document.getElementById('nextBtn')?.addEventListener('click', nextEpisode);
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'ArrowDown') {
+        e.preventDefault();
+        nextEpisode();
+    } else if ((e.ctrlKey || e.metaKey) && e.key === 'ArrowUp') {
+        e.preventDefault();
+        previousEpisode();
+    } else if (e.key === 'Escape' && virtualPlaylist) {
+        virtualPlaylist.closeAllFlyouts();
+    }
+});
+
+// Initialize application
+function init() {
+    console.log('Initializing AJN Hourly Archive...');
+    initDarkMode();
+    loadEpisodes();
+}
+
+// Start the application
+init();

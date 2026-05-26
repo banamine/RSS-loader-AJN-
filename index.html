@@ -5,10 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>AJN Hourly Archive - Virtualized Playlist</title>
 
-<!-- CSS -->
-<link rel="stylesheet" href="css/main.css">
-<link rel="stylesheet" href="css/components/now-playing.css">
-<link rel="stylesheet" href="css/components/virtual-list.css">
+<!-- CSS - Corrected paths to match repository structure -->
+<link rel="stylesheet" href="main.css">
+<link rel="stylesheet" href="now-playing.css">
+<link rel="stylesheet" href="virtual-list.css">
 </head>
 <body>
 
@@ -27,10 +27,9 @@
 
 <!-- MAIN CONTAINER -->
 <main class="container">
-    <!-- TWO-COLUMN GRID LAYOUT (65% / 35%) -->
     <div class="main-grid">
         
-        <!-- LEFT COLUMN (65%) - NOW PLAYING CARD COMPONENT -->
+        <!-- LEFT COLUMN (65%) - NOW PLAYING CARD -->
         <div class="video-section">
             <div class="now-playing-card">
                 <div class="now-playing-label">▶ NOW PLAYING</div>
@@ -46,7 +45,7 @@
 
                 <div class="controls-ui">
                     <div class="progress-container">
-                        <input type="range" id="progressBar" value="0" max="100" step="0.1" aria-label="Video progress" style="width: 100%; margin-bottom: 10px;">
+                        <input type="range" id="progressBar" value="0" max="100" step="0.1" aria-label="Video progress">
                         <div class="time-display">
                             <span id="currentTime">0:00</span>
                             <span id="duration">0:00</span>
@@ -82,11 +81,7 @@
     </div>
 </main>
 
-<!-- JavaScript Modules -->
-<script src="js/utils/helpers.js"></script>
-<script src="js/utils/videoControls.js"></script>
-<script src="js/components/NowPlayingCard.js"></script>
-<script src="js/components/VirtualPlaylist.js"></script>
-<script src="js/main.js"></script>
+<!-- JavaScript - Load as modules -->
+<script type="module" src="main.js"></script>
 </body>
 </html>
