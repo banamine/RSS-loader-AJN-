@@ -363,3 +363,31 @@ window.savePlaybackPosition = savePlaybackPosition;
 window.getPlaybackPosition = getPlaybackPosition;
 window.clearPlaybackPosition = clearPlaybackPosition;
 window.resumeLastPlayedEpisode = resumeLastPlayedEpisode;
+// js/main.js
+
+// 1. Ensure global variables are set (as per your VirtualPlaylist.js export)
+window.virtualPlaylist = null;
+
+document.addEventListener('DOMContentLoaded', () => {
+    console.log("DOM loaded. Initializing components...");
+
+    // 2. Instantiate the VirtualPlaylist
+    // Pass the container ID defined in index.html ('playlistContainer')
+    if (typeof VirtualPlaylist !== 'undefined') {
+        window.virtualPlaylist = new VirtualPlaylist('playlistContainer', {
+            rowHeight: 80,
+            buffer: 10
+        });
+        
+        // 3. Inject data (Assuming 'allEpisodes' is the array of your archive)
+        // If 'allEpisodes' isn't defined yet, this won't show anything.
+        if (typeof allEpisodes !== 'undefined') {
+            window.virtualPlaylist.items = allEpisodes;
+            window.virtualPlaylist.init(); // This actually renders the rows
+        } else {
+            console.warn("allEpisodes data array is not defined yet.");
+        }
+    } else {
+        console.error("VirtualPlaylist class is not loaded.");
+    }
+});
