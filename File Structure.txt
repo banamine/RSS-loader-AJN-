@@ -1,5 +1,17 @@
-RSS-loader-AJN-/
-├── index.html          ✅ (Updated with correct paths)
-├── main.css            ✅ (Root level - all base styles)
-├── virtual-list.css    ✅ (Root level - playlist styles)
-└── main.js             ✅ (Complete working application)
+/
+├── index.html
+├── css/
+│   ├── main.css
+│   └── components/
+│       ├── now-playing.css
+│       └── virtual-list.css
+└── js/
+    ├── main.js
+    ├── utils/
+    │   ├── helpers.js
+    │   └── videoControls.js
+    └── components/
+        ├── NowPlayingCard.js
+        ├── VirtualPlaylist.js
+        ├── QueueManager.js
+        └── CalendarView.js

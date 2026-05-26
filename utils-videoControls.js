@@ -1,6 +1,5 @@
-import { formatTime } from './helpers.js';
-
-// ============ VIDEO CONTROLS MODULE ============
+// ============ VIDEO CONTROLS MODULE ==========
+import { formatTime, showToast } from './helpers.js';
 
 export class VideoControls {
     constructor(videoElement, progressBar, playPauseBtn, currentTimeDisplay, durationDisplay) {
@@ -10,13 +9,14 @@ export class VideoControls {
         this.currentTimeDisplay = currentTimeDisplay;
         this.durationDisplay = durationDisplay;
         this.isSeeking = false;
+        this.onEndCallback = null;
         
         this.initEventListeners();
     }
     
     initEventListeners() {
         this.video.addEventListener('timeupdate', () => {
-            if (!this.isSeeking) {
+            if (!this.isSeeking && this.video.duration) {
                 this.updateProgress();
                 this.updateCurrentTime();
             }
@@ -42,10 +42,6 @@ export class VideoControls {
             this.togglePlayPause();
         });
         
-        this.video.addEventListener('ended', () => {
-            this.updatePlayPauseButton(false);
-        });
-        
         this.video.addEventListener('play', () => {
             this.updatePlayPauseButton(true);
         });
@@ -53,13 +49,17 @@ export class VideoControls {
         this.video.addEventListener('pause', () => {
             this.updatePlayPauseButton(false);
         });
+        
+        this.video.addEventListener('ended', () => {
+            if (this.onEndCallback) {
+                this.onEndCallback();
+            }
+        });
     }
     
     updateProgress() {
-        if (this.video.duration) {
-            const percent = (this.video.currentTime / this.video.duration) * 100;
-            this.progressBar.value = percent;
-        }
+        const percent = (this.video.currentTime / this.video.duration) * 100;
+        this.progressBar.value = percent;
     }
     
     updateCurrentTime() {
@@ -83,17 +83,22 @@ export class VideoControls {
     
     togglePlayPause() {
         if (this.video.paused) {
-            this.video.play().catch(e => console.log('Play prevented:', e));
+            this.video.play().catch(e => {
+                console.log('Play prevented:', e);
+                showToast('Click play to start', 2000);
+            });
         } else {
             this.video.pause();
         }
     }
     
     skip(seconds) {
-        this.video.currentTime = Math.min(
-            Math.max(this.video.currentTime + seconds, 0),
-            this.video.duration
-        );
+        this.video.currentTime = Math.min(Math.max(this.video.currentTime + seconds, 0), this.video.duration);
+        showToast(`${seconds > 0 ? 'Forward' : 'Back'} ${Math.abs(seconds)} seconds`);
+    }
+    
+    setOnEnd(callback) {
+        this.onEndCallback = callback;
     }
     
     enterFullscreen(element) {
@@ -103,6 +108,20 @@ export class VideoControls {
             element.webkitRequestFullscreen();
         } else if (element.msRequestFullscreen) {
             element.msRequestFullscreen();
+        }
+    }
+    
+    loadEpisode(videoUrl, autoPlay = false) {
+        this.video.src = videoUrl;
+        this.video.load();
+        if (autoPlay) {
+            this.video.play().catch(e => console.log('Autoplay prevented'));
+        }
+    }
+    
+    setCurrentTime(position) {
+        if (position > 0 && position < this.video.duration) {
+            this.video.currentTime = position;
         }
     }
 }
