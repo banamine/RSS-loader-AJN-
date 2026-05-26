@@ -1,16 +1,28 @@
-// ============ MAIN APPLICATION ==========
+// ============ MAIN APPLICATION WITH WORKER INTEGRATION ==========
 import { transformVideoUrl, toCentralTime, formatCentralTime, formatDateKey, parseEpisodeDetails, escapeHtml, showToast, trapFocus, debounce } from './utils/helpers.js';
 import { VideoControls } from './utils/videoControls.js';
 import { NowPlayingCard } from './components/NowPlayingCard.js';
 import { VirtualPlaylist } from './components/VirtualPlaylist.js';
 import { QueueManager } from './components/QueueManager.js';
 import { CalendarView } from './components/CalendarView.js';
+import { getWorkerManager, XsltWorkerManager } from './utils/xsltWorkerManager.js';
+import { getFeedService, FeedService } from './services/feedService.js';
 
 // Storage Keys
 const STORAGE_KEYS = {
     PLAYBACK_POSITIONS: 'ajn_playback_positions',
     DARK_MODE: 'darkMode',
-    VIEW_MODE: 'ajn_view_mode'
+    VIEW_MODE: 'ajn_view_mode',
+    LAST_FEED_URL: 'ajn_last_feed_url'
+};
+
+// RSS Feed URLs
+const FEED_URLS = {
+    hourlyVideo: 'https://rss.alexjones.media/AJNHourlyVideo.xml',
+    hourlyAudio: 'https://rss.alexjones.media/AJNHourlyAudio.xml',
+    alexJonesShow: 'https://rss.alexjones.media/AlexJonesShow.xml',
+    warRoom: 'https://rss.alexjones.media/WarRoom.xml',
+    sundayNightLive: 'https://rss.alexjones.media/SundayNightLive.xml'
 };
 
 // Global State
@@ -21,12 +33,15 @@ let playbackPositions = {};
 let saveTimeout = null;
 let currentSearchTerm = '';
 let selectedCalendarDate = null;
+let currentFeedUrl = FEED_URLS.hourlyVideo;
 
 // Components
 let nowPlayingCard = null;
 let virtualPlaylist = null;
 let queueManager = null;
 let calendarView = null;
+let feedService = null;
+let workerManager = null;
 
 // DOM Elements
 const playlistStats = document.getElementById('playlistStats');
@@ -37,15 +52,13 @@ const listViewBtn = document.getElementById('listViewBtn');
 const gridViewBtn = document.getElementById('gridViewBtn');
 const darkModeToggle = document.getElementById('darkModeToggle');
 
-// Constants
-const API_URL = 'https://api.rss2json.com/v1/api.json?rss_url=https://rss.alexjones.media/AJNHourlyVideo.xml';
-
 // ============ PLAYBACK PERSISTENCE ==========
 function loadPlaybackPositions() {
     try {
         const saved = localStorage.getItem(STORAGE_KEYS.PLAYBACK_POSITIONS);
         if (saved) {
             playbackPositions = JSON.parse(saved);
+            console.log(`Loaded ${Object.keys(playbackPositions).length} playback positions`);
         }
     } catch (error) {
         playbackPositions = {};
@@ -74,10 +87,96 @@ function getPlaybackPosition(episodeId) {
     return saved && saved.position ? saved.position : 0;
 }
 
-// Make available globally for VirtualPlaylist
 window.getPlaybackPosition = getPlaybackPosition;
 
-// ============ PLAYLIST MANAGEMENT ==========
+// ============ EPISODE PROCESSING ==========
+function processRawEpisodes(rawEpisodes) {
+    return rawEpisodes.map((ep, idx) => {
+        const pubDate = new Date(ep.pubDate);
+        const centralDate = toCentralTime(pubDate);
+        const { show, hour } = parseEpisodeDetails(ep.title);
+        
+        return {
+            id: idx,
+            title: ep.title || 'Untitled Episode',
+            description: ep.description || 'No description available',
+            pubDateUTC: pubDate,
+            centralDate: centralDate,
+            dateKey: formatDateKey(centralDate),
+            show: show,
+            hour: hour,
+            videoUrl: transformVideoUrl(ep.link || ep.enclosure?.url || ''),
+            originalLink: ep.link || ep.enclosure?.url || ''
+        };
+    });
+}
+
+// ============ LOAD EPISODES WITH WORKER ==========
+async function loadEpisodes(showProgress = true) {
+    if (showProgress) {
+        showToast('Loading episodes...');
+    }
+    
+    // Show loading state in playlist
+    if (virtualPlaylist) {
+        virtualPlaylist.setItems([]);
+        virtualPlaylist.showLoading();
+    }
+    
+    try {
+        const result = await feedService.fetchFeedWithProgress(
+            currentFeedUrl,
+            (progress) => {
+                if (progress.type === 'chunk' && virtualPlaylist) {
+                    // Progressive rendering as chunks arrive
+                    const partialEpisodes = processRawEpisodes(progress.episodesSoFar || []);
+                    virtualPlaylist.setItems(partialEpisodes);
+                    if (partialEpisodes.length > 0 && currentIndex === 0) {
+                        nowPlayingCard?.updateEpisode(partialEpisodes[0], getPlaybackPosition(partialEpisodes[0].id));
+                    }
+                    updatePlaylistStatsPartial(partialEpisodes.length, progress.totalChunks);
+                }
+            },
+            { useChunking: true }
+        );
+        
+        if (result.success && result.episodes) {
+            allEpisodes = processRawEpisodes(result.episodes);
+            allEpisodes.sort((a, b) => b.centralDate - a.centralDate);
+            currentPlaylist = [...allEpisodes];
+            
+            if (calendarView) calendarView.setEpisodes(allEpisodes);
+            if (virtualPlaylist) virtualPlaylist.setItems(currentPlaylist);
+            
+            updatePlaylistStats();
+            
+            if (currentPlaylist.length > 0 && nowPlayingCard) {
+                const firstEpisode = currentPlaylist[0];
+                nowPlayingCard.updateEpisode(firstEpisode, getPlaybackPosition(firstEpisode.id));
+            }
+            
+            showToast(`Loaded ${allEpisodes.length.toLocaleString()} episodes`);
+        } else if (result.error) {
+            throw new Error(result.error);
+        }
+        
+    } catch (error) {
+        console.error('Error loading episodes:', error);
+        if (playlistStats) playlistStats.innerHTML = '❌ Failed to load';
+        showToast(`Failed to load: ${error.message}`, 4000);
+        
+        if (virtualPlaylist) {
+            virtualPlaylist.showError(error.message);
+        }
+    }
+}
+
+function updatePlaylistStatsPartial(loadedCount, totalChunks) {
+    if (playlistStats) {
+        playlistStats.innerHTML = `Loading: ${loadedCount.toLocaleString()} episodes so far...`;
+    }
+}
+
 function updatePlaylistStats() {
     if (!playlistStats) return;
     const uniqueDates = new Set(currentPlaylist.map(e => e.dateKey));
@@ -87,6 +186,37 @@ function updatePlaylistStats() {
     playlistStats.innerHTML = `${currentPlaylist.length.toLocaleString()} episodes • ${uniqueDates.size} days • CT${filterText}`;
 }
 
+// ============ FEED SELECTOR ==========
+function createFeedSelector() {
+    const headerControls = document.querySelector('.header-controls');
+    if (!headerControls) return;
+    
+    const select = document.createElement('select');
+    select.id = 'feedSelector';
+    select.className = 'feed-selector';
+    select.setAttribute('aria-label', 'Select feed source');
+    select.style.cssText = 'padding: 6px 12px; border-radius: 8px; background: var(--bg-surface); border: 1px solid var(--border); color: var(--text-primary);';
+    
+    select.innerHTML = `
+        <option value="${FEED_URLS.hourlyVideo}">📺 Network Feed (Video)</option>
+        <option value="${FEED_URLS.hourlyAudio}">🎧 Network Feed (Audio)</option>
+        <option value="${FEED_URLS.alexJonesShow}">🎙️ Alex Jones Show</option>
+        <option value="${FEED_URLS.warRoom}">⚔️ War Room</option>
+        <option value="${FEED_URLS.sundayNightLive}">🌙 Sunday Night Live</option>
+    `;
+    
+    select.value = currentFeedUrl;
+    
+    select.addEventListener('change', async (e) => {
+        currentFeedUrl = e.target.value;
+        localStorage.setItem(STORAGE_KEYS.LAST_FEED_URL, currentFeedUrl);
+        await loadEpisodes(true);
+    });
+    
+    headerControls.insertBefore(select, darkModeToggle);
+}
+
+// ============ APPLY FILTERS ==========
 function applyFilters() {
     let filtered = [...allEpisodes];
     
@@ -170,8 +300,6 @@ function playEpisode(index) {
     if (virtualPlaylist) {
         virtualPlaylist.setCurrentIndex(currentIndex);
     }
-    
-    savePlaybackPosition(episode.id, 0, 0);
 }
 
 function downloadEpisode(index) {
@@ -252,7 +380,6 @@ window.toggleFlyout = (event, index, trigger) => {
     if (virtualPlaylist) virtualPlaylist.toggleFlyout(event, index, trigger);
 };
 
-// Queue playback
 function playFromQueue(item) {
     const episodeData = {
         id: item.id,
@@ -354,57 +481,25 @@ function onCalendarDateSelect(dateKey) {
     showToast(`Filtered to ${new Date(dateKey).toLocaleDateString()}`);
 }
 
-// ============ LOAD EPISODES ==========
-async function loadEpisodes() {
-    showToast('Loading episodes...');
-    try {
-        const response = await fetch(API_URL);
-        const data = await response.json();
-        if (data.status !== 'ok') throw new Error('Failed to load RSS feed');
-        
-        allEpisodes = data.items.map((item, idx) => {
-            const utcDate = new Date(item.pubDate);
-            const centralDate = toCentralTime(utcDate);
-            const { show, hour } = parseEpisodeDetails(item.title);
-            return {
-                id: idx,
-                title: item.title,
-                description: item.description ? item.description.replace(/<[^>]*>/g, '') : 'No description',
-                centralDate: centralDate,
-                dateKey: formatDateKey(centralDate),
-                show: show,
-                hour: hour,
-                videoUrl: transformVideoUrl(item.link)
-            };
-        });
-        
-        allEpisodes.sort((a, b) => b.centralDate - a.centralDate);
-        currentPlaylist = [...allEpisodes];
-        
-        if (calendarView) calendarView.setEpisodes(allEpisodes);
-        if (virtualPlaylist) virtualPlaylist.setItems(currentPlaylist);
-        
-        updatePlaylistStats();
-        
-        if (currentPlaylist.length > 0 && nowPlayingCard) {
-            const firstEpisode = currentPlaylist[0];
-            nowPlayingCard.updateEpisode(firstEpisode, getPlaybackPosition(firstEpisode.id));
-        }
-        
-        showToast(`Loaded ${allEpisodes.length.toLocaleString()} episodes`);
-    } catch (error) {
-        console.error('Error loading episodes:', error);
-        if (playlistStats) playlistStats.innerHTML = '❌ Failed to load';
-        showToast('Failed to load episodes', 4000);
-    }
-}
-
 // ============ INITIALIZATION ==========
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('AJN Hourly Archive - Initializing...');
+document.addEventListener('DOMContentLoaded', async () => {
+    console.log('AJN Hourly Archive - Initializing with Web Worker support...');
     
     document.body.classList.add('preload');
     setTimeout(() => document.body.classList.remove('preload'), 100);
+    
+    // Initialize services
+    workerManager = getWorkerManager();
+    feedService = getFeedService();
+    
+    // Initialize worker
+    try {
+        await workerManager.init();
+        console.log('Web Worker initialized successfully');
+    } catch (error) {
+        console.error('Worker initialization failed, falling back to main thread:', error);
+        showToast('Using fallback mode - some features may be slower', 5000);
+    }
     
     initDarkMode();
     loadPlaybackPositions();
@@ -439,10 +534,22 @@ document.addEventListener('DOMContentLoaded', () => {
         onClearResume: clearResumePoint
     });
     
+    virtualPlaylist.showLoading = function() {
+        if (this.virtualList) {
+            this.virtualList.innerHTML = '<div class="loading-state"><div class="loader"></div><div style="margin-top: 12px;">Loading episodes...</div></div>';
+        }
+    };
+    
+    virtualPlaylist.showError = function(message) {
+        if (this.virtualList) {
+            this.virtualList.innerHTML = `<div class="error-state">❌ ${escapeHtml(message)}</div>`;
+        }
+    };
+    
     // Initialize Now Playing Card
     nowPlayingCard = new NowPlayingCard('nowPlayingSection');
     nowPlayingCard.setOnNext(() => {
-        if (queueManager && queueManager.queue.length > 0) {
+        if (queueManager && queueManager.queue && queueManager.queue.length > 0) {
             const nextItem = queueManager.queue[0];
             queueManager.removeFromQueue(0);
             playFromQueue(nextItem);
@@ -457,8 +564,19 @@ document.addEventListener('DOMContentLoaded', () => {
     if (listViewBtn) listViewBtn.addEventListener('click', () => setViewMode('list'));
     if (gridViewBtn) gridViewBtn.addEventListener('click', () => setViewMode('grid'));
     
-    loadSavedViewMode();
-    loadEpisodes();
+    // Create feed selector
+    createFeedSelector();
     
-    console.log('Application initialized - Modular ES6 architecture');
+    // Load saved feed URL
+    const savedFeedUrl = localStorage.getItem(STORAGE_KEYS.LAST_FEED_URL);
+    if (savedFeedUrl && FEED_URLS[Object.keys(FEED_URLS).find(key => FEED_URLS[key] === savedFeedUrl)]) {
+        currentFeedUrl = savedFeedUrl;
+        const feedSelector = document.getElementById('feedSelector');
+        if (feedSelector) feedSelector.value = currentFeedUrl;
+    }
+    
+    loadSavedViewMode();
+    await loadEpisodes(true);
+    
+    console.log('Application initialized - Web Worker architecture active');
 });
