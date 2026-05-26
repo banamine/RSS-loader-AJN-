@@ -1,86 +1,868 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>AJN Hourly Archive - Virtualized Playlist</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AJN Hourly Archive - Search Episodes</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-<!-- CSS - Corrected paths to match actual file locations -->
-<link rel="stylesheet" href="main.css">
-<link rel="stylesheet" href="virtual-list.css">
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            background: #f5f7fa;
+            color: #1a2c3e;
+            transition: background 0.3s, color 0.3s;
+        }
+
+        /* Dark Mode */
+        body.dark-mode {
+            background: #1a1e2c;
+            color: #e2e8f0;
+        }
+
+        body.dark-mode .sticky-header,
+        body.dark-mode .episode-card {
+            background: #2d3748;
+            color: #e2e8f0;
+        }
+
+        body.dark-mode .global-search-input,
+        body.dark-mode .episode-card {
+            border-color: #4a5568;
+        }
+
+        body.dark-mode .btn-secondary {
+            background: #4a5568;
+            color: #e2e8f0;
+        }
+
+        /* Sticky Header */
+        .sticky-header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: white;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .logo {
+            display: flex;
+            align-items: baseline;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .logo h1 {
+            font-size: 1.5rem;
+            color: #2d3748;
+        }
+
+        body.dark-mode .logo h1 {
+            color: #f7fafc;
+        }
+
+        .logo-badge {
+            background: #e53e3e;
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .btn-secondary {
+            background: #edf2f7;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+
+        .btn-secondary:hover {
+            background: #e2e8f0;
+            transform: translateY(-1px);
+        }
+
+        /* Search Section */
+        .search-section {
+            background: white;
+            border-top: 1px solid #e2e8f0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        body.dark-mode .search-section {
+            background: #2d3748;
+            border-color: #4a5568;
+        }
+
+        .search-bar-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 1rem 2rem;
+        }
+
+        .search-input-wrapper {
+            position: relative;
+            margin-bottom: 1rem;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1.2rem;
+            opacity: 0.6;
+        }
+
+        .global-search-input {
+            width: 100%;
+            padding: 0.75rem 2.5rem 0.75rem 2.5rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 1rem;
+            transition: all 0.2s;
+            background: white;
+        }
+
+        body.dark-mode .global-search-input {
+            background: #1a1e2c;
+            border-color: #4a5568;
+            color: #e2e8f0;
+        }
+
+        .global-search-input:focus {
+            outline: none;
+            border-color: #4299e1;
+            box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+        }
+
+        .clear-search-btn {
+            position: absolute;
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            opacity: 0.5;
+            transition: opacity 0.2s;
+        }
+
+        .clear-search-btn:hover {
+            opacity: 1;
+        }
+
+        /* Filter Controls */
+        .filter-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        /* Calendar Filter */
+        .calendar-filter-container {
+            position: relative;
+        }
+
+        .calendar-filter-btn {
+            background: #edf2f7;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        body.dark-mode .calendar-filter-btn {
+            background: #4a5568;
+            color: #e2e8f0;
+        }
+
+        .calendar-filter-btn:hover {
+            background: #e2e8f0;
+            transform: translateY(-1px);
+        }
+
+        .date-filter-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #e53e3e;
+            color: white;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            font-size: 0.7rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Calendar Flyout */
+        .calendar-flyout-filter {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            margin-top: 0.5rem;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            padding: 1rem;
+            min-width: 280px;
+            z-index: 1000;
+            display: none;
+        }
+
+        body.dark-mode .calendar-flyout-filter {
+            background: #2d3748;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .calendar-flyout-filter.active {
+            display: block;
+        }
+
+        .calendar-flyout-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .close-calendar-btn {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            opacity: 0.6;
+        }
+
+        .calendar-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .calendar-nav-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            padding: 0.25rem 0.5rem;
+        }
+
+        .calendar-weekdays {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .calendar-days-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+            margin-bottom: 1rem;
+        }
+
+        .calendar-day {
+            text-align: center;
+            padding: 0.5rem;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        .calendar-day:hover {
+            background: #e2e8f0;
+        }
+
+        body.dark-mode .calendar-day:hover {
+            background: #4a5568;
+        }
+
+        .calendar-day.selected {
+            background: #4299e1;
+            color: white;
+        }
+
+        .calendar-day.other-month {
+            opacity: 0.4;
+        }
+
+        .calendar-actions {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: space-between;
+        }
+
+        .calendar-action-btn {
+            flex: 1;
+            padding: 0.5rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            background: #e2e8f0;
+        }
+
+        .calendar-action-btn.primary {
+            background: #4299e1;
+            color: white;
+        }
+
+        /* Quick Filters */
+        .quick-filters {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .quick-filter-btn {
+            background: #edf2f7;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        body.dark-mode .quick-filter-btn {
+            background: #4a5568;
+            color: #e2e8f0;
+        }
+
+        .quick-filter-btn.active {
+            background: #4299e1;
+            color: white;
+        }
+
+        .quick-filter-btn:hover {
+            transform: translateY(-1px);
+        }
+
+        /* Active Filters */
+        .active-filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .filter-tag {
+            background: #e2e8f0;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        body.dark-mode .filter-tag {
+            background: #4a5568;
+        }
+
+        .remove-filter {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            opacity: 0.6;
+        }
+
+        /* Episodes Grid */
+        .episodes-container {
+            max-width: 1400px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+        }
+
+        .episodes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .episode-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .episode-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .episode-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #2d3748;
+        }
+
+        body.dark-mode .episode-title {
+            color: #f7fafc;
+        }
+
+        .episode-date {
+            font-size: 0.85rem;
+            color: #718096;
+            margin-bottom: 0.75rem;
+        }
+
+        .episode-description {
+            font-size: 0.9rem;
+            line-height: 1.5;
+            color: #4a5568;
+        }
+
+        body.dark-mode .episode-description {
+            color: #cbd5e0;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 3rem;
+            font-size: 1.2rem;
+            color: #718096;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header-content, .search-bar-container {
+                padding: 1rem;
+            }
+
+            .filter-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .quick-filters {
+                justify-content: center;
+            }
+
+            .episodes-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 </head>
 <body>
-
-<!-- STICKY HEADER -->
-<header class="sticky-header">
-    <div class="header-content">
-        <div class="logo">
-            <h1>🎙️ AJN Hourly Archive</h1>
-            <span class="logo-badge">Central Time</span>
+    <header class="sticky-header">
+        <div class="header-content">
+            <div class="logo">
+                <h1>🎙️ AJN Hourly Archive</h1>
+                <span class="logo-badge">Central Time</span>
+            </div>
+            <div class="header-controls">
+                <button id="darkModeToggle" class="btn-secondary" aria-label="Switch to dark mode">🌙 Dark</button>
+            </div>
         </div>
-        <div class="header-controls">
-            <button id="darkModeToggle" class="btn btn-secondary" aria-label="Toggle dark mode">🌙 Dark</button>
-        </div>
-    </div>
-</header>
-
-<!-- MAIN CONTAINER -->
-<main class="container">
-    <div class="main-grid">
         
-        <!-- LEFT COLUMN (65%) - NOW PLAYING CARD -->
-        <div class="video-section">
-            <div class="now-playing-card">
-                <div class="now-playing-label">▶ NOW PLAYING</div>
-                <div class="now-playing-title" id="currentTitle" aria-live="polite">Select an episode to begin</div>
-                
-                <div class="video-container" id="videoThumbnailContainer" style="cursor: pointer;">
-                    <video id="videoPlayer" preload="metadata" aria-label="Video player">
-                        <source src="" type="video/mp4">
-                        Your browser does not support the video tag.
-                    </video>
-                    <div class="immersive-overlay-btn" id="immersiveViewBtn" title="Open Immersive View" aria-label="Enter fullscreen mode">📺</div>
+        <!-- Search and Filter Section -->
+        <div class="search-section">
+            <div class="search-bar-container">
+                <div class="search-input-wrapper">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" 
+                           id="globalSearchInput" 
+                           class="global-search-input" 
+                           placeholder="Search episodes by title or description..." 
+                           aria-label="Search episodes">
+                    <button id="clearSearchBtn" class="clear-search-btn" aria-label="Clear search">✖</button>
                 </div>
-
-                <div class="controls-ui">
-                    <div class="progress-container">
-                        <input type="range" id="progressBar" value="0" max="100" step="0.1" aria-label="Video progress">
-                        <div class="time-display">
-                            <span id="currentTime">0:00</span>
-                            <span id="duration">0:00</span>
+                
+                <div class="filter-controls">
+                    <!-- Calendar Filter Button -->
+                    <div class="calendar-filter-container">
+                        <button id="calendarFilterBtn" class="calendar-filter-btn" aria-label="Filter by date">
+                            📅 <span id="activeDateFilterBadge" class="date-filter-badge" style="display:none"></span>
+                        </button>
+                        
+                        <!-- Calendar Flyout -->
+                        <div id="calendarFlyout" class="calendar-flyout-filter">
+                            <div class="calendar-flyout-header">
+                                <h4>Filter by Date</h4>
+                                <button id="closeCalendarBtn" class="close-calendar-btn" aria-label="Close calendar">✖</button>
+                            </div>
+                            
+                            <div class="calendar-nav">
+                                <button id="calendarPrevMonth" class="calendar-nav-btn">◀</button>
+                                <span id="calendarMonthYear"></span>
+                                <button id="calendarNextMonth" class="calendar-nav-btn">▶</button>
+                            </div>
+                            
+                            <div class="calendar-weekdays">
+                                <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
+                            </div>
+                            
+                            <div id="calendarDaysGrid" class="calendar-days-grid"></div>
+                            
+                            <div class="calendar-actions">
+                                <button id="clearDateFilter" class="calendar-action-btn">Clear Date Filter</button>
+                                <button id="applyDateFilter" class="calendar-action-btn primary">Apply Filter</button>
+                            </div>
                         </div>
                     </div>
                     
-                    <div class="video-controls-row">
-                        <button id="playPauseBtn" class="btn btn-secondary" aria-label="Play or pause video">⏯ Play</button>
-                        <button id="skipBackBtn" class="btn btn-secondary" aria-label="Skip back 10 seconds">⏪ 10s</button>
-                        <button id="skipForwardBtn" class="btn btn-secondary" aria-label="Skip forward 10 seconds">⏩ 10s</button>
-                        <label class="btn btn-secondary" aria-label="Autoplay toggle">
-                            <input type="checkbox" id="autoplayToggle" checked> Autoplay
-                        </label>
-                        <button id="downloadBtn" class="btn btn-secondary" aria-label="Download episode">⬇️</button>
-                        <button id="shareBtn" class="btn btn-secondary" aria-label="Share episode">📤</button>
+                    <!-- Quick Date Range Buttons -->
+                    <div class="quick-filters">
+                        <button class="quick-filter-btn" data-days="7">Last 7 days</button>
+                        <button class="quick-filter-btn" data-days="30">Last 30 days</button>
+                        <button class="quick-filter-btn" data-days="90">Last 90 days</button>
                     </div>
+                    
+                    <!-- Active Filters Display -->
+                    <div id="activeFilters" class="active-filters"></div>
                 </div>
             </div>
         </div>
-        
-        <!-- RIGHT COLUMN (35%) - VIRTUALIZED PLAYLIST -->
-        <div class="playlist-section">
-            <div class="playlist-header">
-                <h2>📋 Playlist</h2>
-                <div class="playlist-stats" id="playlistStats" aria-live="polite">Loading episodes...</div>
-            </div>
-            <div class="playlist-container" id="playlistContainer">
-                <div id="scrollSpacer" style="height: 0px; position: relative;"></div>
-                <div id="virtualList" style="position: absolute; top: 0; left: 0; width: 100%;"></div>
-            </div>
-        </div>
-        
-    </div>
-</main>
+    </header>
 
-<!-- JavaScript - Load scripts in correct order -->
-<script src="main.js"></script>
+    <main class="episodes-container">
+        <div id="episodesGrid" class="episodes-grid"></div>
+    </main>
+
+    <script>
+        // Sample episode data
+        const episodes = [
+            { id: 1, title: "Morning News Briefing - May 26, 2026", date: "2026-05-26", description: "Top stories and breaking news from around the world, plus weather and traffic updates." },
+            { id: 2, title: "Technology Hour - AI Revolution", date: "2026-05-25", description: "Exploring the latest advancements in artificial intelligence and their impact on daily life." },
+            { id: 3, title: "Evening Edition - Political Analysis", date: "2026-05-24", description: "In-depth political analysis and commentary on current legislative developments." },
+            { id: 4, title: "Health & Wellness Special", date: "2026-05-23", description: "Expert interviews on mental health, fitness trends, and nutritional advice." },
+            { id: 5, title: "Business Roundtable", date: "2026-05-22", description: "Market analysis, economic forecasts, and interviews with industry leaders." },
+            { id: 6, title: "Weekend Review", date: "2026-05-21", description: "Highlights from the week's most important stories and cultural events." },
+            { id: 7, title: "Science Spotlight", date: "2026-05-20", description: "Breakthrough discoveries in space exploration and medical research." },
+            { id: 8, title: "Arts & Culture Hour", date: "2026-05-19", description: "Interviews with artists, musicians, and reviews of new exhibitions." }
+        ];
+
+        let currentSearchTerm = '';
+        let currentDateFilter = null; // Store as YYYY-MM-DD
+        let currentRangeFilter = null; // Store as days number
+
+        // DOM Elements
+        const episodesGrid = document.getElementById('episodesGrid');
+        const searchInput = document.getElementById('globalSearchInput');
+        const clearSearchBtn = document.getElementById('clearSearchBtn');
+        const calendarFilterBtn = document.getElementById('calendarFilterBtn');
+        const calendarFlyout = document.getElementById('calendarFlyout');
+        const closeCalendarBtn = document.getElementById('closeCalendarBtn');
+        const clearDateFilterBtn = document.getElementById('clearDateFilter');
+        const applyDateFilterBtn = document.getElementById('applyDateFilter');
+        const dateFilterBadge = document.getElementById('activeDateFilterBadge');
+        const activeFiltersDiv = document.getElementById('activeFilters');
+        const quickFilterBtns = document.querySelectorAll('.quick-filter-btn');
+        const darkModeToggle = document.getElementById('darkModeToggle');
+
+        let currentMonth = new Date();
+        let selectedDate = null;
+
+        // Render episodes based on filters
+        function renderEpisodes() {
+            let filtered = [...episodes];
+
+            // Apply search filter
+            if (currentSearchTerm) {
+                const term = currentSearchTerm.toLowerCase();
+                filtered = filtered.filter(ep => 
+                    ep.title.toLowerCase().includes(term) || 
+                    ep.description.toLowerCase().includes(term)
+                );
+            }
+
+            // Apply date filter (specific day)
+            if (currentDateFilter) {
+                filtered = filtered.filter(ep => ep.date === currentDateFilter);
+            }
+
+            // Apply range filter
+            if (currentRangeFilter) {
+                const today = new Date();
+                const cutoffDate = new Date();
+                cutoffDate.setDate(today.getDate() - currentRangeFilter);
+                
+                filtered = filtered.filter(ep => {
+                    const epDate = new Date(ep.date);
+                    return epDate >= cutoffDate && epDate <= today;
+                });
+            }
+
+            // Render grid
+            if (filtered.length === 0) {
+                episodesGrid.innerHTML = '<div class="no-results">No episodes match your filters. Try adjusting your search or filter criteria.</div>';
+                return;
+            }
+
+            episodesGrid.innerHTML = filtered.map(ep => `
+                <div class="episode-card">
+                    <h3 class="episode-title">${escapeHtml(ep.title)}</h3>
+                    <div class="episode-date">📅 ${formatDate(ep.date)}</div>
+                    <p class="episode-description">${escapeHtml(ep.description)}</p>
+                </div>
+            `).join('');
+        }
+
+        // Helper: Escape HTML
+        function escapeHtml(str) {
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+
+        // Format date
+        function formatDate(dateStr) {
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+        }
+
+        // Update active filters display
+        function updateActiveFiltersUI() {
+            activeFiltersDiv.innerHTML = '';
+            
+            if (currentSearchTerm) {
+                addFilterTag(`Search: "${currentSearchTerm}"`, () => {
+                    currentSearchTerm = '';
+                    searchInput.value = '';
+                    renderEpisodes();
+                    updateActiveFiltersUI();
+                });
+            }
+            
+            if (currentDateFilter) {
+                addFilterTag(`Date: ${formatDate(currentDateFilter)}`, () => {
+                    currentDateFilter = null;
+                    selectedDate = null;
+                    dateFilterBadge.style.display = 'none';
+                    renderEpisodes();
+                    updateActiveFiltersUI();
+                    updateCalendarSelection();
+                });
+            }
+            
+            if (currentRangeFilter) {
+                addFilterTag(`Last ${currentRangeFilter} days`, () => {
+                    currentRangeFilter = null;
+                    // Remove active class from quick filters
+                    quickFilterBtns.forEach(btn => btn.classList.remove('active'));
+                    renderEpisodes();
+                    updateActiveFiltersUI();
+                });
+            }
+        }
+
+        function addFilterTag(text, onRemove) {
+            const tag = document.createElement('div');
+            tag.className = 'filter-tag';
+            tag.innerHTML = `${text} <button class="remove-filter" onclick="this.parentElement.remove(); window.dispatchEvent(new Event('filterRemoved'))">✖</button>`;
+            activeFiltersDiv.appendChild(tag);
+            
+            const removeBtn = tag.querySelector('.remove-filter');
+            removeBtn.onclick = () => {
+                onRemove();
+                tag.remove();
+            };
+        }
+
+        // Calendar functionality
+        function buildCalendar() {
+            const year = currentMonth.getFullYear();
+            const month = currentMonth.getMonth();
+            
+            const firstDay = new Date(year, month, 1);
+            const startDayOfWeek = firstDay.getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            
+            const prevMonthDays = new Date(year, month, 0).getDate();
+            
+            const grid = document.getElementById('calendarDaysGrid');
+            grid.innerHTML = '';
+            
+            // Previous month days
+            for (let i = startDayOfWeek - 1; i >= 0; i--) {
+                const day = prevMonthDays - i;
+                const dayDiv = createCalendarDay(day, true);
+                grid.appendChild(dayDiv);
+            }
+            
+            // Current month days
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayDiv = createCalendarDay(day, false);
+                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                if (selectedDate === dateStr) {
+                    dayDiv.classList.add('selected');
+                }
+                dayDiv.onclick = () => {
+                    document.querySelectorAll('.calendar-day').forEach(d => d.classList.remove('selected'));
+                    dayDiv.classList.add('selected');
+                    selectedDate = dateStr;
+                };
+                grid.appendChild(dayDiv);
+            }
+            
+            // Next month days
+            const totalCells = 42;
+            const currentCells = startDayOfWeek + daysInMonth;
+            const remainingCells = totalCells - currentCells;
+            for (let day = 1; day <= remainingCells; day++) {
+                const dayDiv = createCalendarDay(day, true);
+                grid.appendChild(dayDiv);
+            }
+            
+            document.getElementById('calendarMonthYear').innerText = 
+                `${firstDay.toLocaleString('default', { month: 'long' })} ${year}`;
+        }
+        
+        function createCalendarDay(day, isOtherMonth) {
+            const div = document.createElement('div');
+            div.className = 'calendar-day';
+            if (isOtherMonth) div.classList.add('other-month');
+            div.innerText = day;
+            return div;
+        }
+        
+        function updateCalendarSelection() {
+            if (selectedDate) {
+                const [year, month, day] = selectedDate.split('-');
+                currentMonth = new Date(parseInt(year), parseInt(month) - 1, 1);
+                buildCalendar();
+                // Re-highlight
+                setTimeout(() => {
+                    const targetDate = `${year}-${month}-${day}`;
+                    document.querySelectorAll('.calendar-day').forEach((dayDiv, idx) => {
+                        const dayNum = parseInt(dayDiv.innerText);
+                        if (!dayDiv.classList.contains('other-month') && dayNum === parseInt(day)) {
+                            const dateStr = `${year}-${month}-${day}`;
+                            if (dateStr === targetDate) {
+                                dayDiv.classList.add('selected');
+                            }
+                        }
+                    });
+                }, 10);
+            } else {
+                buildCalendar();
+            }
+        }
+        
+        // Event Listeners
+        searchInput.addEventListener('input', (e) => {
+            currentSearchTerm = e.target.value;
+            renderEpisodes();
+            updateActiveFiltersUI();
+        });
+        
+        clearSearchBtn.addEventListener('click', () => {
+            searchInput.value = '';
+            currentSearchTerm = '';
+            renderEpisodes();
+            updateActiveFiltersUI();
+        });
+        
+        calendarFilterBtn.addEventListener('click', () => {
+            calendarFlyout.classList.toggle('active');
+            if (calendarFlyout.classList.contains('active')) {
+                updateCalendarSelection();
+            }
+        });
+        
+        closeCalendarBtn.addEventListener('click', () => {
+            calendarFlyout.classList.remove('active');
+        });
+        
+        document.getElementById('calendarPrevMonth').addEventListener('click', () => {
+            currentMonth.setMonth(currentMonth.getMonth() - 1);
+            buildCalendar();
+        });
+        
+        document.getElementById('calendarNextMonth').addEventListener('click', () => {
+            currentMonth.setMonth(currentMonth.getMonth() + 1);
+            buildCalendar();
+        });
+        
+        clearDateFilterBtn.addEventListener('click', () => {
+            selectedDate = null;
+            currentDateFilter = null;
+            dateFilterBadge.style.display = 'none';
+            calendarFlyout.classList.remove('active');
+            renderEpisodes();
+            updateActiveFiltersUI();
+            updateCalendarSelection();
+        });
+        
+        applyDateFilterBtn.addEventListener('click', () => {
+            if (selectedDate) {
+                currentDateFilter = selectedDate;
+                currentRangeFilter = null; // Clear range filter
+                quickFilterBtns.forEach(btn => btn.classList.remove('active'));
+                dateFilterBadge.style.display = 'inline-flex';
+                dateFilterBadge.innerText = '✓';
+                calendarFlyout.classList.remove('active');
+                renderEpisodes();
+                updateActiveFiltersUI();
+            }
+        });
+        
+        quickFilterBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const days = parseInt(btn.dataset.days);
+                currentRangeFilter = days;
+                currentDateFilter = null; // Clear specific date filter
+                selectedDate = null;
+                dateFilterBadge.style.display = 'none';
+                
+                quickFilterBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                
+                renderEpisodes();
+                updateActiveFiltersUI();
+            });
+        });
+        
+        // Dark Mode
+        darkModeToggle.addEventListener('click', () => {
+            document.body.classList.toggle('dark-mode');
+            const isDark = document.body.classList.contains('dark-mode');
+            darkModeToggle.textContent = isDark ? '☀️ Light' : '🌙 Dark';
+        });
+        
+        // Close calendar when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!calendarFilterBtn.contains(e.target) && !calendarFlyout.contains(e.target)) {
+                calendarFlyout.classList.remove('active');
+            }
+        });
+        
+        // Initial render
+        renderEpisodes();
+        buildCalendar();
+    </script>
 </body>
 </html>
