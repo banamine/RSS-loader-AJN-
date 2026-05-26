@@ -1,4 +1,4 @@
-// ============ MAIN APPLICATION WITH VIRTUAL PLAYLIST ============
+// ============ MAIN APPLICATION WITH FLYOUT ACTIONS ============
 
 // Global state
 let allEpisodes = [];
@@ -51,7 +51,7 @@ async function loadEpisodes() {
         // Initialize Virtual Playlist
         if (!virtualPlaylist) {
             virtualPlaylist = new VirtualPlaylist('playlistContainer', {
-                rowHeight: 80, // Must match CSS height
+                rowHeight: 80,
                 buffer: 5
             });
             
@@ -60,9 +60,19 @@ async function loadEpisodes() {
             });
             
             virtualPlaylist.setOnScrollEnd(() => {
-                // For future lazy loading implementation
                 console.log('Scroll end reached - ready for lazy loading');
             });
+            
+            virtualPlaylist.setOnDownload((index) => {
+                downloadEpisodeByIndex(index);
+            });
+            
+            virtualPlaylist.setOnShare((index) => {
+                shareEpisodeByIndex(index);
+            });
+            
+            // Make virtualPlaylist globally accessible for flyout functions
+            window.virtualPlaylist = virtualPlaylist;
         }
         
         // Set items in virtual playlist
@@ -89,7 +99,7 @@ async function loadEpisodes() {
             console.log('Virtual Playlist Metrics:', virtualPlaylist.getPerformanceMetrics());
         }
         
-        showToast(`Loaded ${allEpisodes.length} episodes (virtualized for smooth scrolling)`);
+        showToast(`Loaded ${allEpisodes.length.toLocaleString()} episodes (virtualized for smooth scrolling)`);
         
     } catch (error) {
         console.error('Error loading episodes:', error);
@@ -139,6 +149,105 @@ function playEpisode(index) {
     document.title = `${episode.show} - AJN Hourly Archive`;
 }
 
+// Download episode by index (for flyout)
+function downloadEpisodeByIndex(index) {
+    const episode = currentPlaylist[index];
+    if (!episode) return;
+    
+    const link = document.createElement('a');
+    link.href = episode.videoUrl;
+    link.download = `${episode.title.replace(/[^a-z0-9]/gi, '_')}.m4v`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    // Close flyout after action
+    if (virtualPlaylist) {
+        virtualPlaylist.closeAllFlyouts();
+    }
+    
+    showToast(`Downloading: ${episode.title.substring(0, 50)}...`);
+}
+
+// Share episode by index (for flyout)
+function shareEpisodeByIndex(index) {
+    const episode = currentPlaylist[index];
+    if (!episode) return;
+    
+    // Close flyout after action
+    if (virtualPlaylist) {
+        virtualPlaylist.closeAllFlyouts();
+    }
+    
+    if (navigator.share) {
+        navigator.share({
+            title: episode.title,
+            text: episode.description.substring(0, 100),
+            url: episode.videoUrl
+        }).catch(e => console.log('Share cancelled'));
+    } else {
+        navigator.clipboard.writeText(episode.videoUrl);
+        showToast('Episode link copied to clipboard');
+    }
+}
+
+// Copy link by index (for flyout)
+function copyLink(index) {
+    const episode = currentPlaylist[index];
+    if (!episode) return;
+    
+    navigator.clipboard.writeText(episode.videoUrl);
+    
+    if (virtualPlaylist) {
+        virtualPlaylist.closeAllFlyouts();
+    }
+    
+    showToast('Link copied to clipboard');
+}
+
+// View episode details (for flyout)
+function viewDetails(index) {
+    const episode = currentPlaylist[index];
+    if (!episode) return;
+    
+    if (virtualPlaylist) {
+        virtualPlaylist.closeAllFlyouts();
+    }
+    
+    // Create modal with episode details
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 2000;
+        backdrop-filter: blur(4px);
+    `;
+    
+    modal.innerHTML = `
+        <div style="background: var(--bg-surface); border-radius: 16px; max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto; padding: 24px;">
+            <h3 style="margin-bottom: 16px; color: var(--primary);">Episode Details</h3>
+            <div style="margin-bottom: 12px;"><strong>Title:</strong><br>${escapeHtml(episode.title)}</div>
+            <div style="margin-bottom: 12px;"><strong>Show:</strong><br>${episode.show} ${episode.hour}</div>
+            <div style="margin-bottom: 12px;"><strong>Date (CT):</strong><br>${formatCentralTime(episode.centralDate)}</div>
+            <div style="margin-bottom: 12px;"><strong>Description:</strong><br>${escapeHtml(episode.description)}</div>
+            <div style="margin-bottom: 12px;"><strong>Video URL:</strong><br><a href="${episode.videoUrl}" target="_blank" style="color: var(--primary); word-break: break-all;">${episode.videoUrl}</a></div>
+            <button onclick="this.closest('div').parentElement.remove()" class="btn btn-primary" style="margin-top: 16px;">Close</button>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) modal.remove();
+    });
+}
+
 // Save playback state
 function savePlaybackState() {
     localStorage.setItem('lastPlaylistIndex', currentIndex);
@@ -162,35 +271,14 @@ function restorePlaybackState() {
     }
 }
 
-// Download current episode
-function downloadEpisode() {
-    const episode = currentPlaylist[currentIndex];
-    if (!episode) return;
-    
-    const link = document.createElement('a');
-    link.href = episode.videoUrl;
-    link.download = `${episode.title.replace(/[^a-z0-9]/gi, '_')}.m4v`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    showToast('Download started');
+// Download current episode (main button)
+function downloadCurrentEpisode() {
+    downloadEpisodeByIndex(currentIndex);
 }
 
-// Share current episode
-function shareEpisode() {
-    const episode = currentPlaylist[currentIndex];
-    if (!episode) return;
-    
-    if (navigator.share) {
-        navigator.share({
-            title: episode.title,
-            text: episode.description.substring(0, 100),
-            url: episode.videoUrl
-        }).catch(e => console.log('Share cancelled'));
-    } else {
-        navigator.clipboard.writeText(episode.videoUrl);
-        showToast('Episode link copied to clipboard');
-    }
+// Share current episode (main button)
+function shareCurrentEpisode() {
+    shareEpisodeByIndex(currentIndex);
 }
 
 // Next episode
@@ -250,6 +338,7 @@ function applyFilters() {
     if (virtualPlaylist) {
         virtualPlaylist.setItems(currentPlaylist);
         virtualPlaylist.setCurrentIndex(0);
+        virtualPlaylist.closeAllFlyouts();
     }
     
     if (currentPlaylist.length > 0) {
@@ -259,9 +348,31 @@ function applyFilters() {
     showToast(`Found ${currentPlaylist.length.toLocaleString()} episodes`);
 }
 
+// Clear filters
+function clearFilters() {
+    const searchInput = document.getElementById('searchInput');
+    const startDate = document.getElementById('startDate');
+    const endDate = document.getElementById('endDate');
+    
+    if (searchInput) searchInput.value = '';
+    if (startDate) startDate.value = '';
+    if (endDate) endDate.value = '';
+    
+    applyFilters();
+}
+
+// Make functions globally available for flyout
+window.downloadEpisodeByIndex = downloadEpisodeByIndex;
+window.shareEpisodeByIndex = shareEpisodeByIndex;
+window.copyLink = copyLink;
+window.viewDetails = viewDetails;
+window.applyFilters = applyFilters;
+window.clearFilters = clearFilters;
+window.playEpisode = playEpisode;
+
 // Event Listeners
-document.getElementById('downloadBtn')?.addEventListener('click', downloadEpisode);
-document.getElementById('shareBtn')?.addEventListener('click', shareEpisode);
+document.getElementById('downloadBtn')?.addEventListener('click', downloadCurrentEpisode);
+document.getElementById('shareBtn')?.addEventListener('click', shareCurrentEpisode);
 document.getElementById('nextBtn')?.addEventListener('click', nextEpisode);
 
 // Add keyboard shortcuts
@@ -273,23 +384,32 @@ document.addEventListener('keydown', (e) => {
     } else if ((e.ctrlKey || e.metaKey) && e.key === 'ArrowUp') {
         e.preventDefault();
         previousEpisode();
-    } else if (e.key === ' ' && document.activeElement?.tagName !== 'BUTTON') {
+    } else if (e.key === ' ' && document.activeElement?.tagName !== 'BUTTON' && !document.activeElement?.classList?.contains('menu-trigger')) {
         e.preventDefault();
         const video = document.getElementById('videoPlayer');
         if (video) {
             if (video.paused) video.play();
             else video.pause();
         }
+    } else if (e.key === 'Escape') {
+        // Close any open flyout
+        if (virtualPlaylist) {
+            virtualPlaylist.closeAllFlyouts();
+        }
     }
 });
 
-// Make playEpisode globally available
-window.playEpisode = playEpisode;
-window.applyFilters = applyFilters;
+// Close flyout when clicking outside (handled by VirtualPlaylist)
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('.menu-trigger') && !e.target.closest('.flyout-menu')) {
+        if (virtualPlaylist) {
+            virtualPlaylist.closeAllFlyouts();
+        }
+    }
+});
 
 // Initialize application
 initDarkMode();
 loadEpisodes();
 
-// Log virtual list initialization
-console.log('P1-3 Virtualized Playlist initialized - Optimized for 1000+ episodes');
+console.log('P1-4: Episode hover overlay & three-dot flyout initialized');

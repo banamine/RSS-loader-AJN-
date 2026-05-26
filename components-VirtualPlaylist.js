@@ -1,4 +1,4 @@
-// ============ VIRTUALIZED PLAYLIST COMPONENT ============
+// ============ VIRTUALIZED PLAYLIST COMPONENT WITH FLYOUT ============
 
 class VirtualPlaylist {
     constructor(containerId, options = {}) {
@@ -8,20 +8,26 @@ class VirtualPlaylist {
         
         // Configuration
         this.rowHeight = options.rowHeight || 80;
-        this.buffer = options.buffer || 5; // Extra rows above and below viewport
+        this.buffer = options.buffer || 5;
         this.items = [];
         this.currentIndex = -1;
         this.onItemClick = null;
         this.onScrollEnd = null;
+        this.onDownload = null;
+        this.onShare = null;
+        this.onAddToPlaylist = null;
+        this.onRemoveFromPlaylist = null;
         
         // Performance tracking
         this.scrollTimeout = null;
         this.lastScrollTop = 0;
         this.renderCount = 0;
+        this.activeFlyout = null;
         
         // Bind methods
         this.handleScroll = this.handleScroll.bind(this);
         this.handleKeyNavigation = this.handleKeyNavigation.bind(this);
+        this.handleClickOutside = this.handleClickOutside.bind(this);
         
         this.init();
     }
@@ -35,6 +41,7 @@ class VirtualPlaylist {
         // Setup scroll listener with passive option for performance
         this.container.addEventListener('scroll', this.handleScroll, { passive: true });
         this.container.addEventListener('keydown', this.handleKeyNavigation);
+        document.addEventListener('click', this.handleClickOutside);
         
         // Initial render
         this.updateView();
@@ -64,6 +71,22 @@ class VirtualPlaylist {
         this.onScrollEnd = callback;
     }
     
+    setOnDownload(callback) {
+        this.onDownload = callback;
+    }
+    
+    setOnShare(callback) {
+        this.onShare = callback;
+    }
+    
+    setOnAddToPlaylist(callback) {
+        this.onAddToPlaylist = callback;
+    }
+    
+    setOnRemoveFromPlaylist(callback) {
+        this.onRemoveFromPlaylist = callback;
+    }
+    
     updateTotalHeight() {
         const totalHeight = this.items.length * this.rowHeight;
         this.spacer.style.height = `${totalHeight}px`;
@@ -76,6 +99,11 @@ class VirtualPlaylist {
         const maxScroll = this.spacer.offsetHeight - this.container.clientHeight;
         if (scrollTop >= maxScroll - 100 && this.onScrollEnd) {
             this.onScrollEnd();
+        }
+        
+        // Close any open flyout on scroll
+        if (this.activeFlyout) {
+            this.closeFlyout(this.activeFlyout);
         }
         
         // Debounced scroll end detection
@@ -138,6 +166,60 @@ class VirtualPlaylist {
         const escapedShow = this.escapeHtml(item.show);
         const escapedHour = this.escapeHtml(item.hour);
         
+        // Generate unique IDs for flyout menu
+        const flyoutId = `flyout-${index}`;
+        
+        // Build menu HTML with all options
+        const menuHtml = `
+            <div class="menu-trigger" 
+                 data-flyout="${flyoutId}"
+                 data-index="${index}"
+                 onclick="event.stopPropagation(); window.toggleFlyout(event, ${index})"
+                 onkeypress="if(event.key==='Enter' || event.key===' ') window.toggleFlyout(event, ${index})"
+                 role="button"
+                 tabindex="0"
+                 aria-label="More options for ${escapedTitle}"
+                 aria-expanded="false"
+                 aria-haspopup="true">
+                ⋮
+            </div>
+            <div class="flyout-menu" 
+                 id="${flyoutId}"
+                 role="menu"
+                 aria-label="Episode actions"
+                 data-index="${index}">
+                <div class="flyout-menu-item" 
+                     role="menuitem"
+                     tabindex="0"
+                     onclick="event.stopPropagation(); window.downloadEpisodeByIndex(${index})"
+                     onkeypress="if(event.key==='Enter') window.downloadEpisodeByIndex(${index})">
+                    ⬇️ Download
+                </div>
+                <div class="flyout-menu-item" 
+                     role="menuitem"
+                     tabindex="0"
+                     onclick="event.stopPropagation(); window.shareEpisodeByIndex(${index})"
+                     onkeypress="if(event.key==='Enter') window.shareEpisodeByIndex(${index})">
+                    📤 Share
+                </div>
+                <div class="flyout-menu-divider" role="separator"></div>
+                <div class="flyout-menu-item" 
+                     role="menuitem"
+                     tabindex="0"
+                     onclick="event.stopPropagation(); window.copyLink(${index})"
+                     onkeypress="if(event.key==='Enter') window.copyLink(${index})">
+                    🔗 Copy Link
+                </div>
+                <div class="flyout-menu-item" 
+                     role="menuitem"
+                     tabindex="0"
+                     onclick="event.stopPropagation(); window.viewDetails(${index})"
+                     onkeypress="if(event.key==='Enter') window.viewDetails(${index})">
+                    📄 Details
+                </div>
+            </div>
+        `;
+        
         return `
             <div class="playlist-item ${isActive ? 'active' : ''}" 
                  data-index="${index}"
@@ -147,6 +229,7 @@ class VirtualPlaylist {
                  role="button"
                  aria-label="Play episode: ${escapedTitle}"
                  aria-current="${isActive ? 'true' : 'false'}">
+                ${menuHtml}
                 <div class="playlist-thumbnail" aria-hidden="true">
                     🎬
                 </div>
@@ -168,19 +251,100 @@ class VirtualPlaylist {
         `;
     }
     
+    toggleFlyout(event, index) {
+        event.stopPropagation();
+        
+        const flyoutId = `flyout-${index}`;
+        const menu = document.getElementById(flyoutId);
+        
+        if (!menu) return;
+        
+        // Close other open menus first
+        const allFlyouts = document.querySelectorAll('.flyout-menu');
+        allFlyouts.forEach(f => {
+            if (f.id !== flyoutId && f.classList.contains('active')) {
+                f.classList.remove('active');
+                // Update aria-expanded on corresponding trigger
+                const trigger = document.querySelector(`.menu-trigger[data-flyout="${f.id}"]`);
+                if (trigger) {
+                    trigger.setAttribute('aria-expanded', 'false');
+                }
+            }
+        });
+        
+        // Toggle current menu
+        const isActive = menu.classList.contains('active');
+        menu.classList.toggle('active');
+        
+        // Update aria-expanded on trigger
+        const trigger = document.querySelector(`.menu-trigger[data-flyout="${flyoutId}"]`);
+        if (trigger) {
+            trigger.setAttribute('aria-expanded', !isActive);
+        }
+        
+        // Store active flyout
+        this.activeFlyout = isActive ? null : flyoutId;
+        
+        // If menu was activated, add focus to first item
+        if (!isActive) {
+            const firstItem = menu.querySelector('.flyout-menu-item');
+            if (firstItem) {
+                setTimeout(() => firstItem.focus(), 0);
+            }
+        }
+    }
+    
+    closeFlyout(flyoutId) {
+        const menu = document.getElementById(flyoutId);
+        if (menu && menu.classList.contains('active')) {
+            menu.classList.remove('active');
+            const trigger = document.querySelector(`.menu-trigger[data-flyout="${flyoutId}"]`);
+            if (trigger) {
+                trigger.setAttribute('aria-expanded', 'false');
+            }
+        }
+        if (this.activeFlyout === flyoutId) {
+            this.activeFlyout = null;
+        }
+    }
+    
+    closeAllFlyouts() {
+        const allFlyouts = document.querySelectorAll('.flyout-menu');
+        allFlyouts.forEach(f => {
+            f.classList.remove('active');
+            const trigger = document.querySelector(`.menu-trigger[data-flyout="${f.id}"]`);
+            if (trigger) {
+                trigger.setAttribute('aria-expanded', 'false');
+            }
+        });
+        this.activeFlyout = null;
+    }
+    
+    handleClickOutside(event) {
+        // Check if click is outside any flyout menu
+        const isClickInsideFlyout = event.target.closest('.flyout-menu');
+        const isClickOnTrigger = event.target.closest('.menu-trigger');
+        
+        if (!isClickInsideFlyout && !isClickOnTrigger) {
+            this.closeAllFlyouts();
+        }
+    }
+    
     handleKeyNavigation(event) {
-        // Keyboard navigation: Arrow Up/Down
+        // Arrow navigation for playlist
         if (event.key === 'ArrowDown') {
             event.preventDefault();
             const newIndex = Math.min(this.currentIndex + 1, this.items.length - 1);
             if (newIndex !== this.currentIndex && this.onItemClick) {
                 this.onItemClick(newIndex);
+                this.scrollToIndex(newIndex);
             }
         } else if (event.key === 'ArrowUp') {
             event.preventDefault();
             const newIndex = Math.max(this.currentIndex - 1, 0);
             if (newIndex !== this.currentIndex && this.onItemClick) {
                 this.onItemClick(newIndex);
+                this.scrollToIndex(newIndex);
             }
         } else if (event.key === 'Enter' || event.key === ' ') {
             event.preventDefault();
@@ -191,12 +355,17 @@ class VirtualPlaylist {
             event.preventDefault();
             if (this.onItemClick && this.items.length > 0) {
                 this.onItemClick(0);
+                this.scrollToIndex(0);
             }
         } else if (event.key === 'End') {
             event.preventDefault();
             if (this.onItemClick && this.items.length > 0) {
                 this.onItemClick(this.items.length - 1);
+                this.scrollToIndex(this.items.length - 1);
             }
+        } else if (event.key === 'Escape') {
+            // Close flyout on escape
+            this.closeAllFlyouts();
         }
     }
     
@@ -262,11 +431,19 @@ class VirtualPlaylist {
     destroy() {
         this.container.removeEventListener('scroll', this.handleScroll);
         this.container.removeEventListener('keydown', this.handleKeyNavigation);
+        document.removeEventListener('click', this.handleClickOutside);
         if (this.scrollTimeout) {
             clearTimeout(this.scrollTimeout);
         }
     }
 }
+
+// Make flyout functions globally available
+window.toggleFlyout = (event, index) => {
+    if (window.virtualPlaylist) {
+        window.virtualPlaylist.toggleFlyout(event, index);
+    }
+};
 
 // Export for use in main.js
 if (typeof module !== 'undefined' && module.exports) {

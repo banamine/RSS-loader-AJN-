@@ -42,7 +42,9 @@
 
 /* Fixed height playlist items - CRITICAL for virtual scrolling */
 .playlist-item {
+    position: relative; /* Context for absolute overlay */
     display: flex;
+    align-items: center;
     gap: var(--spacing-md);
     padding: var(--spacing-md);
     border-radius: var(--border-radius);
@@ -52,7 +54,7 @@
     margin-bottom: 0;
     height: 80px; /* Must match ROW_HEIGHT constant */
     box-sizing: border-box;
-    overflow: hidden;
+    overflow: visible; /* Allow menu to overflow */
 }
 
 .playlist-item:hover {
@@ -69,6 +71,119 @@
     outline: 2px solid var(--primary);
     outline-offset: 2px;
     background: var(--bg-surface-hover);
+}
+
+/* ============ THREE-DOT MENU TRIGGER ============ */
+.menu-trigger {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0;
+    transition: opacity 0.2s ease, background 0.2s ease;
+    cursor: pointer;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: var(--text-primary);
+    z-index: 5;
+    line-height: 1;
+    box-shadow: var(--shadow-sm);
+}
+
+.menu-trigger:hover {
+    background: var(--primary-light);
+    border-color: var(--primary);
+    transform: translateY(-50%) scale(1.05);
+}
+
+.menu-trigger:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+    opacity: 1;
+}
+
+/* Show menu trigger on hover or focus within playlist item */
+.playlist-item:hover .menu-trigger,
+.playlist-item:focus-within .menu-trigger {
+    opacity: 1;
+}
+
+/* ============ FLYOUT MENU ============ */
+.flyout-menu {
+    position: absolute;
+    right: 12px;
+    top: 50px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-lg);
+    border-radius: 8px;
+    z-index: 100;
+    display: none;
+    min-width: 160px;
+    overflow: hidden;
+    animation: fadeIn 0.15s ease;
+}
+
+.flyout-menu.active {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-5px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Flyout menu items */
+.flyout-menu-item {
+    padding: 10px 16px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border-light);
+}
+
+.flyout-menu-item:last-child {
+    border-bottom: none;
+}
+
+.flyout-menu-item:hover {
+    background: var(--bg-surface-hover);
+}
+
+.flyout-menu-item:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: -2px;
+    background: var(--bg-surface-hover);
+}
+
+/* Danger menu items (e.g., remove from playlist) */
+.flyout-menu-item.danger {
+    color: var(--primary);
+}
+
+.flyout-menu-item.danger:hover {
+    background: var(--primary-light);
+}
+
+/* Menu divider */
+.flyout-menu-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 4px 0;
 }
 
 /* Thumbnail styling */
@@ -91,6 +206,7 @@
     display: flex;
     flex-direction: column;
     justify-content: center;
+    margin-right: 40px; /* Space for menu trigger */
 }
 
 .playlist-title {
@@ -140,10 +256,30 @@
     color: var(--text-secondary);
 }
 
-/* Responsive adjustments */
+/* ============ DARK MODE FLYOUT ADJUSTMENTS ============ */
+.dark .menu-trigger {
+    background: var(--bg-surface);
+    border-color: var(--border);
+}
+
+.dark .flyout-menu {
+    background: var(--bg-surface);
+    border-color: var(--border);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.dark .flyout-menu-item {
+    border-bottom-color: var(--border-light);
+}
+
+.dark .flyout-menu-item:hover {
+    background: var(--bg-surface-hover);
+}
+
+/* ============ RESPONSIVE ADJUSTMENTS ============ */
 @media (max-width: 768px) {
     .playlist-item {
-        height: 70px; /* Slightly smaller on mobile */
+        height: 70px;
         padding: 12px;
     }
     
@@ -153,12 +289,32 @@
         font-size: 1.2rem;
     }
     
+    .playlist-info {
+        margin-right: 35px;
+    }
+    
     .playlist-title {
         font-size: 0.8rem;
     }
     
     .playlist-date {
         font-size: 0.65rem;
+    }
+    
+    .menu-trigger {
+        padding: 4px 8px;
+        font-size: 1rem;
+        right: 8px;
+    }
+    
+    .flyout-menu {
+        right: 8px;
+        min-width: 140px;
+    }
+    
+    .flyout-menu-item {
+        padding: 8px 12px;
+        font-size: 0.8rem;
     }
 }
 
@@ -172,8 +328,23 @@
         width: 40px;
         height: 40px;
     }
+    
+    .playlist-info {
+        margin-right: 30px;
+    }
+    
+    .menu-trigger {
+        padding: 3px 6px;
+        font-size: 0.9rem;
+    }
+    
+    .flyout-menu {
+        min-width: 130px;
+        top: 45px;
+    }
 }
 
+/* ============ ACCESSIBILITY ============ */
 /* High contrast mode support */
 @media (prefers-contrast: high) {
     .playlist-item {
@@ -183,16 +354,26 @@
     .playlist-item.active {
         border-width: 2px;
     }
+    
+    .menu-trigger {
+        border: 2px solid currentColor;
+    }
+    
+    .flyout-menu {
+        border: 2px solid currentColor;
+    }
 }
 
 /* Reduced motion preference */
 @media (prefers-reduced-motion: reduce) {
-    .playlist-item {
+    .playlist-item,
+    .menu-trigger,
+    .flyout-menu {
         transition: none;
     }
     
-    .playlist-container {
-        scroll-behavior: auto;
+    .flyout-menu {
+        animation: none;
     }
 }
 
