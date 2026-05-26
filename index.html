@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>AJN Hourly Archive - Calendar Month View</title>
+<title>AJN Hourly Archive - List & Grid View Toggle</title>
 <style>
 /* ============ CSS RESET & VARIABLES ============ */
 * {
@@ -41,12 +41,8 @@
     --spacing-md: 16px;
     --spacing-lg: 24px;
     --spacing-xl: 32px;
-    --week-1: #ffebee;
-    --week-2: #fce4ec;
-    --week-3: #f8bbd0;
-    --week-4: #f48fb1;
-    --week-5: #f06292;
-    --week-6: #e91e63;
+    --list-row-height: 80px;
+    --grid-row-height: 220px;
 }
 
 .dark {
@@ -67,12 +63,6 @@
     --shadow-md: 0 2px 8px rgba(0,0,0,0.35);
     --shadow-lg: 0 4px 16px rgba(0,0,0,0.4);
     --shadow-xl: 0 8px 24px rgba(0,0,0,0.45);
-    --week-1: #3d1e1e;
-    --week-2: #4a2525;
-    --week-3: #572c2c;
-    --week-4: #643333;
-    --week-5: #713a3a;
-    --week-6: #7e4141;
 }
 
 body {
@@ -137,6 +127,39 @@ body.preload * {
 .header-controls {
     display: flex;
     gap: var(--spacing-sm);
+}
+
+/* ============ VIEW TOGGLE BUTTONS ============ */
+.view-toggle-container {
+    display: flex;
+    gap: var(--spacing-sm);
+    margin-left: auto;
+}
+
+.view-toggle-btn {
+    padding: 8px 16px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.view-toggle-btn:hover {
+    background: var(--bg-surface-hover);
+    transform: translateY(-1px);
+}
+
+.view-toggle-btn.active {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
 }
 
 /* ============ CALENDAR SECTION ============ */
@@ -242,35 +265,6 @@ body.preload * {
     box-shadow: var(--shadow-sm);
 }
 
-/* Week color blocks */
-.calendar-day.week-0 {
-    background: var(--week-1);
-}
-.calendar-day.week-1 {
-    background: var(--week-2);
-}
-.calendar-day.week-2 {
-    background: var(--week-3);
-}
-.calendar-day.week-3 {
-    background: var(--week-4);
-}
-.calendar-day.week-4 {
-    background: var(--week-5);
-}
-.calendar-day.week-5 {
-    background: var(--week-6);
-}
-
-.dark .calendar-day.week-0,
-.dark .calendar-day.week-1,
-.dark .calendar-day.week-2,
-.dark .calendar-day.week-3,
-.dark .calendar-day.week-4,
-.dark .calendar-day.week-5 {
-    background: var(--bg-surface);
-}
-
 .calendar-day-number {
     font-weight: 600;
     font-size: 1rem;
@@ -305,7 +299,6 @@ body.preload * {
     font-weight: bold;
 }
 
-/* Tooltip */
 .calendar-tooltip {
     display: none;
     position: absolute;
@@ -369,6 +362,7 @@ body.preload * {
     border-radius: 20px;
     font-size: 0.8rem;
     color: var(--primary);
+    margin-top: var(--spacing-sm);
     margin-left: var(--spacing-sm);
 }
 
@@ -454,6 +448,34 @@ body.preload * {
     gap: 12px;
     flex-wrap: wrap;
     align-items: center;
+}
+
+.active-filters {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.filter-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: var(--primary-light);
+    border-radius: 20px;
+    font-size: 0.8rem;
+    color: var(--primary);
+}
+
+.filter-tag .remove-filter {
+    cursor: pointer;
+    font-weight: bold;
+    padding: 0 4px;
+}
+
+.filter-tag .remove-filter:hover {
+    color: var(--primary-dark);
 }
 
 /* ============ BUTTONS ============ */
@@ -642,6 +664,11 @@ body.preload * {
 .playlist-header {
     padding: var(--spacing-lg);
     border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
 }
 
 .playlist-header h2 {
@@ -655,7 +682,7 @@ body.preload * {
     margin-top: var(--spacing-xs);
 }
 
-/* ============ VIRTUAL PLAYLIST ============ */
+/* ============ VIRTUAL PLAYLIST - LIST VIEW ============ */
 .playlist-container {
     position: relative;
     flex: 1;
@@ -693,7 +720,12 @@ body.preload * {
     width: 100%;
 }
 
-.playlist-item {
+/* List View Styles */
+.playlist-container:not(.grid-view) #virtualList {
+    display: block;
+}
+
+.playlist-item.list-item {
     position: relative;
     display: flex;
     align-items: center;
@@ -703,26 +735,26 @@ body.preload * {
     cursor: pointer;
     transition: all 0.2s ease;
     border: 1px solid transparent;
-    height: 80px;
+    height: var(--list-row-height);
     box-sizing: border-box;
     overflow: visible;
 }
 
-.playlist-item:hover {
+.playlist-item.list-item:hover {
     background: var(--bg-surface-hover);
     transform: translateX(4px);
 }
 
-.playlist-item.active {
+.playlist-item.list-item.active {
     background: var(--primary-light);
     border-color: var(--primary);
 }
 
-.playlist-item.has-resume {
+.playlist-item.list-item.has-resume {
     position: relative;
 }
 
-.playlist-item.has-resume::after {
+.playlist-item.list-item.has-resume::after {
     content: '▶';
     position: absolute;
     right: 40px;
@@ -758,8 +790,8 @@ body.preload * {
     box-shadow: var(--shadow-sm);
 }
 
-.playlist-item:hover .menu-trigger,
-.playlist-item:focus-within .menu-trigger {
+.playlist-item.list-item:hover .menu-trigger,
+.playlist-item.list-item:focus-within .menu-trigger {
     opacity: 1;
 }
 
@@ -876,6 +908,97 @@ body.preload * {
     color: var(--text-tertiary);
 }
 
+/* ============ GRID VIEW STYLES ============ */
+.playlist-container.grid-view #virtualList {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+    padding: 16px;
+    position: relative;
+    transform: none !important;
+}
+
+.playlist-container.grid-view #scrollSpacer {
+    display: none;
+}
+
+.playlist-item.grid-item {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: var(--spacing-md);
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid var(--border);
+    background: var(--bg-surface);
+    height: auto !important;
+    min-height: 200px;
+    gap: var(--spacing-sm);
+}
+
+.playlist-item.grid-item:hover {
+    background: var(--bg-surface-hover);
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-md);
+}
+
+.playlist-item.grid-item.active {
+    background: var(--primary-light);
+    border-color: var(--primary);
+    border-width: 2px;
+}
+
+.playlist-item.grid-item .menu-trigger {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    transform: none;
+    opacity: 0;
+    z-index: 10;
+}
+
+.playlist-item.grid-item:hover .menu-trigger {
+    opacity: 1;
+}
+
+.grid-thumbnail {
+    width: 100%;
+    height: 120px;
+    background: linear-gradient(135deg, var(--primary-light), var(--border));
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3rem;
+    margin-bottom: var(--spacing-sm);
+}
+
+.grid-title {
+    font-size: 0.85rem;
+    font-weight: 500;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    line-height: 1.3;
+    margin-bottom: var(--spacing-xs);
+}
+
+.grid-date {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-xs);
+}
+
+.grid-duration {
+    font-size: 0.65rem;
+    color: var(--text-tertiary);
+}
+
+/* Loading State */
 .loading-state {
     text-align: center;
     padding: var(--spacing-xl);
@@ -972,6 +1095,13 @@ body.preload * {
 }
 
 /* ============ RESPONSIVE ============ */
+@media (max-width: 1024px) {
+    .playlist-container.grid-view #virtualList {
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        gap: 12px;
+    }
+}
+
 @media (max-width: 768px) {
     .main-grid {
         grid-template-columns: 1fr;
@@ -986,6 +1116,7 @@ body.preload * {
     
     .header-content {
         padding: 0 var(--spacing-sm);
+        flex-wrap: wrap;
     }
     
     .logo h1 {
@@ -994,6 +1125,10 @@ body.preload * {
     
     .logo-badge {
         font-size: 0.6rem;
+    }
+    
+    .view-toggle-container {
+        margin-left: 0;
     }
     
     .now-playing-card {
@@ -1009,35 +1144,12 @@ body.preload * {
         font-size: 0.75rem;
     }
     
-    .playlist-thumbnail {
-        width: 50px;
-        height: 50px;
-    }
-    
-    .playlist-item {
-        height: 70px;
-    }
-    
-    .playlist-info {
-        margin-right: 35px;
-    }
-    
-    .menu-trigger {
-        padding: 4px 8px;
-        right: 8px;
-    }
-    
-    .flyout-menu {
-        right: 8px;
-        min-width: 140px;
-    }
-    
     .calendar-grid {
         gap: 2px;
     }
     
     .calendar-day {
-        min-height: 70px;
+        min-height: 60px;
         padding: 4px;
     }
     
@@ -1045,8 +1157,19 @@ body.preload * {
         font-size: 0.8rem;
     }
     
-    .episode-indicators {
-        display: none;
+    .playlist-container.grid-view #virtualList {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 10px;
+        padding: 12px;
+    }
+    
+    .grid-thumbnail {
+        height: 100px;
+        font-size: 2rem;
+    }
+    
+    .grid-title {
+        font-size: 0.75rem;
     }
 }
 
@@ -1055,27 +1178,19 @@ body.preload * {
         padding: 0 var(--spacing-sm);
     }
     
-    .playlist-item {
-        height: 65px;
-        padding: 10px;
+    .playlist-container.grid-view #virtualList {
+        grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+        gap: 8px;
+        padding: 8px;
     }
     
-    .playlist-info {
-        margin-right: 30px;
+    .grid-thumbnail {
+        height: 80px;
+        font-size: 1.5rem;
     }
     
-    .playlist-title {
-        font-size: 0.75rem;
-    }
-    
-    .menu-trigger {
-        padding: 3px 6px;
-        font-size: 0.9rem;
-    }
-    
-    .flyout-menu {
-        min-width: 130px;
-        top: 45px;
+    .grid-title {
+        font-size: 0.7rem;
     }
     
     .calendar-day {
@@ -1096,12 +1211,20 @@ body.preload * {
 }
 
 @media (prefers-contrast: high) {
-    .playlist-item {
+    .playlist-item.list-item {
         border: 1px solid currentColor;
     }
     
-    .playlist-item.active {
+    .playlist-item.list-item.active {
         border-width: 2px;
+    }
+    
+    .playlist-item.grid-item {
+        border: 2px solid currentColor;
+    }
+    
+    .playlist-item.grid-item.active {
+        border-width: 3px;
     }
     
     .menu-trigger {
@@ -1122,6 +1245,10 @@ body.preload * {
         <div class="logo">
             <h1>🎙️ AJN Hourly Archive</h1>
             <span class="logo-badge">Central Time</span>
+        </div>
+        <div class="view-toggle-container">
+            <button id="listViewBtn" class="view-toggle-btn active" aria-label="List view">📋 List View</button>
+            <button id="gridViewBtn" class="view-toggle-btn" aria-label="Grid view">🎴 Grid View</button>
         </div>
         <div class="header-controls">
             <button id="darkModeToggle" class="btn btn-secondary" aria-label="Switch to dark mode">🌙 Dark</button>
@@ -1206,11 +1333,13 @@ body.preload * {
             </div>
         </div>
         
-        <!-- RIGHT COLUMN (35%) - VIRTUALIZED PLAYLIST -->
+        <!-- RIGHT COLUMN (35%) - VIRTUALIZED PLAYLIST WITH VIEW TOGGLE -->
         <div class="playlist-section">
             <div class="playlist-header">
-                <h2>📋 Playlist</h2>
-                <div class="playlist-stats" id="playlistStats" aria-live="polite">Loading episodes...</div>
+                <div>
+                    <h2>📋 Playlist</h2>
+                    <div class="playlist-stats" id="playlistStats" aria-live="polite">Loading episodes...</div>
+                </div>
             </div>
             <div class="playlist-container" id="playlistContainer">
                 <div id="scrollSpacer" style="height: 0px; position: relative;"></div>
@@ -1222,17 +1351,18 @@ body.preload * {
 </main>
 
 <script>
-// ============ MAIN APPLICATION WITH CALENDAR MONTH VIEW ============
+// ============ MAIN APPLICATION WITH LIST/GRID VIEW TOGGLE ============
 
 document.addEventListener('DOMContentLoaded', () => {
-    console.log("DOM is ready. Initializing calendar month view...");
+    console.log("DOM is ready. Initializing with list/grid view toggle...");
     
     // ============ STORAGE KEYS ============
     const STORAGE_KEYS = {
         PLAYBACK_POSITIONS: 'ajn_playback_positions',
         LAST_EPISODE_ID: 'ajn_last_episode_id',
         AUTOPLAY_STATE: 'autoplayEnabled',
-        DARK_MODE: 'darkMode'
+        DARK_MODE: 'darkMode',
+        VIEW_MODE: 'ajn_view_mode'
     };
     
     // ============ GLOBAL STATE ============
@@ -1247,6 +1377,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentCalendarDate = new Date();
     let selectedCalendarDate = null;
     let debounceTimeout = null;
+    let currentViewMode = 'list';
     
     // ============ DOM ELEMENTS ============
     const videoPlayer = document.getElementById('videoPlayer');
@@ -1279,9 +1410,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const calendarFilterBadge = document.getElementById('calendarFilterBadge');
     const activeCalendarDate = document.getElementById('activeCalendarDate');
     const clearCalendarFilter = document.getElementById('clearCalendarFilter');
+    const listViewBtn = document.getElementById('listViewBtn');
+    const gridViewBtn = document.getElementById('gridViewBtn');
     
     // ============ CONSTANTS ============
-    const ROW_HEIGHT = 80;
+    const LIST_ROW_HEIGHT = 80;
+    const GRID_ROW_HEIGHT = 220;
+    let currentRowHeight = LIST_ROW_HEIGHT;
     const BUFFER = 5;
     const RSS_URL = 'https://rss.alexjones.media/AJNHourlyVideo.xml';
     const API_URL = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(RSS_URL)}`;
@@ -1312,6 +1447,15 @@ document.addEventListener('DOMContentLoaded', () => {
             hour: '2-digit',
             minute: '2-digit',
             hour12: true
+        });
+    }
+    
+    function formatShortDate(date) {
+        if (!date) return 'Unknown';
+        return date.toLocaleDateString('en-US', {
+            timeZone: 'America/Chicago',
+            month: 'short',
+            day: 'numeric'
         });
     }
     
@@ -1492,6 +1636,293 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
+    // ============ VIEW MODE TOGGLE FUNCTIONS ============
+    function setListView() {
+        if (currentViewMode === 'list') return;
+        
+        currentViewMode = 'list';
+        currentRowHeight = LIST_ROW_HEIGHT;
+        playlistContainer.classList.remove('grid-view');
+        listViewBtn.classList.add('active');
+        gridViewBtn.classList.remove('active');
+        
+        localStorage.setItem(STORAGE_KEYS.VIEW_MODE, 'list');
+        
+        renderVirtualPlaylist();
+        showToast('Switched to list view', 1500);
+    }
+    
+    function setGridView() {
+        if (currentViewMode === 'grid') return;
+        
+        currentViewMode = 'grid';
+        currentRowHeight = GRID_ROW_HEIGHT;
+        playlistContainer.classList.add('grid-view');
+        gridViewBtn.classList.add('active');
+        listViewBtn.classList.remove('active');
+        
+        localStorage.setItem(STORAGE_KEYS.VIEW_MODE, 'grid');
+        
+        renderVirtualPlaylist();
+        showToast('Switched to grid view', 1500);
+    }
+    
+    function loadSavedViewMode() {
+        const savedMode = localStorage.getItem(STORAGE_KEYS.VIEW_MODE);
+        if (savedMode === 'grid') {
+            setGridView();
+        } else {
+            setListView();
+        }
+    }
+    
+    // ============ RENDER ITEM FUNCTION ============
+    function renderItem(episode, index, isActive) {
+        const isGrid = currentViewMode === 'grid';
+        const escapedTitle = escapeHtml(episode.title);
+        const escapedDate = escapeHtml(formatCentralTime(episode.centralDate));
+        const escapedShortDate = escapeHtml(formatShortDate(episode.centralDate));
+        const escapedShow = escapeHtml(episode.show);
+        const escapedHour = escapeHtml(episode.hour);
+        const flyoutId = `flyout-${index}`;
+        const savedPosition = getPlaybackPosition(episode.id);
+        const hasResume = savedPosition > 0;
+        const resumeTime = savedPosition ? formatTime(savedPosition) : '';
+        
+        const menuHtml = `
+            <div class="menu-trigger" data-flyout="${flyoutId}" 
+                 onclick="event.stopPropagation(); window.toggleFlyout(event, ${index})"
+                 onkeypress="if(event.key==='Enter' || event.key===' ') { event.stopPropagation(); window.toggleFlyout(event, ${index}); }"
+                 role="button"
+                 tabindex="0"
+                 aria-label="More options for ${escapedTitle}">⋮</div>
+            <div class="flyout-menu" id="${flyoutId}" role="menu" aria-label="Episode actions">
+                <div class="flyout-menu-item" role="menuitem" tabindex="0" onclick="event.stopPropagation(); window.downloadEpisodeByIndex(${index})">⬇️ Download</div>
+                <div class="flyout-menu-item" role="menuitem" tabindex="0" onclick="event.stopPropagation(); window.shareEpisodeByIndex(${index})">📤 Share</div>
+                ${hasResume ? `<div class="flyout-menu-item" role="menuitem" tabindex="0" onclick="event.stopPropagation(); window.clearPlaybackPositionById(${episode.id}); renderVirtualPlaylist(); showToast('Resume point cleared');">🗑️ Clear Resume Point</div>` : ''}
+                <div class="flyout-menu-divider" role="separator"></div>
+                <div class="flyout-menu-item" role="menuitem" tabindex="0" onclick="event.stopPropagation(); window.copyLink(${index})">🔗 Copy Link</div>
+                <div class="flyout-menu-item" role="menuitem" tabindex="0" onclick="event.stopPropagation(); window.viewDetails(${index})">📄 Details</div>
+            </div>
+        `;
+        
+        if (isGrid) {
+            return `
+                <div class="playlist-item grid-item ${isActive ? 'active' : ''} ${hasResume ? 'has-resume' : ''}" 
+                     data-index="${index}"
+                     data-episode-id="${episode.id}"
+                     onclick="window.playEpisodeFromGrid(${index})"
+                     tabindex="0"
+                     role="button"
+                     aria-label="Play episode: ${escapedTitle}">
+                    ${menuHtml}
+                    <div class="grid-thumbnail" aria-hidden="true">🎬</div>
+                    <div class="grid-title">${escapedTitle}</div>
+                    <div class="grid-date">📅 ${escapedShortDate}</div>
+                    <div class="grid-duration">🎬 ${escapedShow} ${escapedHour}</div>
+                    ${hasResume ? `<span class="resume-indicator">▶ Resume ${resumeTime}</span>` : ''}
+                </div>
+            `;
+        }
+        
+        return `
+            <div class="playlist-item list-item ${isActive ? 'active' : ''} ${hasResume ? 'has-resume' : ''}" 
+                 data-index="${index}"
+                 data-episode-id="${episode.id}"
+                 onclick="window.playEpisodeFromList(${index})"
+                 tabindex="0"
+                 role="button"
+                 aria-label="Play episode: ${escapedTitle}${hasResume ? ` - Resume from ${resumeTime}` : ''}">
+                ${menuHtml}
+                <div class="playlist-thumbnail" aria-hidden="true">🎬</div>
+                <div class="playlist-info">
+                    <div class="playlist-title">${escapedTitle}${hasResume ? `<span class="resume-indicator">▶ Resume ${resumeTime}</span>` : ''}</div>
+                    <div class="playlist-date">📅 ${escapedDate}</div>
+                    <div class="playlist-duration">🎬 ${escapedShow} ${escapedHour}</div>
+                </div>
+            </div>
+        `;
+    }
+    
+    // ============ VIRTUAL PLAYLIST RENDERING ============
+    function renderVirtualPlaylist() {
+        if (!currentPlaylist.length) {
+            virtualList.innerHTML = '<div class="empty-state" style="padding: 40px; text-align: center;">📭 No episodes found</div>';
+            if (currentViewMode !== 'grid') {
+                scrollSpacer.style.height = '0px';
+            }
+            return;
+        }
+        
+        const isGrid = currentViewMode === 'grid';
+        
+        if (isGrid) {
+            virtualList.style.position = 'relative';
+            virtualList.style.transform = 'none';
+            scrollSpacer.style.display = 'none';
+            
+            virtualList.innerHTML = currentPlaylist.map((ep, idx) => {
+                const isActive = idx === currentIndex;
+                return renderItem(ep, idx, isActive);
+            }).join('');
+        } else {
+            virtualList.style.position = 'absolute';
+            scrollSpacer.style.display = 'block';
+            
+            const scrollTop = playlistContainer.scrollTop;
+            const viewportHeight = playlistContainer.clientHeight;
+            const totalHeight = currentPlaylist.length * currentRowHeight;
+            scrollSpacer.style.height = `${totalHeight}px`;
+            
+            const startIndex = Math.max(0, Math.floor(scrollTop / currentRowHeight) - BUFFER);
+            const endIndex = Math.min(currentPlaylist.length - 1, Math.floor((scrollTop + viewportHeight) / currentRowHeight) + BUFFER);
+            const offsetY = startIndex * currentRowHeight;
+            virtualList.style.transform = `translateY(${offsetY}px)`;
+            const visibleItems = currentPlaylist.slice(startIndex, endIndex + 1);
+            
+            virtualList.innerHTML = visibleItems.map((ep, idx) => {
+                const actualIndex = startIndex + idx;
+                const isActive = actualIndex === currentIndex;
+                return renderItem(ep, actualIndex, isActive);
+            }).join('');
+        }
+    }
+    
+    // ============ PLAY EPISODE FUNCTIONS ============
+    function playEpisode(index) {
+        if (index < 0 || index >= currentPlaylist.length) return;
+        
+        currentIndex = index;
+        const episode = currentPlaylist[currentIndex];
+        currentEpisodeData = episode;
+        
+        currentTitle.textContent = episode.title;
+        videoPlayer.src = episode.videoUrl;
+        videoPlayer.load();
+        
+        const savedPosition = getPlaybackPosition(episode.id);
+        if (savedPosition > 0 && savedPosition < videoPlayer.duration - 2) {
+            const setPosition = () => {
+                if (savedPosition < videoPlayer.duration && savedPosition > 0) {
+                    videoPlayer.currentTime = savedPosition;
+                    const notification = document.createElement('div');
+                    notification.className = 'resume-notification';
+                    notification.innerHTML = `<span class="resume-icon">▶</span><span class="resume-text">Resuming from ${formatTime(savedPosition)}</span>`;
+                    document.body.appendChild(notification);
+                    setTimeout(() => notification.remove(), 3000);
+                }
+                videoPlayer.removeEventListener('loadedmetadata', setPosition);
+            };
+            videoPlayer.addEventListener('loadedmetadata', setPosition);
+            setTimeout(() => {
+                if (videoPlayer.readyState === 0) {
+                    videoPlayer.removeEventListener('loadedmetadata', setPosition);
+                }
+            }, 3000);
+        }
+        
+        if (autoplayToggle.checked) {
+            videoPlayer.play().catch(e => console.log('Autoplay prevented:', e));
+        }
+        
+        renderVirtualPlaylist();
+        
+        if ('mediaSession' in navigator) {
+            navigator.mediaSession.metadata = new MediaMetadata({
+                title: episode.title,
+                artist: episode.show,
+                album: 'AJN Hourly Archive'
+            });
+        }
+        
+        document.title = `${episode.show} - AJN Hourly Archive`;
+        localStorage.setItem(STORAGE_KEYS.LAST_EPISODE_ID, episode.id);
+    }
+    
+    window.playEpisodeFromList = function(index) {
+        playEpisode(index);
+    };
+    
+    window.playEpisodeFromGrid = function(index) {
+        playEpisode(index);
+    };
+    
+    window.playEpisode = playEpisode;
+    
+    // ============ ACTION HANDLERS ============
+    window.downloadEpisodeByIndex = function(index) {
+        const episode = currentPlaylist[index];
+        if (!episode) return;
+        const link = document.createElement('a');
+        link.href = episode.videoUrl;
+        link.download = `${episode.title.replace(/[^a-z0-9]/gi, '_')}.m4v`;
+        link.click();
+        showToast(`Downloading: ${episode.title.substring(0, 50)}...`);
+        closeAllFlyouts();
+    };
+    
+    window.shareEpisodeByIndex = function(index) {
+        const episode = currentPlaylist[index];
+        if (!episode) return;
+        if (navigator.share) {
+            navigator.share({
+                title: episode.title,
+                text: episode.description.substring(0, 100),
+                url: episode.videoUrl
+            }).catch(e => console.log('Share cancelled'));
+        } else {
+            navigator.clipboard.writeText(episode.videoUrl);
+            showToast('Link copied to clipboard');
+        }
+        closeAllFlyouts();
+    };
+    
+    window.copyLink = function(index) {
+        const episode = currentPlaylist[index];
+        if (!episode) return;
+        navigator.clipboard.writeText(episode.videoUrl);
+        showToast('Link copied to clipboard');
+        closeAllFlyouts();
+    };
+    
+    window.viewDetails = function(index) {
+        const episode = currentPlaylist[index];
+        if (!episode) return;
+        closeAllFlyouts();
+        const modal = document.createElement('div');
+        modal.style.cssText = `position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 2000; backdrop-filter: blur(4px);`;
+        modal.innerHTML = `<div style="background: var(--bg-surface); border-radius: 16px; max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto; padding: 24px;">
+            <h3 style="margin-bottom: 16px; color: var(--primary);">Episode Details</h3>
+            <div style="margin-bottom: 12px;"><strong>Title:</strong><br>${escapeHtml(episode.title)}</div>
+            <div style="margin-bottom: 12px;"><strong>Show:</strong><br>${episode.show} ${episode.hour}</div>
+            <div style="margin-bottom: 12px;"><strong>Date (CT):</strong><br>${formatCentralTime(episode.centralDate)}</div>
+            <div style="margin-bottom: 12px;"><strong>Description:</strong><br>${escapeHtml(episode.description)}</div>
+            <button onclick="this.closest('div').parentElement.remove()" class="btn btn-primary">Close</button>
+        </div>`;
+        document.body.appendChild(modal);
+        modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+    };
+    
+    window.clearPlaybackPositionById = function(episodeId) {
+        clearPlaybackPosition(episodeId);
+        renderVirtualPlaylist();
+    };
+    
+    window.toggleFlyout = function(event, index) {
+        event.stopPropagation();
+        const flyoutId = `flyout-${index}`;
+        const menu = document.getElementById(flyoutId);
+        if (!menu) return;
+        document.querySelectorAll('.flyout-menu').forEach(f => {
+            if (f.id !== flyoutId) f.classList.remove('active');
+        });
+        menu.classList.toggle('active');
+    };
+    
+    function closeAllFlyouts() {
+        document.querySelectorAll('.flyout-menu').forEach(menu => menu.classList.remove('active'));
+    }
+    
     // ============ CALENDAR RENDERING ============
     function renderCalendar() {
         const year = currentCalendarDate.getFullYear();
@@ -1520,8 +1951,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 const dayEpisodes = allEpisodes.filter(ep => ep.dateKey === dateKey);
                 const isToday = dateKey === todayKey;
                 const isSelected = selectedCalendarDate === dateKey;
-                const weekIndex = Math.floor((i - startDayOfWeek) / 7);
-                const weekClass = `week-${weekIndex % 6}`;
                 
                 let tooltipHtml = '';
                 if (dayEpisodes.length > 0) {
@@ -1544,7 +1973,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 
                 html += `
-                    <div class="calendar-day ${weekClass} ${isToday ? 'today' : ''} ${isSelected ? 'selected' : ''}" 
+                    <div class="calendar-day ${isToday ? 'today' : ''} ${isSelected ? 'selected' : ''}" 
                          data-date="${dateKey}"
                          onclick="window.filterByCalendarDate('${dateKey}')">
                         <span class="calendar-day-number">${dayCounter}</span>
@@ -1561,7 +1990,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     // ============ FILTER FUNCTIONS ============
-    function filterByCalendarDate(dateKey) {
+    window.filterByCalendarDate = function(dateKey) {
         selectedCalendarDate = dateKey;
         currentSearchTerm = '';
         if (searchInput) searchInput.value = '';
@@ -1590,7 +2019,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         renderCalendar();
         showToast(`Showing ${currentPlaylist.length} episodes for ${formattedDate}`, 3000);
-    }
+    };
     
     function clearCalendarFilter() {
         selectedCalendarDate = null;
@@ -1684,168 +2113,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
-    // ============ VIRTUAL PLAYLIST RENDERING ============
-    function renderVirtualPlaylist() {
-        if (!currentPlaylist.length) {
-            virtualList.innerHTML = '<div class="empty-state" style="padding: 40px; text-align: center;">📭 No episodes found</div>';
-            return;
-        }
-        
-        const scrollTop = playlistContainer.scrollTop;
-        const viewportHeight = playlistContainer.clientHeight;
-        const totalHeight = currentPlaylist.length * ROW_HEIGHT;
-        scrollSpacer.style.height = `${totalHeight}px`;
-        
-        const startIndex = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - BUFFER);
-        const endIndex = Math.min(currentPlaylist.length - 1, Math.floor((scrollTop + viewportHeight) / ROW_HEIGHT) + BUFFER);
-        const offsetY = startIndex * ROW_HEIGHT;
-        virtualList.style.transform = `translateY(${offsetY}px)`;
-        const visibleItems = currentPlaylist.slice(startIndex, endIndex + 1);
-        
-        virtualList.innerHTML = visibleItems.map((ep, idx) => {
-            const actualIndex = startIndex + idx;
-            const isActive = actualIndex === currentIndex;
-            const flyoutId = `flyout-${actualIndex}`;
-            const savedPosition = getPlaybackPosition(ep.id);
-            const hasResume = savedPosition > 0;
-            const resumeTime = savedPosition ? formatTime(savedPosition) : '';
-            
-            return `
-                <div class="playlist-item ${isActive ? 'active' : ''} ${hasResume ? 'has-resume' : ''}" 
-                     data-index="${actualIndex}"
-                     data-episode-id="${ep.id}"
-                     style="height: ${ROW_HEIGHT}px"
-                     tabindex="0"
-                     role="button"
-                     aria-label="Play episode: ${escapeHtml(ep.title)}${hasResume ? ` - Resume from ${resumeTime}` : ''}">
-                    <div class="menu-trigger" 
-                         data-flyout="${flyoutId}"
-                         onclick="event.stopPropagation(); document.getElementById('${flyoutId}').classList.toggle('active')"
-                         onkeypress="if(event.key==='Enter' || event.key===' ') { event.stopPropagation(); document.getElementById('${flyoutId}').classList.toggle('active'); }"
-                         role="button"
-                         tabindex="0"
-                         aria-label="More options for ${escapeHtml(ep.title)}">⋮</div>
-                    <div class="flyout-menu" id="${flyoutId}" role="menu" aria-label="Episode actions">
-                        <div class="flyout-menu-item" role="menuitem" tabindex="0" onclick="event.stopPropagation(); window.downloadEpisode(${actualIndex})">⬇️ Download</div>
-                        <div class="flyout-menu-item" role="menuitem" tabindex="0" onclick="event.stopPropagation(); window.shareEpisode(${actualIndex})">📤 Share</div>
-                        ${hasResume ? `<div class="flyout-menu-item" role="menuitem" tabindex="0" onclick="event.stopPropagation(); clearPlaybackPosition(${ep.id}); renderVirtualPlaylist(); showToast('Resume point cleared');">🗑️ Clear Resume Point</div>` : ''}
-                        <div class="flyout-menu-divider" role="separator"></div>
-                        <div class="flyout-menu-item" role="menuitem" tabindex="0" onclick="event.stopPropagation(); window.copyLink(${actualIndex})">🔗 Copy Link</div>
-                        <div class="flyout-menu-item" role="menuitem" tabindex="0" onclick="event.stopPropagation(); window.viewDetails(${actualIndex})">📄 Details</div>
-                    </div>
-                    <div class="playlist-thumbnail" aria-hidden="true">🎬</div>
-                    <div class="playlist-info">
-                        <div class="playlist-title">${escapeHtml(ep.title)}${hasResume ? `<span class="resume-indicator">▶ Resume ${resumeTime}</span>` : ''}</div>
-                        <div class="playlist-date">📅 ${formatCentralTime(ep.centralDate)}</div>
-                        <div class="playlist-duration">🎬 ${ep.show} ${ep.hour}</div>
-                    </div>
-                </div>
-            `;
-        }).join('');
-    }
-    
-    // ============ PLAY EPISODE FUNCTION ============
-    function playEpisode(index) {
-        if (index < 0 || index >= currentPlaylist.length) return;
-        currentIndex = index;
-        const episode = currentPlaylist[currentIndex];
-        currentEpisodeData = episode;
-        currentTitle.textContent = episode.title;
-        videoPlayer.src = episode.videoUrl;
-        videoPlayer.load();
-        
-        const savedPosition = getPlaybackPosition(episode.id);
-        if (savedPosition > 0 && savedPosition < videoPlayer.duration - 2) {
-            const setPosition = () => {
-                if (savedPosition < videoPlayer.duration && savedPosition > 0) {
-                    videoPlayer.currentTime = savedPosition;
-                    const notification = document.createElement('div');
-                    notification.className = 'resume-notification';
-                    notification.innerHTML = `<span class="resume-icon">▶</span><span class="resume-text">Resuming from ${formatTime(savedPosition)}</span>`;
-                    document.body.appendChild(notification);
-                    setTimeout(() => notification.remove(), 3000);
-                }
-                videoPlayer.removeEventListener('loadedmetadata', setPosition);
-            };
-            videoPlayer.addEventListener('loadedmetadata', setPosition);
-        }
-        
-        if (autoplayToggle.checked) videoPlayer.play().catch(e => console.log('Autoplay prevented:', e));
-        renderVirtualPlaylist();
-        
-        if ('mediaSession' in navigator) {
-            navigator.mediaSession.metadata = new MediaMetadata({
-                title: episode.title,
-                artist: episode.show,
-                album: 'AJN Hourly Archive'
-            });
-        }
-        
-        document.title = `${episode.show} - AJN Hourly Archive`;
-        localStorage.setItem(STORAGE_KEYS.LAST_EPISODE_ID, episode.id);
-    }
-    
-    // ============ ACTION HANDLERS ============
-    window.downloadEpisode = function(index) {
-        const episode = currentPlaylist[index];
-        if (!episode) return;
-        const link = document.createElement('a');
-        link.href = episode.videoUrl;
-        link.download = `${episode.title.replace(/[^a-z0-9]/gi, '_')}.m4v`;
-        link.click();
-        showToast(`Downloading: ${episode.title.substring(0, 50)}...`);
-        closeAllFlyouts();
-    };
-    
-    window.shareEpisode = function(index) {
-        const episode = currentPlaylist[index];
-        if (!episode) return;
-        if (navigator.share) {
-            navigator.share({
-                title: episode.title,
-                text: episode.description.substring(0, 100),
-                url: episode.videoUrl
-            }).catch(e => console.log('Share cancelled'));
-        } else {
-            navigator.clipboard.writeText(episode.videoUrl);
-            showToast('Link copied to clipboard');
-        }
-        closeAllFlyouts();
-    };
-    
-    window.copyLink = function(index) {
-        const episode = currentPlaylist[index];
-        if (!episode) return;
-        navigator.clipboard.writeText(episode.videoUrl);
-        showToast('Link copied to clipboard');
-        closeAllFlyouts();
-    };
-    
-    window.viewDetails = function(index) {
-        const episode = currentPlaylist[index];
-        if (!episode) return;
-        closeAllFlyouts();
-        const modal = document.createElement('div');
-        modal.style.cssText = `position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 2000; backdrop-filter: blur(4px);`;
-        modal.innerHTML = `<div style="background: var(--bg-surface); border-radius: 16px; max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto; padding: 24px;">
-            <h3 style="margin-bottom: 16px; color: var(--primary);">Episode Details</h3>
-            <div style="margin-bottom: 12px;"><strong>Title:</strong><br>${escapeHtml(episode.title)}</div>
-            <div style="margin-bottom: 12px;"><strong>Show:</strong><br>${episode.show} ${episode.hour}</div>
-            <div style="margin-bottom: 12px;"><strong>Date (CT):</strong><br>${formatCentralTime(episode.centralDate)}</div>
-            <div style="margin-bottom: 12px;"><strong>Description:</strong><br>${escapeHtml(episode.description)}</div>
-            <button onclick="this.closest('div').parentElement.remove()" class="btn btn-primary">Close</button>
-        </div>`;
-        document.body.appendChild(modal);
-        modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
-    };
-    
-    window.filterByCalendarDate = filterByCalendarDate;
-    window.clearPlaybackPosition = clearPlaybackPosition;
-    
-    function closeAllFlyouts() {
-        document.querySelectorAll('.flyout-menu').forEach(menu => menu.classList.remove('active'));
-    }
-    
     // ============ LOAD EPISODES ============
     async function loadEpisodes() {
         showToast('Loading episodes...');
@@ -1904,27 +2171,38 @@ document.addEventListener('DOMContentLoaded', () => {
                 localStorage.setItem(STORAGE_KEYS.DARK_MODE, dark);
                 darkModeToggle.innerHTML = dark ? '☀️ Light' : '🌙 Dark';
                 renderCalendar();
+                renderVirtualPlaylist();
             });
         }
     }
     
     // ============ EVENT DELEGATION ============
     playlistContainer.addEventListener('click', (e) => {
-        const playlistItem = e.target.closest('.playlist-item');
-        if (playlistItem && !e.target.closest('.menu-trigger') && !e.target.closest('.flyout-menu')) {
-            const index = parseInt(playlistItem.dataset.index);
-            if (!isNaN(index)) playEpisode(index);
+        if (currentViewMode === 'grid') {
+            const gridItem = e.target.closest('.grid-item');
+            if (gridItem && !e.target.closest('.menu-trigger') && !e.target.closest('.flyout-menu')) {
+                const index = parseInt(gridItem.dataset.index);
+                if (!isNaN(index)) playEpisode(index);
+            }
         }
     });
     
     document.addEventListener('click', (e) => {
-        if (!e.target.closest('.menu-trigger') && !e.target.closest('.flyout-menu')) closeAllFlyouts();
+        if (!e.target.closest('.menu-trigger') && !e.target.closest('.flyout-menu')) {
+            closeAllFlyouts();
+        }
     });
     
-    playlistContainer.addEventListener('scroll', () => requestAnimationFrame(renderVirtualPlaylist));
+    if (currentViewMode !== 'grid') {
+        playlistContainer.addEventListener('scroll', () => {
+            if (currentViewMode !== 'grid') {
+                requestAnimationFrame(renderVirtualPlaylist);
+            }
+        });
+    }
     
-    if (downloadBtn) downloadBtn.addEventListener('click', () => { if (currentEpisodeData) window.downloadEpisode(currentIndex); });
-    if (shareBtn) shareBtn.addEventListener('click', () => { if (currentEpisodeData) window.shareEpisode(currentIndex); });
+    if (downloadBtn) downloadBtn.addEventListener('click', () => { if (currentEpisodeData) window.downloadEpisodeByIndex(currentIndex); });
+    if (shareBtn) shareBtn.addEventListener('click', () => { if (currentEpisodeData) window.shareEpisodeByIndex(currentIndex); });
     if (nextBtn) nextBtn.addEventListener('click', () => {
         if (currentIndex + 1 < currentPlaylist.length) {
             playEpisode(currentIndex + 1);
@@ -1933,6 +2211,9 @@ document.addEventListener('DOMContentLoaded', () => {
             showToast('End of playlist');
         }
     });
+    
+    if (listViewBtn) listViewBtn.addEventListener('click', setListView);
+    if (gridViewBtn) gridViewBtn.addEventListener('click', setGridView);
     
     if (calendarPrevMonth) {
         calendarPrevMonth.addEventListener('click', () => {
@@ -1961,8 +2242,9 @@ document.addEventListener('DOMContentLoaded', () => {
         initVideoControls();
         startPositionTracking();
         setupSearch();
+        loadSavedViewMode();
         loadEpisodes();
-        console.log('P2-2 Calendar month view initialized with week color blocks and tooltips');
+        console.log('P2-3 List/Grid view toggle initialized - Responsive virtualized playlist');
     }
     
     init();
