@@ -2,201 +2,662 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AJN Hourly Video - RSS Feed</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>AJN Hourly Video Archive - Month View Player</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;background:#f5f5f5;color:#111}
-.container{max-width:900px;margin:0 auto;padding:20px}
-.header{background:#fff;padding:20px;border-radius:12px;margin-bottom:20px;box-shadow:0 2px 4px rgba(0,0,0,0.1)}
-h1{color:#d32f2f;margin-bottom:8px}
-.description{color:#666;margin-top:8px}
-.loader{text-align:center;padding:40px;color:#666}
-.loader::after{content:'';display:inline-block;width:20px;height:20px;margin-left:10px;border:2px solid #666;border-top-color:#d32f2f;border-radius:50%;animation:spin 0.6s linear infinite}
+:root{--bg:#f5f5f5;--surface:#fff;--text:#111;--text-secondary:#666;--primary:#d32f2f;--primary-dark:#b71c1c;--border:#e0e0e0;--hover:#f0f0f0;--calendar-bg:#fff;--calendar-border:#ddd;--episode-block:#ffebee;--episode-block-hover:#ffcdd2;--success:#2e7d32}
+.dark{--bg:#1a1a1a;--surface:#2d2d2d;--text:#e0e0e0;--text-secondary:#aaa;--primary:#ef5350;--primary-dark:#c62828;--border:#404040;--hover:#3d3d3d;--calendar-bg:#2d2d2d;--calendar-border:#404040;--episode-block:#4a1e1e;--episode-block-hover:#6a2e2e}
+body{font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;background:var(--bg);color:var(--text);transition:all 0.3s cubic-bezier(0.4,0,0.2,1)}
+.container{max-width:1400px;margin:0 auto;padding:16px}
+/* Header */
+.header{background:var(--surface);padding:20px;border-radius:16px;margin-bottom:20px;box-shadow:0 2px 8px rgba(0,0,0,0.1)}
+.header-top{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:15px;margin-bottom:20px}
+h1{color:var(--primary);font-size:1.6em;display:flex;align-items:center;gap:10px}
+.controls{display:flex;gap:10px;flex-wrap:wrap}
+button{padding:10px 18px;border:none;border-radius:10px;cursor:pointer;font-size:14px;font-weight:500;transition:all 0.2s;background:var(--primary);color:white}
+button:hover{background:var(--primary-dark);transform:translateY(-1px);box-shadow:0 2px 4px rgba(0,0,0,0.2)}
+.secondary-btn{background:var(--border);color:var(--text)}
+.secondary-btn:hover{background:var(--hover)}
+.icon-btn{padding:10px;border-radius:50%;aspect-ratio:1}
+/* Month Navigation */
+.month-nav{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;gap:15px;flex-wrap:wrap}
+.month-nav h2{font-size:1.4em}
+.month-nav-buttons{display:flex;gap:10px}
+/* Week/7-Day View Toggle */
+.view-toggle-buttons{display:flex;gap:10px;margin-bottom:20px}
+.view-mode-btn{padding:8px 20px;background:var(--surface);border:1px solid var(--border);color:var(--text)}
+.view-mode-btn.active{background:var(--primary);color:white;border-color:var(--primary)}
+/* Calendar Grid - Month View */
+.calendar-view{background:var(--surface);border-radius:16px;padding:20px;margin-bottom:20px;box-shadow:0 2px 8px rgba(0,0,0,0.1);overflow-x:auto}
+.calendar-weekdays{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:12px}
+.calendar-weekday{text-align:center;font-weight:600;padding:12px;color:var(--text-secondary)}
+.calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}
+.calendar-day{min-height:100px;background:var(--calendar-bg);border:1px solid var(--calendar-border);border-radius:12px;padding:8px;cursor:pointer;transition:all 0.2s;position:relative}
+.calendar-day:hover{transform:scale(1.02);box-shadow:0 4px 12px rgba(0,0,0,0.15);z-index:10}
+.calendar-day.empty{background:transparent;border-color:transparent;cursor:default}
+.calendar-day.today{border:2px solid var(--primary);background:var(--episode-block)}
+.day-number{font-weight:600;font-size:1.1em;margin-bottom:8px}
+.episode-blocks{display:flex;flex-direction:column;gap:4px;max-height:80px;overflow-y:auto}
+.episode-block{font-size:0.7em;padding:4px 6px;background:var(--episode-block);border-radius:6px;cursor:pointer;transition:all 0.2s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.episode-block:hover{background:var(--episode-block-hover);transform:translateX(2px)}
+.episode-count-badge{position:absolute;bottom:4px;right:4px;background:var(--primary);color:white;border-radius:10px;padding:2px 6px;font-size:0.7em;font-weight:bold}
+/* Week View (7 days) */
+.week-view{background:var(--surface);border-radius:16px;padding:20px;margin-bottom:20px;box-shadow:0 2px 8px rgba(0,0,0,0.1);display:none}
+.week-header{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:16px}
+.week-day-header{text-align:center;font-weight:600;padding:12px;background:var(--hover);border-radius:10px}
+.week-episodes{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}
+.week-day-episodes{min-height:200px;background:var(--calendar-bg);border:1px solid var(--border);border-radius:12px;padding:10px;overflow-y:auto}
+.week-episode-item{padding:8px;margin-bottom:6px;background:var(--episode-block);border-radius:8px;cursor:pointer;font-size:0.8em;transition:all 0.2s}
+.week-episode-item:hover{background:var(--episode-block-hover);transform:translateX(3px)}
+/* Search Bar */
+.search-bar{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+.search-input{flex:1;padding:12px 16px;border:2px solid var(--border);border-radius:12px;background:var(--surface);color:var(--text);font-size:16px;transition:border-color 0.2s}
+.search-input:focus{outline:none;border-color:var(--primary)}
+.date-filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+/* Flyout Calendar */
+.calendar-container{position:relative}
+.calendar-flyout-btn{padding:10px 16px;background:var(--surface);border:1px solid var(--border);border-radius:10px;cursor:pointer;color:var(--text)}
+.calendar-flyout{position:absolute;top:100%;left:0;margin-top:8px;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px;box-shadow:0 8px 24px rgba(0,0,0,0.2);z-index:1000;display:none;min-width:280px}
+.calendar-flyout.show{display:block}
+.flyout-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.flyout-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.flyout-day{padding:8px 4px;text-align:center;cursor:pointer;border-radius:8px;font-size:0.85em}
+.flyout-day:hover{background:var(--primary);color:white}
+.flyout-day.has-episode{background:var(--episode-block);font-weight:bold}
+/* Main Layout */
+.main-layout{display:flex;gap:20px;flex-wrap:wrap}
+.video-player{flex:2;min-width:300px}
+.playlist-section{flex:1;min-width:300px;max-height:80vh;display:flex;flex-direction:column}
+/* Now Playing */
+.now-playing{background:var(--surface);border-radius:16px;padding:20px;margin-bottom:20px;box-shadow:0 2px 8px rgba(0,0,0,0.1)}
+.now-playing h3{color:var(--text-secondary);margin-bottom:8px;font-size:0.85em;text-transform:uppercase;letter-spacing:1px}
+.now-playing h2{font-size:1.2em;margin-bottom:8px;line-height:1.3}
+.now-playing .timestamp{color:var(--text-secondary);font-size:0.85em;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border)}
+video{width:100%;border-radius:12px;background:#000;margin:12px 0}
+.video-actions{display:flex;gap:12px;margin-top:16px;flex-wrap:wrap}
+/* Playlist Controls */
+.playlist-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px}
+.stats{background:var(--surface);padding:10px 16px;border-radius:12px;font-size:0.85em;color:var(--text-secondary)}
+.view-toggle{display:flex;gap:6px}
+.view-mode-small{padding:6px 12px;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:8px;cursor:pointer}
+.view-mode-small.active{background:var(--primary);color:white}
+/* Playlist Items */
+.playlist-container{flex:1;overflow-y:auto;border-radius:12px}
+.playlist-item{background:var(--surface);padding:14px;margin-bottom:10px;border-radius:12px;cursor:pointer;transition:all 0.2s;border-left:3px solid transparent}
+.playlist-item:hover{background:var(--hover);transform:translateX(4px)}
+.playlist-item.active{background:var(--hover);border-left-color:var(--primary)}
+.playlist-title{font-weight:600;margin-bottom:6px;font-size:0.9em}
+.playlist-date{font-size:0.75em;color:var(--text-secondary);margin-bottom:4px}
+.playlist-meta{font-size:0.7em;color:var(--text-secondary)}
+.episode-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.episode-card{background:var(--surface);padding:14px;border-radius:12px;cursor:pointer;transition:all 0.2s}
+.episode-card:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,0.15)}
+.episode-card-title{font-weight:600;margin-bottom:6px;font-size:0.85em}
+.episode-card-date{font-size:0.7em;color:var(--text-secondary)}
+.loader{text-align:center;padding:40px;color:var(--text-secondary)}
+.loader-spinner{display:inline-block;width:30px;height:30px;border:3px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin 0.6s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-.item{background:#fff;padding:20px;margin-bottom:15px;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,0.1);transition:transform 0.2s,box-shadow 0.2s}
-.item:hover{transform:translateY(-2px);box-shadow:0 4px 8px rgba(0,0,0,0.15)}
-.title{font-size:1.2em;font-weight:600;margin-bottom:10px}
-.title a{color:#0b63d6;text-decoration:none;word-break:break-all}
-.title a:hover{text-decoration:underline}
-.date{color:#666;font-size:0.85em;margin-bottom:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.description{color:#333;line-height:1.5;margin-top:12px}
-.video-link{display:inline-block;margin-top:10px;padding:8px 16px;background:#d32f2f;color:white;border-radius:6px;text-decoration:none;font-weight:bold}
-.video-link:hover{background:#b71c1c}
 .error{background:#ffebee;color:#c62828;padding:20px;border-radius:12px;text-align:center}
-.error a{color:#0b63d6}
-hr{margin:20px 0;border:none;border-top:1px solid #e0e0e0}
-.footer{text-align:center;margin-top:30px;padding:20px;color:#999;font-size:0.8em}
+.toast{position:fixed;bottom:20px;right:20px;background:#333;color:white;padding:12px 20px;border-radius:12px;z-index:2000;animation:slideIn 0.3s;box-shadow:0 4px 12px rgba(0,0,0,0.2)}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+@media (max-width:768px){.calendar-day{min-height:70px}.episode-block{font-size:0.6em}.container{padding:8px}}
 </style>
 </head>
 <body>
 <div class="container">
 <div class="header">
-<h1>🎙️ AJN Hourly Video</h1>
-<div id="feedDescription" class="description">Loading feed...</div>
+<div class="header-top">
+<h1>🎙️ AJN Hourly Archive <span style="font-size:0.5em;">CT Timezone</span></h1>
+<div class="controls">
+<button id="darkModeToggle" class="secondary-btn" aria-label="Toggle dark mode">🌙 Dark</button>
+<button id="sharePlaylistBtn" class="secondary-btn" aria-label="Share playlist">🔗 Share</button>
 </div>
-<div id="itemsContainer">
-<div class="loader">Loading episodes...</div>
 </div>
-<div class="footer">
-<a href="https://rss.alexjones.media/AJNHourlyVideo.xml" target="_blank">View Raw RSS Feed</a> • 
-<a href="#" onclick="location.reload();return false">Refresh</a>
+
+<div class="search-bar">
+<input type="text" id="searchInput" class="search-input" placeholder="Search episodes (title or description)..." aria-label="Search episodes">
+<div class="date-filters">
+<div class="calendar-container">
+<button id="calendarFlyoutBtn" class="calendar-flyout-btn" aria-label="Open calendar">📅 Jump to Date</button>
+<div id="calendarFlyout" class="calendar-flyout" role="dialog" aria-label="Calendar picker">
+<div class="flyout-header">
+<button id="flyoutPrevMonth">◀</button>
+<span id="flyoutMonthYear"></span>
+<button id="flyoutNextMonth">▶</button>
+</div>
+<div id="flyoutCalendarGrid" class="flyout-grid"></div>
+</div>
+</div>
+<input type="date" id="startDate" class="search-input" style="max-width:140px" aria-label="Start date">
+<input type="date" id="endDate" class="search-input" style="max-width:140px" aria-label="End date">
+<button id="clearFilters" class="secondary-btn">✖ Clear</button>
+</div>
+</div>
+
+<div class="view-toggle-buttons">
+<button id="monthViewBtn" class="view-mode-btn active">📅 Month View</button>
+<button id="weekViewBtn" class="view-mode-btn">📆 7-Day View</button>
+</div>
+
+<div id="monthCalendarView" class="calendar-view">
+<div class="month-nav">
+<button id="prevMonthBtn" class="secondary-btn">◀ Previous</button>
+<h2 id="currentMonthDisplay"></h2>
+<button id="nextMonthBtn" class="secondary-btn">Next ▶</button>
+</div>
+<div class="calendar-weekdays" id="calendarWeekdays"></div>
+<div id="calendarGridContainer" class="calendar-grid"></div>
+</div>
+
+<div id="weekViewContainer" class="week-view"></div>
+</div>
+
+<div class="main-layout">
+<div class="video-player">
+<div class="now-playing">
+<h3>▶ NOW PLAYING</h3>
+<h2 id="currentTitle">Select an episode</h2>
+<div id="currentMetadata" class="timestamp"></div>
+<video id="videoPlayer" controls preload="metadata" aria-label="Video player">
+<source src="" type="video/mp4">
+</video>
+<div class="video-actions">
+<button id="downloadBtn" aria-label="Download video">⬇️ Download</button>
+<button id="shareEpisodeBtn" aria-label="Share episode">📤 Share</button>
+<button id="nextEpisodeBtn" aria-label="Next episode">⏭️ Next</button>
+</div>
+</div>
+</div>
+
+<div class="playlist-section">
+<div class="playlist-header">
+<div class="stats" id="stats"></div>
+<div class="view-toggle">
+<button id="playlistListViewBtn" class="view-mode-small active">📋 List</button>
+<button id="playlistGridViewBtn" class="view-mode-small">🎴 Grid</button>
+</div>
+</div>
+<div id="playlistContainer" class="playlist-container"></div>
+<div id="episodeGridContainer" class="episode-grid" style="display:none"></div>
+</div>
 </div>
 </div>
 
 <script>
-const rssUrl = 'https://rss.alexjones.media/AJNHourlyVideo.xml';
-const containers = {
-  description: document.getElementById('feedDescription'),
-  items: document.getElementById('itemsContainer')
-};
+// ============ CONFIGURATION ============
+const RSS_URL = 'https://rss.alexjones.media/AJNHourlyVideo.xml';
+const PROXY_URL = 'https://api.allorigins.win/raw?url=';
+const API_URL = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(RSS_URL)}`;
 
-// Function to transform links from original format to playable format
+// Global state
+let allEpisodes = [];
+let currentPlaylist = [];
+let currentIndex = 0;
+let currentViewMode = 'month'; // 'month' or 'week'
+let currentPlaylistView = 'list';
+let currentYear = new Date().getFullYear();
+let currentMonth = new Date().getMonth();
+let currentWeekStart = new Date();
+let currentCalendarDate = new Date();
+
+// Helper: Transform video URL
 function transformVideoUrl(originalUrl) {
-    // Extract filename from original URL
-    // Original pattern: https://alexjones.media/20260525_Mon_WarRoom-Hr3.m4v
-    // Target pattern: https://ajn.archives.pub/hourly-m4v/20260525_Mon_WarRoom-Hr3.m4v
-    
     if (!originalUrl) return '#';
-    
-    // Extract the filename (everything after the last /)
     const filename = originalUrl.substring(originalUrl.lastIndexOf('/') + 1);
-    
-    // Check if it's an M4V file
-    if (filename.endsWith('.m4v')) {
-        // Return the corrected URL
+    if (filename.endsWith('.m4v') || filename.endsWith('.mp4')) {
         return `https://ajn.archives.pub/hourly-m4v/${filename}`;
     }
-    
-    // If not an M4V file, return original URL
     return originalUrl;
 }
 
-// Try RSS2JSON first
-fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`)
-  .then(response => {
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    return response.json();
-  })
-  .then(data => {
-    if (data.status !== 'ok') throw new Error('API returned error status');
-    
-    containers.description.textContent = data.feed.description || 'Hourly news and commentary';
-    containers.items.innerHTML = '';
-    
-    if (data.items && data.items.length > 0) {
-      data.items.slice(0, 50).forEach(item => {
-        const itemDiv = document.createElement('div');
-        itemDiv.className = 'item';
+// Helper: Parse Central Time
+function toCentralTime(date) {
+    return new Date(date.toLocaleString('en-US', { timeZone: 'America/Chicago' }));
+}
+
+function formatCentralTime(date) {
+    return date.toLocaleString('en-US', {
+        timeZone: 'America/Chicago',
+        weekday: 'short',
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+    });
+}
+
+function formatShortDate(date) {
+    return date.toLocaleDateString('en-US', { timeZone: 'America/Chicago', month: 'short', day: 'numeric' });
+}
+
+// Parse episode details
+function parseEpisodeDetails(title) {
+    const warRoomMatch = title.match(/WarRoom[- ]Hr(\d+)/i);
+    const alexMatch = title.match(/Alex[- ]Jones[- ]Show[- ]Hr(\d+)/i);
+    if (warRoomMatch) return { show: 'War Room', hour: `Hour ${warRoomMatch[1]}` };
+    if (alexMatch) return { show: 'Alex Jones Show', hour: `Hour ${alexMatch[1]}` };
+    if (title.match(/Nightline/i)) return { show: 'Nightline', hour: '' };
+    return { show: 'Episode', hour: '' };
+}
+
+// Load episodes (lazy load all)
+async function loadAllEpisodes() {
+    showToast('Loading episodes...');
+    try {
+        const response = await fetch(API_URL);
+        const data = await response.json();
+        if (data.status !== 'ok') throw new Error('Failed to load');
         
-        const pubDate = new Date(item.pubDate);
-        const formattedDate = pubDate.toLocaleDateString() + ' at ' + pubDate.toLocaleTimeString();
-        const description = item.description ? item.description.replace(/<[^>]*>/g, '').substring(0, 300) : 'No description available';
-        
-        // Transform the link
-        const originalLink = item.link || '#';
-        const playableLink = transformVideoUrl(originalLink);
-        const isTransformed = (originalLink !== playableLink);
-        
-        itemDiv.innerHTML = `
-          <div class="title">
-            <strong>${escapeHtml(item.title)}</strong>
-          </div>
-          <div class="date">
-            📅 ${formattedDate}
-            ${isTransformed ? '<span style="background:#e8f5e9;color:#2e7d32;padding:2px 8px;border-radius:12px;font-size:0.8em">✓ Link Fixed</span>' : ''}
-          </div>
-          <div class="description">
-            ${escapeHtml(description)}
-          </div>
-          <div style="margin-top:12px">
-            <a href="${playableLink}" target="_blank" class="video-link">▶ Watch Video</a>
-            ${isTransformed ? `<a href="${originalLink}" target="_blank" style="margin-left:10px;color:#666;font-size:0.85em">Original Link</a>` : ''}
-          </div>
-        `;
-        containers.items.appendChild(itemDiv);
-      });
-    } else {
-      containers.items.innerHTML = '<div class="error">No episodes found in the feed.</div>';
-    }
-  })
-  .catch(error => {
-    console.error('RSS2JSON failed:', error);
-    
-    // Fallback to allorigins
-    return fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(rssUrl)}`)
-      .then(response => response.json())
-      .then(data => {
-        if (!data.contents) throw new Error('No content returned');
-        
-        const parser = new DOMParser();
-        const xmlDoc = parser.parseFromString(data.contents, 'text/xml');
-        
-        if (xmlDoc.getElementsByTagName('parsererror').length) {
-          throw new Error('XML parsing failed');
-        }
-        
-        const channel = xmlDoc.querySelector('channel');
-        const description = channel?.querySelector('description')?.textContent || 'Hourly updates';
-        containers.description.textContent = description;
-        
-        const items = xmlDoc.querySelectorAll('item');
-        containers.items.innerHTML = '';
-        
-        if (items.length === 0) {
-          containers.items.innerHTML = '<div class="error">No items found in feed.</div>';
-          return;
-        }
-        
-        items.forEach(item => {
-          const title = item.querySelector('title')?.textContent || 'Untitled';
-          const link = item.querySelector('link')?.textContent || '#';
-          const pubDate = item.querySelector('pubDate')?.textContent;
-          const description = item.querySelector('description')?.textContent || 'No description';
-          
-          const itemDiv = document.createElement('div');
-          itemDiv.className = 'item';
-          const formattedDate = pubDate ? new Date(pubDate).toLocaleString() : 'Date unknown';
-          
-          // Transform the link
-          const playableLink = transformVideoUrl(link);
-          const isTransformed = (link !== playableLink);
-          
-          itemDiv.innerHTML = `
-            <div class="title">
-              <strong>${escapeHtml(title)}</strong>
-            </div>
-            <div class="date">
-              📅 ${escapeHtml(formattedDate)}
-              ${isTransformed ? '<span style="background:#e8f5e9;color:#2e7d32;padding:2px 8px;border-radius:12px;font-size:0.8em">✓ Link Fixed</span>' : ''}
-            </div>
-            <div class="description">${escapeHtml(description.substring(0, 300))}${description.length > 300 ? '...' : ''}</div>
-            <div style="margin-top:12px">
-              <a href="${playableLink}" target="_blank" class="video-link">▶ Watch Video</a>
-              ${isTransformed ? `<a href="${link}" target="_blank" style="margin-left:10px;color:#666;font-size:0.85em">Original Link</a>` : ''}
-            </div>
-          `;
-          containers.items.appendChild(itemDiv);
+        allEpisodes = data.items.map((item, idx) => {
+            const utcDate = new Date(item.pubDate);
+            const centralDate = toCentralTime(utcDate);
+            const { show, hour } = parseEpisodeDetails(item.title);
+            return {
+                id: idx,
+                title: item.title,
+                description: item.description ? item.description.replace(/<[^>]*>/g, '').substring(0, 500) : 'No description',
+                pubDateUTC: utcDate,
+                centralDate: centralDate,
+                dateKey: centralDate.toISOString().split('T')[0],
+                show: show,
+                hour: hour,
+                videoUrl: transformVideoUrl(item.link),
+                originalLink: item.link
+            };
         });
-      })
-      .catch(finalError => {
-        console.error('All fallbacks failed:', finalError);
-        containers.items.innerHTML = `
-          <div class="error">
-            <strong>Unable to load RSS feed</strong><br><br>
-            <a href="${rssUrl}" target="_blank">View Raw RSS Feed Here</a>
-          </div>
-        `;
-        containers.description.textContent = 'Feed temporarily unavailable';
-      });
-  });
+        
+        // Sort newest first
+        allEpisodes.sort((a, b) => b.centralDate - a.centralDate);
+        currentPlaylist = [...allEpisodes];
+        
+        updateStats();
+        renderCurrentView();
+        if (currentPlaylist.length > 0) playEpisode(0);
+        
+        // Restore saved state
+        restoreSavedState();
+        
+        showToast(`Loaded ${allEpisodes.length} episodes`);
+    } catch (error) {
+        console.error(error);
+        document.getElementById('playlistContainer').innerHTML = `<div class="error">❌ Failed to load episodes. Please refresh.</div>`;
+    }
+}
+
+// Update statistics
+function updateStats() {
+    const uniqueDates = new Set(currentPlaylist.map(e => e.dateKey));
+    const dateRange = currentPlaylist.length > 0 
+        ? `${formatShortDate(currentPlaylist[currentPlaylist.length-1].centralDate)} - ${formatShortDate(currentPlaylist[0].centralDate)}`
+        : 'No episodes';
+    document.getElementById('stats').innerHTML = `📊 ${currentPlaylist.length} episodes • ${uniqueDates.size} days<br>📅 ${dateRange}`;
+}
+
+// Render based on view mode
+function renderCurrentView() {
+    if (currentViewMode === 'month') {
+        renderMonthCalendar();
+        document.getElementById('monthCalendarView').style.display = 'block';
+        document.getElementById('weekViewContainer').style.display = 'none';
+    } else {
+        renderWeekView();
+        document.getElementById('monthCalendarView').style.display = 'none';
+        document.getElementById('weekViewContainer').style.display = 'block';
+    }
+}
+
+// Render Month Calendar with colored blocks by week
+function renderMonthCalendar() {
+    const firstDay = new Date(currentYear, currentMonth, 1);
+    const lastDay = new Date(currentYear, currentMonth + 1, 0);
+    const startDay = firstDay.getDay();
+    const daysInMonth = lastDay.getDate();
+    
+    document.getElementById('currentMonthDisplay').textContent = 
+        firstDay.toLocaleString('default', { month: 'long', year: 'numeric' });
+    
+    // Weekday headers
+    const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    document.getElementById('calendarWeekdays').innerHTML = weekdays.map(d => 
+        `<div class="calendar-weekday">${d}</div>`
+    ).join('');
+    
+    const today = toCentralTime(new Date());
+    const todayKey = today.toISOString().split('T')[0];
+    
+    let calendarHTML = '';
+    let dayCounter = 1;
+    
+    for (let week = 0; week < 6; week++) {
+        for (let dayOfWeek = 0; dayOfWeek < 7; dayOfWeek++) {
+            if ((week === 0 && dayOfWeek < startDay) || dayCounter > daysInMonth) {
+                calendarHTML += `<div class="calendar-day empty"></div>`;
+            } else {
+                const date = new Date(currentYear, currentMonth, dayCounter);
+                const dateKey = date.toISOString().split('T')[0];
+                const dayEpisodes = allEpisodes.filter(ep => ep.dateKey === dateKey);
+                const isToday = dateKey === todayKey;
+                
+                let episodesHTML = '<div class="episode-blocks">';
+                dayEpisodes.slice(0, 3).forEach(ep => {
+                    const shortTitle = ep.title.length > 25 ? ep.title.substring(0, 22) + '...' : ep.title;
+                    episodesHTML += `<div class="episode-block" onclick="event.stopPropagation();playEpisodeByDate('${dateKey}', ${dayEpisodes.indexOf(ep)})" title="${ep.title}">${shortTitle}</div>`;
+                });
+                episodesHTML += '</div>';
+                
+                calendarHTML += `
+                    <div class="calendar-day ${isToday ? 'today' : ''}" onclick="selectDate('${dateKey}')">
+                        <div class="day-number">${dayCounter}</div>
+                        ${episodesHTML}
+                        ${dayEpisodes.length > 3 ? `<div class="episode-count-badge">+${dayEpisodes.length-3}</div>` : ''}
+                    </div>
+                `;
+                dayCounter++;
+            }
+        }
+    }
+    
+    document.getElementById('calendarGridContainer').innerHTML = calendarHTML;
+}
+
+// Render Week View (7 days)
+function renderWeekView() {
+    const weekStart = new Date(currentWeekStart);
+    weekStart.setHours(0, 0, 0, 0);
+    const weekDays = [];
+    for (let i = 0; i < 7; i++) {
+        const day = new Date(weekStart);
+        day.setDate(weekStart.getDate() + i);
+        weekDays.push(day);
+    }
+    
+    document.getElementById('weekViewContainer').innerHTML = `
+        <div class="month-nav">
+            <button id="prevWeekBtn" class="secondary-btn">◀ Previous Week</button>
+            <h2>Week of ${formatShortDate(weekDays[0])} - ${formatShortDate(weekDays[6])}</h2>
+            <button id="nextWeekBtn" class="secondary-btn">Next Week ▶</button>
+        </div>
+        <div class="week-header">
+            ${weekDays.map(day => `<div class="week-day-header">${day.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</div>`).join('')}
+        </div>
+        <div class="week-episodes">
+            ${weekDays.map(day => {
+                const dateKey = day.toISOString().split('T')[0];
+                const dayEpisodes = allEpisodes.filter(ep => ep.dateKey === dateKey);
+                return `
+                    <div class="week-day-episodes">
+                        ${dayEpisodes.map(ep => `
+                            <div class="week-episode-item" onclick="playEpisodeByDateAndIndex('${dateKey}', ${dayEpisodes.indexOf(ep)})">
+                                <strong>${ep.show} ${ep.hour}</strong><br>
+                                <small>${ep.title.substring(0, 40)}...</small>
+                            </div>
+                        `).join('')}
+                        ${dayEpisodes.length === 0 ? '<div style="color:var(--text-secondary);text-align:center;padding:20px">No episodes</div>' : ''}
+                    </div>
+                `;
+            }).join('')}
+        </div>
+    `;
+    
+    document.getElementById('prevWeekBtn')?.addEventListener('click', () => {
+        currentWeekStart.setDate(currentWeekStart.getDate() - 7);
+        renderWeekView();
+    });
+    document.getElementById('nextWeekBtn')?.addEventListener('click', () => {
+        currentWeekStart.setDate(currentWeekStart.getDate() + 7);
+        renderWeekView();
+    });
+}
+
+// Play episode by date
+window.playEpisodeByDate = function(dateKey, episodeIndex) {
+    const episodesOnDate = allEpisodes.filter(ep => ep.dateKey === dateKey);
+    if (episodesOnDate[episodeIndex]) {
+        const globalIndex = currentPlaylist.findIndex(ep => ep.id === episodesOnDate[episodeIndex].id);
+        if (globalIndex !== -1) playEpisode(globalIndex);
+    }
+};
+
+window.playEpisodeByDateAndIndex = playEpisodeByDate;
+
+// Select date filter
+window.selectDate = function(dateKey) {
+    document.getElementById('startDate').value = dateKey;
+    document.getElementById('endDate').value = dateKey;
+    applyFilters();
+    showToast(`Filtered to ${dateKey}`);
+};
+
+// Play episode
+function playEpisode(index) {
+    if (index < 0 || index >= currentPlaylist.length) return;
+    currentIndex = index;
+    const ep = currentPlaylist[currentIndex];
+    
+    document.getElementById('currentTitle').textContent = ep.title;
+    document.getElementById('currentMetadata').innerHTML = `
+        📅 ${formatCentralTime(ep.centralDate)}<br>
+        🎬 ${ep.show} ${ep.hour}
+    `;
+    
+    const video = document.getElementById('videoPlayer');
+    video.src = ep.videoUrl;
+    video.load();
+    video.play().catch(e => console.log('Auto-play prevented'));
+    
+    renderPlaylist();
+    savePlaybackState();
+}
+
+// Render playlist (list or grid)
+function renderPlaylist() {
+    if (currentPlaylistView === 'list') {
+        document.getElementById('playlistContainer').style.display = 'block';
+        document.getElementById('episodeGridContainer').style.display = 'none';
+        document.getElementById('playlistContainer').innerHTML = currentPlaylist.map((ep, idx) => `
+            <div class="playlist-item ${idx === currentIndex ? 'active' : ''}" onclick="playEpisode(${idx})">
+                <div class="playlist-title">${escapeHtml(ep.title)}</div>
+                <div class="playlist-date">📅 ${formatCentralTime(ep.centralDate)}</div>
+                <div class="playlist-meta">🎬 ${ep.show} ${ep.hour}</div>
+            </div>
+        `).join('');
+    } else {
+        document.getElementById('playlistContainer').style.display = 'none';
+        document.getElementById('episodeGridContainer').style.display = 'grid';
+        document.getElementById('episodeGridContainer').innerHTML = currentPlaylist.map((ep, idx) => `
+            <div class="episode-card" onclick="playEpisode(${idx})">
+                <div class="episode-card-title">${escapeHtml(ep.title.substring(0, 60))}</div>
+                <div class="episode-card-date">📅 ${formatShortDate(ep.centralDate)} • ${ep.show}</div>
+                <div style="font-size:0.7em;color:var(--text-secondary);margin-top:6px">${ep.description.substring(0, 80)}...</div>
+            </div>
+        `).join('');
+    }
+}
+
+// Apply search/filter
+function applyFilters() {
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    const startDate = document.getElementById('startDate').value;
+    const endDate = document.getElementById('endDate').value;
+    
+    currentPlaylist = allEpisodes.filter(ep => {
+        if (searchTerm && !ep.title.toLowerCase().includes(searchTerm) && !ep.description.toLowerCase().includes(searchTerm)) return false;
+        if (startDate && ep.dateKey < startDate) return false;
+        if (endDate && ep.dateKey > endDate) return false;
+        return true;
+    });
+    
+    currentIndex = 0;
+    updateStats();
+    renderPlaylist();
+    if (currentPlaylist.length > 0) playEpisode(0);
+    showToast(`Found ${currentPlaylist.length} episodes`);
+}
+
+// Continuous playback
+function setupContinuousPlayback() {
+    document.getElementById('videoPlayer').addEventListener('ended', () => {
+        if (currentIndex + 1 < currentPlaylist.length) {
+            playEpisode(currentIndex + 1);
+            showToast('▶ Playing next episode...');
+        } else {
+            showToast('🏁 End of playlist');
+        }
+    });
+}
+
+// Download
+function downloadEpisode() {
+    const ep = currentPlaylist[currentIndex];
+    const link = document.createElement('a');
+    link.href = ep.videoUrl;
+    link.download = `${ep.title.replace(/[^a-z0-9]/gi, '_')}.m4v`;
+    link.click();
+    showToast('Download started');
+}
+
+// Share
+function shareEpisode() {
+    const ep = currentPlaylist[currentIndex];
+    if (navigator.share) {
+        navigator.share({ title: ep.title, text: ep.description.substring(0, 100), url: ep.videoUrl });
+    } else {
+        navigator.clipboard.writeText(ep.videoUrl);
+        showToast('Link copied!');
+    }
+}
+
+function sharePlaylist() {
+    const url = window.location.href;
+    if (navigator.share) navigator.share({ title: 'AJN Playlist', url });
+    else navigator.clipboard.writeText(url), showToast('Playlist link copied');
+}
+
+// Save/Restore state
+function savePlaybackState() {
+    localStorage.setItem('playlistIndex', currentIndex);
+    localStorage.setItem('playlistLength', currentPlaylist.length);
+    localStorage.setItem('playlistIds', JSON.stringify(currentPlaylist.map(e => e.id)));
+}
+
+function restoreSavedState() {
+    const savedIndex = localStorage.getItem('playlistIndex');
+    if (savedIndex && parseInt(savedIndex) < currentPlaylist.length) {
+        playEpisode(parseInt(savedIndex));
+    }
+}
+
+// Dark mode
+function initDarkMode() {
+    const isDark = localStorage.getItem('darkMode') === 'true';
+    if (isDark) document.body.classList.add('dark');
+    document.getElementById('darkModeToggle').textContent = isDark ? '☀️ Light' : '🌙 Dark';
+    document.getElementById('darkModeToggle').onclick = () => {
+        document.body.classList.toggle('dark');
+        const dark = document.body.classList.contains('dark');
+        localStorage.setItem('darkMode', dark);
+        document.getElementById('darkModeToggle').textContent = dark ? '☀️ Light' : '🌙 Dark';
+    };
+}
+
+// Flyout calendar
+function buildFlyoutCalendar(year, month) {
+    const firstDay = new Date(year, month, 1);
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const startDay = firstDay.getDay();
+    
+    let html = '';
+    for (let i = 0; i < startDay; i++) html += '<div></div>';
+    for (let day = 1; day <= daysInMonth; day++) {
+        const dateKey = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+        const hasEpisode = allEpisodes.some(ep => ep.dateKey === dateKey);
+        html += `<div class="flyout-day ${hasEpisode ? 'has-episode' : ''}" onclick="selectDate('${dateKey}');document.getElementById('calendarFlyout').classList.remove('show')">${day}</div>`;
+    }
+    document.getElementById('flyoutCalendarGrid').innerHTML = html;
+    document.getElementById('flyoutMonthYear').textContent = firstDay.toLocaleString('default', { month: 'long', year: 'numeric' });
+}
+
+// Toast
+function showToast(msg) {
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.textContent = msg;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 2500);
+}
 
 function escapeHtml(str) {
-  if (!str) return '';
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
+    if (!str) return '';
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
 }
+
+// Event listeners
+document.getElementById('searchInput').addEventListener('input', applyFilters);
+document.getElementById('startDate').addEventListener('change', applyFilters);
+document.getElementById('endDate').addEventListener('change', applyFilters);
+document.getElementById('clearFilters').onclick = () => {
+    document.getElementById('searchInput').value = '';
+    document.getElementById('startDate').value = '';
+    document.getElementById('endDate').value = '';
+    applyFilters();
+};
+document.getElementById('downloadBtn').onclick = downloadEpisode;
+document.getElementById('shareEpisodeBtn').onclick = shareEpisode;
+document.getElementById('sharePlaylistBtn').onclick = sharePlaylist;
+document.getElementById('nextEpisodeBtn').onclick = () => { if (currentIndex + 1 < currentPlaylist.length) playEpisode(currentIndex + 1); };
+document.getElementById('playlistListViewBtn').onclick = () => {
+    currentPlaylistView = 'list';
+    document.getElementById('playlistListViewBtn').classList.add('active');
+    document.getElementById('playlistGridViewBtn').classList.remove('active');
+    renderPlaylist();
+};
+document.getElementById('playlistGridViewBtn').onclick = () => {
+    currentPlaylistView = 'grid';
+    document.getElementById('playlistGridViewBtn').classList.add('active');
+    document.getElementById('playlistListViewBtn').classList.remove('active');
+    renderPlaylist();
+};
+document.getElementById('monthViewBtn').onclick = () => {
+    currentViewMode = 'month';
+    document.getElementById('monthViewBtn').classList.add('active');
+    document.getElementById('weekViewBtn').classList.remove('active');
+    renderCurrentView();
+};
+document.getElementById('weekViewBtn').onclick = () => {
+    currentViewMode = 'week';
+    document.getElementById('weekViewBtn').classList.add('active');
+    document.getElementById('monthViewBtn').classList.remove('active');
+    renderCurrentView();
+};
+document.getElementById('prevMonthBtn').onclick = () => { currentMonth--; if (currentMonth < 0) { currentMonth = 11; currentYear--; } renderMonthCalendar(); };
+document.getElementById('nextMonthBtn').onclick = () => { currentMonth++; if (currentMonth > 11) { currentMonth = 0; currentYear++; } renderMonthCalendar(); };
+document.getElementById('calendarFlyoutBtn').onclick = () => {
+    document.getElementById('calendarFlyout').classList.toggle('show');
+    buildFlyoutCalendar(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth());
+};
+document.getElementById('flyoutPrevMonth').onclick = () => {
+    currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1);
+    buildFlyoutCalendar(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth());
+};
+document.getElementById('flyoutNextMonth').onclick = () => {
+    currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1);
+    buildFlyoutCalendar(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth());
+};
+document.addEventListener('click', (e) => { if (!e.target.closest('.calendar-container')) document.getElementById('calendarFlyout')?.classList.remove('show'); });
+
+// Make global functions available
+window.playEpisode = playEpisode;
+window.selectDate = selectDate;
+
+// Initialize
+initDarkMode();
+loadAllEpisodes();
+setupContinuousPlayback();
 </script>
 </body>
 </html>
