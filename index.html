@@ -17,10 +17,12 @@ h1{color:#d32f2f;margin-bottom:8px}
 .item{background:#fff;padding:20px;margin-bottom:15px;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,0.1);transition:transform 0.2s,box-shadow 0.2s}
 .item:hover{transform:translateY(-2px);box-shadow:0 4px 8px rgba(0,0,0,0.15)}
 .title{font-size:1.2em;font-weight:600;margin-bottom:10px}
-.title a{color:#0b63d6;text-decoration:none}
+.title a{color:#0b63d6;text-decoration:none;word-break:break-all}
 .title a:hover{text-decoration:underline}
-.date{color:#666;font-size:0.85em;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.date{color:#666;font-size:0.85em;margin-bottom:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .description{color:#333;line-height:1.5;margin-top:12px}
+.video-link{display:inline-block;margin-top:10px;padding:8px 16px;background:#d32f2f;color:white;border-radius:6px;text-decoration:none;font-weight:bold}
+.video-link:hover{background:#b71c1c}
 .error{background:#ffebee;color:#c62828;padding:20px;border-radius:12px;text-align:center}
 .error a{color:#0b63d6}
 hr{margin:20px 0;border:none;border-top:1px solid #e0e0e0}
@@ -43,14 +45,34 @@ hr{margin:20px 0;border:none;border-top:1px solid #e0e0e0}
 </div>
 
 <script>
-// Use multiple fallback APIs for reliability
 const rssUrl = 'https://rss.alexjones.media/AJNHourlyVideo.xml';
 const containers = {
   description: document.getElementById('feedDescription'),
   items: document.getElementById('itemsContainer')
 };
 
-// Try RSS2JSON first (most reliable)
+// Function to transform links from original format to playable format
+function transformVideoUrl(originalUrl) {
+    // Extract filename from original URL
+    // Original pattern: https://alexjones.media/20260525_Mon_WarRoom-Hr3.m4v
+    // Target pattern: https://ajn.archives.pub/hourly-m4v/20260525_Mon_WarRoom-Hr3.m4v
+    
+    if (!originalUrl) return '#';
+    
+    // Extract the filename (everything after the last /)
+    const filename = originalUrl.substring(originalUrl.lastIndexOf('/') + 1);
+    
+    // Check if it's an M4V file
+    if (filename.endsWith('.m4v')) {
+        // Return the corrected URL
+        return `https://ajn.archives.pub/hourly-m4v/${filename}`;
+    }
+    
+    // If not an M4V file, return original URL
+    return originalUrl;
+}
+
+// Try RSS2JSON first
 fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`)
   .then(response => {
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -59,34 +81,37 @@ fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)
   .then(data => {
     if (data.status !== 'ok') throw new Error('API returned error status');
     
-    // Update description
     containers.description.textContent = data.feed.description || 'Hourly news and commentary';
-    
-    // Clear loader
     containers.items.innerHTML = '';
     
-    // Display items
     if (data.items && data.items.length > 0) {
       data.items.slice(0, 50).forEach(item => {
         const itemDiv = document.createElement('div');
         itemDiv.className = 'item';
         
-        // Format date
         const pubDate = new Date(item.pubDate);
         const formattedDate = pubDate.toLocaleDateString() + ' at ' + pubDate.toLocaleTimeString();
-        
-        // Clean description (remove HTML if present)
         const description = item.description ? item.description.replace(/<[^>]*>/g, '').substring(0, 300) : 'No description available';
+        
+        // Transform the link
+        const originalLink = item.link || '#';
+        const playableLink = transformVideoUrl(originalLink);
+        const isTransformed = (originalLink !== playableLink);
         
         itemDiv.innerHTML = `
           <div class="title">
-            <a href="${item.link}" target="_blank" rel="noopener noreferrer">${escapeHtml(item.title)}</a>
+            <strong>${escapeHtml(item.title)}</strong>
           </div>
           <div class="date">
             📅 ${formattedDate}
+            ${isTransformed ? '<span style="background:#e8f5e9;color:#2e7d32;padding:2px 8px;border-radius:12px;font-size:0.8em">✓ Link Fixed</span>' : ''}
           </div>
           <div class="description">
-            ${escapeHtml(description)}${item.description && item.description.length > 300 ? '...' : ''}
+            ${escapeHtml(description)}
+          </div>
+          <div style="margin-top:12px">
+            <a href="${playableLink}" target="_blank" class="video-link">▶ Watch Video</a>
+            ${isTransformed ? `<a href="${originalLink}" target="_blank" style="margin-left:10px;color:#666;font-size:0.85em">Original Link</a>` : ''}
           </div>
         `;
         containers.items.appendChild(itemDiv);
@@ -98,28 +123,23 @@ fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)
   .catch(error => {
     console.error('RSS2JSON failed:', error);
     
-    // Fallback: Try alternative API (RSS to JSON via allorigins)
+    // Fallback to allorigins
     return fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(rssUrl)}`)
       .then(response => response.json())
       .then(data => {
         if (!data.contents) throw new Error('No content returned');
         
-        // Parse the RSS XML manually
         const parser = new DOMParser();
         const xmlDoc = parser.parseFromString(data.contents, 'text/xml');
         
-        // Check for parse errors
         if (xmlDoc.getElementsByTagName('parsererror').length) {
           throw new Error('XML parsing failed');
         }
         
-        // Extract feed info
         const channel = xmlDoc.querySelector('channel');
-        const title = channel?.querySelector('title')?.textContent || 'AJN Hourly Video';
         const description = channel?.querySelector('description')?.textContent || 'Hourly updates';
         containers.description.textContent = description;
         
-        // Extract items
         const items = xmlDoc.querySelectorAll('item');
         containers.items.innerHTML = '';
         
@@ -138,12 +158,23 @@ fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)
           itemDiv.className = 'item';
           const formattedDate = pubDate ? new Date(pubDate).toLocaleString() : 'Date unknown';
           
+          // Transform the link
+          const playableLink = transformVideoUrl(link);
+          const isTransformed = (link !== playableLink);
+          
           itemDiv.innerHTML = `
             <div class="title">
-              <a href="${link}" target="_blank" rel="noopener noreferrer">${escapeHtml(title)}</a>
+              <strong>${escapeHtml(title)}</strong>
             </div>
-            <div class="date">📅 ${escapeHtml(formattedDate)}</div>
+            <div class="date">
+              📅 ${escapeHtml(formattedDate)}
+              ${isTransformed ? '<span style="background:#e8f5e9;color:#2e7d32;padding:2px 8px;border-radius:12px;font-size:0.8em">✓ Link Fixed</span>' : ''}
+            </div>
             <div class="description">${escapeHtml(description.substring(0, 300))}${description.length > 300 ? '...' : ''}</div>
+            <div style="margin-top:12px">
+              <a href="${playableLink}" target="_blank" class="video-link">▶ Watch Video</a>
+              ${isTransformed ? `<a href="${link}" target="_blank" style="margin-left:10px;color:#666;font-size:0.85em">Original Link</a>` : ''}
+            </div>
           `;
           containers.items.appendChild(itemDiv);
         });
@@ -152,17 +183,14 @@ fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)
         console.error('All fallbacks failed:', finalError);
         containers.items.innerHTML = `
           <div class="error">
-            <strong>⚠️ Unable to load RSS feed</strong><br><br>
-            The feed may be temporarily unavailable or blocking external requests.<br><br>
-            <a href="${rssUrl}" target="_blank">📡 View Raw RSS Feed Here</a><br><br>
-            <small>Error: ${finalError.message}</small>
+            <strong>Unable to load RSS feed</strong><br><br>
+            <a href="${rssUrl}" target="_blank">View Raw RSS Feed Here</a>
           </div>
         `;
         containers.description.textContent = 'Feed temporarily unavailable';
       });
   });
 
-// Helper function to escape HTML
 function escapeHtml(str) {
   if (!str) return '';
   const div = document.createElement('div');
