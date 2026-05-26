@@ -3,10 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>AJN Hourly Archive - Optimized Performance</title>
-<!-- Critical CSS only - non-critical styles deferred -->
+<title>AJN Hourly Archive - Complete Web Application</title>
 <style>
-/* ============ CRITICAL CSS ONLY ============ */
+/* ============ CSS RESET & VARIABLES ============ */
 * {
     margin: 0;
     padding: 0;
@@ -23,14 +22,28 @@
     --bg-body: #f5f5f5;
     --bg-surface: #ffffff;
     --bg-surface-hover: #fafafa;
+    --bg-surface-active: #eeeeee;
     --border: #e0e0e0;
+    --border-light: #eeeeee;
+    --border-dark: #cccccc;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+    --shadow-md: 0 2px 8px rgba(0,0,0,0.10);
+    --shadow-lg: 0 4px 16px rgba(0,0,0,0.12);
+    --shadow-xl: 0 8px 24px rgba(0,0,0,0.15);
+    --success: #2e7d32;
+    --warning: #ed6c02;
+    --error: #d32f2f;
+    --info: #0288d1;
     --border-radius: 12px;
     --header-height: 70px;
     --spacing-xs: 4px;
     --spacing-sm: 8px;
     --spacing-md: 16px;
     --spacing-lg: 24px;
+    --spacing-xl: 32px;
     --list-row-height: 80px;
+    --grid-row-height: 220px;
+    --queue-item-height: 60px;
 }
 
 .dark {
@@ -39,33 +52,46 @@
     --primary-light: #3d1e1e;
     --text-primary: #e0e0e0;
     --text-secondary: #aaaaaa;
+    --text-tertiary: #777777;
     --bg-body: #121212;
     --bg-surface: #1e1e1e;
     --bg-surface-hover: #2a2a2a;
+    --bg-surface-active: #353535;
     --border: #333333;
+    --border-light: #2a2a2a;
+    --border-dark: #404040;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+    --shadow-md: 0 2px 8px rgba(0,0,0,0.35);
+    --shadow-lg: 0 4px 16px rgba(0,0,0,0.4);
+    --shadow-xl: 0 8px 24px rgba(0,0,0,0.45);
 }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     background: var(--bg-body);
     color: var(--text-primary);
     line-height: 1.5;
+    transition: background-color 200ms cubic-bezier(0.4, 0, 0.2, 1), color 200ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Critical layout styles - no complex calculations */
+body.preload * {
+    transition: none !important;
+}
+
 .container {
     max-width: 1400px;
     margin: 0 auto;
     padding: 0 var(--spacing-md);
 }
 
+/* ============ STICKY HEADER ============ */
 .sticky-header {
     position: sticky;
     top: 0;
     z-index: 100;
     background: var(--bg-surface);
     border-bottom: 1px solid var(--border);
-    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    box-shadow: var(--shadow-sm);
 }
 
 .header-content {
@@ -76,10 +102,19 @@ body {
     padding: 0 var(--spacing-md);
     max-width: 1400px;
     margin: 0 auto;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
 }
 
 .logo h1 {
     font-size: 1.4rem;
+    font-weight: 600;
     color: var(--primary);
 }
 
@@ -89,9 +124,576 @@ body {
     padding: 4px 8px;
     border-radius: 20px;
     font-size: 0.7rem;
-    margin-left: 10px;
+    font-weight: 500;
 }
 
+.header-controls {
+    display: flex;
+    gap: var(--spacing-sm);
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+/* ============ VIEW TOGGLE BUTTONS ============ */
+.view-toggle-container {
+    display: flex;
+    gap: var(--spacing-sm);
+}
+
+.view-toggle-btn {
+    padding: 8px 16px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.view-toggle-btn:hover {
+    background: var(--bg-surface-hover);
+    transform: translateY(-1px);
+}
+
+.view-toggle-btn.active {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+
+.view-toggle-btn:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+/* ============ QUEUE SECTION ============ */
+.queue-section {
+    background: var(--bg-surface);
+    border-radius: var(--border-radius);
+    margin-bottom: var(--spacing-lg);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+}
+
+.queue-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-md) var(--spacing-lg);
+    background: var(--bg-surface);
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+}
+
+.queue-header h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.queue-stats {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.queue-actions {
+    display: flex;
+    gap: var(--spacing-sm);
+}
+
+.queue-container {
+    max-height: 300px;
+    overflow-y: auto;
+    padding: var(--spacing-sm);
+}
+
+.queue-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 8px;
+    cursor: grab;
+    background: var(--bg-surface);
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.queue-item:active {
+    cursor: grabbing;
+}
+
+.queue-item.dragging {
+    opacity: 0.5;
+    border: 2px dashed var(--primary);
+    background: var(--bg-surface-hover);
+}
+
+.queue-item.drag-over {
+    border-top: 2px solid var(--primary);
+    background: var(--primary-light);
+}
+
+.queue-item:hover {
+    background: var(--bg-surface-hover);
+    transform: translateX(4px);
+}
+
+.drag-handle {
+    cursor: grab;
+    font-size: 1.2rem;
+    color: var(--text-secondary);
+    user-select: none;
+    padding: 4px;
+}
+
+.drag-handle:active {
+    cursor: grabbing;
+}
+
+.queue-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.queue-title {
+    font-weight: 500;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.queue-date {
+    font-size: 0.65rem;
+    color: var(--text-secondary);
+    margin-top: 2px;
+}
+
+.queue-item button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.2rem;
+    color: var(--text-secondary);
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.queue-item button:hover {
+    background: var(--primary-light);
+    color: var(--primary);
+}
+
+.queue-item button:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+.empty-queue {
+    text-align: center;
+    padding: var(--spacing-xl);
+    color: var(--text-secondary);
+}
+
+/* ============ CALENDAR SECTION ============ */
+.calendar-section {
+    margin-top: 16px;
+    padding: 0 var(--spacing-md) var(--spacing-md) var(--spacing-md);
+    border-top: 1px solid var(--border);
+}
+
+.calendar-container {
+    background: var(--bg-surface);
+    border-radius: var(--border-radius);
+    padding: var(--spacing-md);
+    box-shadow: var(--shadow-sm);
+}
+
+.calendar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-lg);
+    padding: 0 var(--spacing-sm);
+}
+
+.calendar-nav-btn {
+    padding: 8px 16px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1rem;
+    color: var(--text-primary);
+    transition: all 0.2s ease;
+}
+
+.calendar-nav-btn:hover {
+    background: var(--bg-surface-hover);
+    border-color: var(--primary);
+    transform: scale(1.02);
+}
+
+.calendar-nav-btn:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+.calendar-month-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--primary);
+}
+
+.calendar-weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    margin-bottom: var(--spacing-sm);
+    padding: 0 var(--spacing-sm);
+}
+
+.calendar-weekday {
+    text-align: center;
+    padding: var(--spacing-sm);
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    background: var(--bg-surface-hover);
+    border-radius: 8px;
+}
+
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    padding: 0 var(--spacing-sm);
+}
+
+.calendar-day {
+    position: relative;
+    min-height: 100px;
+    padding: var(--spacing-sm);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: var(--bg-surface);
+}
+
+.calendar-day:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+    z-index: 5;
+}
+
+.calendar-day:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+.calendar-day.other-month {
+    opacity: 0.4;
+    background: var(--bg-surface-hover);
+}
+
+.calendar-day.today {
+    border: 2px solid var(--primary);
+    background: var(--primary-light);
+}
+
+.calendar-day.selected {
+    background: var(--primary-light);
+    border-color: var(--primary);
+    box-shadow: var(--shadow-sm);
+}
+
+.calendar-day-number {
+    font-weight: 600;
+    font-size: 1rem;
+    margin-bottom: var(--spacing-xs);
+    display: block;
+}
+
+.episode-indicators {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+    margin-top: 4px;
+}
+
+.dot-indicator {
+    width: 8px;
+    height: 8px;
+    background: var(--primary);
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.episode-count-badge {
+    position: absolute;
+    bottom: 4px;
+    right: 4px;
+    background: var(--primary);
+    color: white;
+    border-radius: 10px;
+    padding: 2px 5px;
+    font-size: 0.65rem;
+    font-weight: bold;
+}
+
+.calendar-tooltip {
+    display: none;
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: var(--spacing-sm);
+    width: 200px;
+    z-index: 100;
+    box-shadow: var(--shadow-lg);
+    font-size: 0.7rem;
+    pointer-events: none;
+    margin-bottom: 8px;
+}
+
+.calendar-tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 5px;
+    border-style: solid;
+    border-color: var(--border) transparent transparent transparent;
+}
+
+.calendar-day:hover .calendar-tooltip {
+    display: block;
+}
+
+.tooltip-episode {
+    padding: 4px 0;
+    border-bottom: 1px solid var(--border-light);
+    white-space: normal;
+    word-wrap: break-word;
+}
+
+.tooltip-episode:last-child {
+    border-bottom: none;
+}
+
+.tooltip-episode-title {
+    font-weight: 500;
+    margin-bottom: 2px;
+}
+
+.tooltip-episode-time {
+    font-size: 0.6rem;
+    color: var(--text-secondary);
+}
+
+.calendar-filter-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: var(--primary-light);
+    border-radius: 20px;
+    font-size: 0.8rem;
+    color: var(--primary);
+    margin-top: var(--spacing-sm);
+    margin-left: var(--spacing-sm);
+}
+
+.calendar-filter-badge .remove-filter {
+    cursor: pointer;
+    font-weight: bold;
+    padding: 0 4px;
+}
+
+.calendar-filter-badge .remove-filter:hover {
+    color: var(--primary-dark);
+}
+
+/* ============ SEARCH SECTION ============ */
+.search-section {
+    margin-top: 16px;
+    padding: 0 var(--spacing-md) var(--spacing-md) var(--spacing-md);
+    border-top: 1px solid var(--border);
+}
+
+.search-bar-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.search-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.search-icon {
+    position: absolute;
+    left: 12px;
+    font-size: 1.1rem;
+    color: var(--text-secondary);
+    pointer-events: none;
+}
+
+.global-search-input {
+    width: 100%;
+    padding: 12px 40px 12px 40px;
+    font-size: 1rem;
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    transition: all 0.2s ease;
+}
+
+.global-search-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(211, 47, 47, 0.1);
+}
+
+.clear-search-btn {
+    position: absolute;
+    right: 12px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    color: var(--text-secondary);
+    padding: 4px;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+    display: none;
+}
+
+.clear-search-btn.visible {
+    display: block;
+}
+
+.clear-search-btn:hover {
+    background: var(--bg-surface-hover);
+    color: var(--text-primary);
+}
+
+.clear-search-btn:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+.filter-controls {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.active-filters {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.filter-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: var(--primary-light);
+    border-radius: 20px;
+    font-size: 0.8rem;
+    color: var(--primary);
+}
+
+.filter-tag .remove-filter {
+    cursor: pointer;
+    font-weight: bold;
+    padding: 0 4px;
+}
+
+.filter-tag .remove-filter:hover {
+    color: var(--primary-dark);
+}
+
+/* ============ BUTTONS ============ */
+.btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn-primary {
+    background: var(--primary);
+    color: white;
+    border: none;
+}
+
+.btn-primary:hover {
+    background: var(--primary-dark);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+}
+
+.btn-secondary {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+}
+
+.btn-secondary:hover {
+    background: var(--bg-surface-hover);
+    transform: translateY(-1px);
+}
+
+.btn-danger {
+    background: var(--error);
+    color: white;
+    border: none;
+}
+
+.btn-danger:hover {
+    background: #b71c1c;
+    transform: translateY(-1px);
+}
+
+.btn:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+/* ============ MAIN LAYOUT ============ */
 .main-grid {
     display: grid;
     grid-template-columns: 65% 35%;
@@ -103,14 +705,14 @@ body {
     background: var(--bg-surface);
     border-radius: var(--border-radius);
     overflow: hidden;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    box-shadow: var(--shadow-sm);
 }
 
 .playlist-section {
     background: var(--bg-surface);
     border-radius: var(--border-radius);
     overflow: hidden;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    box-shadow: var(--shadow-sm);
     display: flex;
     flex-direction: column;
     height: fit-content;
@@ -119,44 +721,500 @@ body {
     top: calc(var(--header-height) + 20px);
 }
 
-/* LCP element - optimize for fast paint */
+/* ============ NOW PLAYING CARD ============ */
+.now-playing-card {
+    padding: var(--spacing-lg);
+}
+
+.now-playing-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-sm);
+}
+
 .now-playing-title {
     font-size: 1.25rem;
     font-weight: 600;
     margin-bottom: var(--spacing-md);
     line-height: 1.3;
-    /* Prevent layout shifts */
-    contain: layout style paint;
 }
 
-/* Hide non-critical sections initially */
-.queue-section,
-.calendar-section,
-.search-section {
-    display: none;
+.video-container {
+    position: relative;
+    width: 100%;
+    background: #000;
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    margin-bottom: var(--spacing-md);
 }
 
-.queue-section.loaded,
-.calendar-section.loaded,
-.search-section.loaded {
+.video-container video {
+    width: 100%;
     display: block;
 }
 
-/* Deferred styles loaded after LCP */
-@media (min-width: 768px) {
-    .deferred-styles {
-        display: none;
-    }
+.immersive-overlay-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1.2rem;
+    transition: all 0.2s ease;
+    z-index: 10;
+    backdrop-filter: blur(4px);
 }
 
-/* Simple loading indicator */
-.loading-placeholder {
-    text-align: center;
-    padding: 40px;
+.immersive-overlay-btn:hover {
+    background: rgba(0, 0, 0, 0.8);
+    transform: scale(1.05);
+}
+
+.immersive-overlay-btn:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+.controls-ui {
+    margin-top: var(--spacing-md);
+}
+
+.progress-container {
+    margin-bottom: var(--spacing-md);
+}
+
+.progress-container input[type="range"] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    outline: none;
+    cursor: pointer;
+}
+
+.progress-container input[type="range"]:focus {
+    outline: none;
+}
+
+.progress-container input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    background: var(--primary);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: transform 0.1s ease;
+}
+
+.progress-container input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+}
+
+.time-display {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 8px;
+    font-size: 0.75rem;
     color: var(--text-secondary);
 }
 
-.spinner {
+.video-controls-row {
+    display: flex;
+    gap: var(--spacing-sm);
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.video-controls-row label.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.video-controls-row label.btn input[type="checkbox"] {
+    margin: 0;
+    cursor: pointer;
+    width: 16px;
+    height: 16px;
+}
+
+/* ============ PLAYLIST HEADER ============ */
+.playlist-header {
+    padding: var(--spacing-lg);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+}
+
+.playlist-header h2 {
+    font-size: 1.1rem;
+    margin-bottom: var(--spacing-xs);
+}
+
+.playlist-stats {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-top: var(--spacing-xs);
+}
+
+.add-to-queue-btn {
+    padding: 4px 12px;
+    font-size: 0.75rem;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.add-to-queue-btn:hover {
+    background: var(--primary-light);
+    border-color: var(--primary);
+}
+
+.add-to-queue-btn:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+/* ============ VIRTUAL PLAYLIST - LIST VIEW ============ */
+.playlist-container {
+    position: relative;
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    height: 100%;
+    min-height: 400px;
+    scroll-behavior: smooth;
+}
+
+.playlist-container::-webkit-scrollbar {
+    width: 8px;
+}
+
+.playlist-container::-webkit-scrollbar-track {
+    background: var(--border);
+    border-radius: 4px;
+}
+
+.playlist-container::-webkit-scrollbar-thumb {
+    background: var(--primary);
+    border-radius: 4px;
+}
+
+.playlist-container::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-dark);
+}
+
+#virtualList {
+    will-change: transform;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+}
+
+/* List View Styles */
+.playlist-container:not(.grid-view) #virtualList {
+    display: block;
+}
+
+.playlist-item.list-item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md);
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+    height: var(--list-row-height);
+    box-sizing: border-box;
+    overflow: visible;
+}
+
+.playlist-item.list-item:hover {
+    background: var(--bg-surface-hover);
+    transform: translateX(4px);
+}
+
+.playlist-item.list-item.active {
+    background: var(--primary-light);
+    border-color: var(--primary);
+}
+
+.playlist-item.list-item.has-resume {
+    position: relative;
+}
+
+.playlist-item.list-item.has-resume::after {
+    content: '▶';
+    position: absolute;
+    right: 40px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.7rem;
+    color: var(--primary);
+    animation: pulse 1s ease infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+}
+
+.menu-trigger {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0;
+    transition: opacity 0.2s ease, background 0.2s ease;
+    cursor: pointer;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: var(--text-primary);
+    z-index: 5;
+    line-height: 1;
+    box-shadow: var(--shadow-sm);
+}
+
+.menu-trigger:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+    opacity: 1;
+}
+
+.playlist-item.list-item:hover .menu-trigger,
+.playlist-item.list-item:focus-within .menu-trigger {
+    opacity: 1;
+}
+
+.menu-trigger:hover {
+    background: var(--primary-light);
+    border-color: var(--primary);
+    transform: translateY(-50%) scale(1.05);
+}
+
+.flyout-menu {
+    position: absolute;
+    right: 12px;
+    top: 50px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-lg);
+    border-radius: 8px;
+    z-index: 100;
+    display: none;
+    min-width: 160px;
+    overflow: hidden;
+    animation: fadeIn 0.15s ease;
+}
+
+.flyout-menu.active {
+    display: block;
+}
+
+.flyout-menu-item {
+    padding: 10px 16px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border-light);
+}
+
+.flyout-menu-item:last-child {
+    border-bottom: none;
+}
+
+.flyout-menu-item:hover {
+    background: var(--bg-surface-hover);
+}
+
+.flyout-menu-item:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: -2px;
+}
+
+.flyout-menu-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 4px 0;
+}
+
+.playlist-thumbnail {
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(135deg, var(--primary-light), var(--border));
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.playlist-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    margin-right: 40px;
+}
+
+.playlist-title {
+    font-weight: 500;
+    font-size: 0.875rem;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.resume-indicator {
+    display: inline-block;
+    margin-left: 8px;
+    font-size: 0.7rem;
+    color: var(--primary);
+    background: var(--primary-light);
+    padding: 2px 6px;
+    border-radius: 10px;
+}
+
+.playlist-date {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    margin-bottom: 2px;
+}
+
+.playlist-duration {
+    font-size: 0.65rem;
+    color: var(--text-tertiary);
+}
+
+/* ============ GRID VIEW STYLES ============ */
+.playlist-container.grid-view #virtualList {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+    padding: 16px;
+    position: relative;
+    transform: none !important;
+}
+
+.playlist-container.grid-view #scrollSpacer {
+    display: none;
+}
+
+.playlist-item.grid-item {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: var(--spacing-md);
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid var(--border);
+    background: var(--bg-surface);
+    height: auto !important;
+    min-height: 200px;
+    gap: var(--spacing-sm);
+}
+
+.playlist-item.grid-item:hover {
+    background: var(--bg-surface-hover);
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-md);
+}
+
+.playlist-item.grid-item.active {
+    background: var(--primary-light);
+    border-color: var(--primary);
+    border-width: 2px;
+}
+
+.playlist-item.grid-item .menu-trigger {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    transform: none;
+    opacity: 0;
+    z-index: 10;
+}
+
+.playlist-item.grid-item:hover .menu-trigger {
+    opacity: 1;
+}
+
+.playlist-item.grid-item:focus-within .menu-trigger {
+    opacity: 1;
+}
+
+.grid-thumbnail {
+    width: 100%;
+    height: 120px;
+    background: linear-gradient(135deg, var(--primary-light), var(--border));
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3rem;
+    margin-bottom: var(--spacing-sm);
+}
+
+.grid-title {
+    font-size: 0.85rem;
+    font-weight: 500;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    line-height: 1.3;
+    margin-bottom: var(--spacing-xs);
+}
+
+.grid-date {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-xs);
+}
+
+.grid-duration {
+    font-size: 0.65rem;
+    color: var(--text-tertiary);
+}
+
+/* Loading State */
+.loading-state {
+    text-align: center;
+    padding: var(--spacing-xl);
+    color: var(--text-secondary);
+}
+
+.loader {
     display: inline-block;
     width: 30px;
     height: 30px;
@@ -170,34 +1228,341 @@ body {
     to { transform: rotate(360deg); }
 }
 
-/* Responsive */
+.error-state {
+    text-align: center;
+    padding: var(--spacing-xl);
+    color: var(--primary);
+}
+
+.empty-state {
+    text-align: center;
+    padding: var(--spacing-xl);
+    color: var(--text-secondary);
+}
+
+.toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    padding: 12px 20px;
+    border-radius: 8px;
+    box-shadow: var(--shadow-lg);
+    z-index: 1000;
+    animation: slideIn 0.3s ease;
+    border-left: 3px solid var(--primary);
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.resume-notification {
+    position: fixed;
+    bottom: 100px;
+    right: 20px;
+    background: var(--primary);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    z-index: 1500;
+    animation: slideInRight 0.3s ease, fadeOut 0.3s ease 2.7s forwards;
+    box-shadow: var(--shadow-lg);
+}
+
+.resume-notification .resume-icon {
+    font-size: 1.2rem;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes fadeOut {
+    to {
+        opacity: 0;
+        visibility: hidden;
+    }
+}
+
+/* Focus Overlay for Modal */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    backdrop-filter: blur(4px);
+}
+
+.modal-content {
+    background: var(--bg-surface);
+    border-radius: 16px;
+    max-width: 500px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    padding: 24px;
+}
+
+/* ============ RESPONSIVE ============ */
+@media (max-width: 1024px) {
+    .playlist-container.grid-view #virtualList {
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        gap: 12px;
+    }
+}
+
 @media (max-width: 768px) {
     .main-grid {
         grid-template-columns: 1fr;
+        gap: var(--spacing-md);
     }
+    
+    .playlist-section {
+        position: relative;
+        top: 0;
+        max-height: 500px;
+    }
+    
+    .header-content {
+        flex-direction: column;
+        height: auto;
+        padding: var(--spacing-sm);
+    }
+    
     .logo h1 {
         font-size: 1.1rem;
     }
+    
+    .logo-badge {
+        font-size: 0.6rem;
+    }
+    
+    .view-toggle-container {
+        order: 2;
+    }
+    
+    .header-controls {
+        order: 3;
+    }
+    
+    .now-playing-card {
+        padding: var(--spacing-md);
+    }
+    
     .now-playing-title {
         font-size: 1rem;
     }
+    
+    .btn {
+        padding: 6px 12px;
+        font-size: 0.75rem;
+    }
+    
+    .calendar-grid {
+        gap: 2px;
+    }
+    
+    .calendar-day {
+        min-height: 60px;
+        padding: 4px;
+    }
+    
+    .calendar-day-number {
+        font-size: 0.8rem;
+    }
+    
+    .playlist-container.grid-view #virtualList {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 10px;
+        padding: 12px;
+    }
+    
+    .grid-thumbnail {
+        height: 100px;
+        font-size: 2rem;
+    }
+    
+    .grid-title {
+        font-size: 0.75rem;
+    }
+    
+    .queue-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .queue-actions {
+        justify-content: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .container {
+        padding: 0 var(--spacing-sm);
+    }
+    
+    .playlist-container.grid-view #virtualList {
+        grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+        gap: 8px;
+        padding: 8px;
+    }
+    
+    .grid-thumbnail {
+        height: 80px;
+        font-size: 1.5rem;
+    }
+    
+    .grid-title {
+        font-size: 0.7rem;
+    }
+    
+    .calendar-day {
+        min-height: 50px;
+    }
+    
+    .calendar-day-number {
+        font-size: 0.7rem;
+    }
+    
+    .queue-item {
+        padding: 8px;
+    }
+    
+    .queue-title {
+        font-size: 0.75rem;
+    }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+    }
+}
+
+@media (prefers-contrast: high) {
+    .playlist-item.list-item {
+        border: 1px solid currentColor;
+    }
+    
+    .playlist-item.list-item.active {
+        border-width: 2px;
+    }
+    
+    .playlist-item.grid-item {
+        border: 2px solid currentColor;
+    }
+    
+    .playlist-item.grid-item.active {
+        border-width: 3px;
+    }
+    
+    .menu-trigger {
+        border: 2px solid currentColor;
+    }
+    
+    .calendar-day {
+        border: 2px solid currentColor;
+    }
+    
+    .queue-item {
+        border: 2px solid currentColor;
+    }
 }
 </style>
-
-<!-- Deferred non-critical CSS -->
-<link rel="preload" href="data:text/css;charset=utf-8,/*%20Deferred%20styles%20will%20load%20after%20LCP%20*/" as="style" id="deferred-styles-link">
 </head>
 <body>
 
-<!-- STICKY HEADER - Minimal for fast paint -->
+<!-- STICKY HEADER -->
 <header class="sticky-header">
     <div class="header-content">
         <div class="logo">
             <h1>🎙️ AJN Hourly Archive</h1>
-            <span class="logo-badge">CT</span>
+            <span class="logo-badge">Central Time</span>
+        </div>
+        <div class="view-toggle-container">
+            <button id="listViewBtn" class="view-toggle-btn active" aria-label="List view">📋 List View</button>
+            <button id="gridViewBtn" class="view-toggle-btn" aria-label="Grid view">🎴 Grid View</button>
         </div>
         <div class="header-controls">
-            <button id="darkModeToggle" class="btn-secondary" style="padding: 6px 12px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: 6px; cursor: pointer;">🌙</button>
+            <button id="darkModeToggle" class="btn btn-secondary" aria-label="Switch to dark mode">🌙 Dark</button>
+        </div>
+    </div>
+    
+    <!-- QUEUE SECTION -->
+    <div class="queue-section">
+        <div class="queue-header">
+            <h3>
+                <span>📋 Play Queue</span>
+                <span class="queue-stats" id="queueStats">0 items</span>
+            </h3>
+            <div class="queue-actions">
+                <button id="clearQueueBtn" class="btn btn-secondary btn-sm" style="padding: 4px 12px; font-size: 0.75rem;" aria-label="Clear all items from queue">Clear Queue</button>
+            </div>
+        </div>
+        <div id="queueContainer" class="queue-container">
+            <div class="empty-queue">Queue is empty. Add episodes using the "Add to Queue" button on any episode.</div>
+        </div>
+    </div>
+    
+    <!-- Calendar Section -->
+    <div class="calendar-section">
+        <div class="calendar-container">
+            <div class="calendar-header">
+                <button id="calendarPrevMonth" class="calendar-nav-btn" aria-label="Previous month">◀ Previous</button>
+                <h2 id="calendarMonthTitle" class="calendar-month-title">Loading...</h2>
+                <button id="calendarNextMonth" class="calendar-nav-btn" aria-label="Next month">Next ▶</button>
+            </div>
+            <div class="calendar-weekdays" id="calendarWeekdays"></div>
+            <div id="calendarGrid" class="calendar-grid"></div>
+            <div id="calendarFilterBadge" class="calendar-filter-badge" style="display: none;">
+                📅 <span id="activeCalendarDate"></span>
+                <span class="remove-filter" id="clearCalendarFilterBtn" tabindex="0" role="button" aria-label="Clear calendar filter">✖</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Search and Filter Section -->
+    <div class="search-section">
+        <div class="search-bar-container">
+            <div class="search-input-wrapper">
+                <span class="search-icon">🔍</span>
+                <input type="text" 
+                       id="globalSearchInput" 
+                       class="global-search-input" 
+                       placeholder="Search episodes by title or description..." 
+                       aria-label="Search episodes">
+                <button id="clearSearchBtn" class="clear-search-btn" aria-label="Clear search">✖</button>
+            </div>
+            <div class="filter-controls">
+                <div id="activeFilters" class="active-filters"></div>
+            </div>
         </div>
     </div>
 </header>
@@ -208,52 +1573,52 @@ body {
         
         <!-- LEFT COLUMN (65%) - NOW PLAYING CARD -->
         <div class="video-section">
-            <div class="now-playing-card" style="padding: var(--spacing-lg);">
-                <div class="now-playing-label" style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-secondary); margin-bottom: var(--spacing-sm);">▶ NOW PLAYING</div>
-                <div class="now-playing-title" id="currentTitle">Loading episodes...</div>
+            <div class="now-playing-card">
+                <div class="now-playing-label">▶ NOW PLAYING</div>
+                <div class="now-playing-title" id="currentTitle" aria-live="polite">Select an episode to begin</div>
                 
-                <div class="video-container" id="videoThumbnailContainer" style="position: relative; width: 100%; background: #000; border-radius: var(--border-radius); overflow: hidden;">
-                    <video id="videoPlayer" preload="metadata" style="width: 100%; display: block;" aria-label="Video player">
+                <div class="video-container" id="videoThumbnailContainer" style="cursor: pointer;">
+                    <video id="videoPlayer" preload="metadata" aria-label="Video player">
                         <source src="" type="video/mp4">
+                        Your browser does not support the video tag.
                     </video>
-                    <div class="immersive-overlay-btn" id="immersiveViewBtn" style="position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.6); color: white; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 1rem; z-index: 10;">📺</div>
+                    <div class="immersive-overlay-btn" id="immersiveViewBtn" title="Open Immersive View" aria-label="Enter fullscreen mode">📺</div>
                 </div>
 
-                <div class="controls-ui" style="margin-top: var(--spacing-md);">
-                    <div class="progress-container" style="margin-bottom: var(--spacing-md);">
-                        <input type="range" id="progressBar" value="0" max="100" step="0.1" style="width: 100%; height: 6px; -webkit-appearance: none; background: var(--border); border-radius: 3px;">
-                        <div class="time-display" style="display: flex; justify-content: space-between; margin-top: 8px; font-size: 0.75rem; color: var(--text-secondary);">
+                <div class="controls-ui">
+                    <div class="progress-container">
+                        <input type="range" id="progressBar" value="0" max="100" step="0.1" aria-label="Video progress">
+                        <div class="time-display">
                             <span id="currentTime">0:00</span>
                             <span id="duration">0:00</span>
                         </div>
                     </div>
                     
-                    <div class="video-controls-row" style="display: flex; gap: var(--spacing-sm); flex-wrap: wrap;">
-                        <button id="playPauseBtn" class="btn-secondary" style="padding: 6px 12px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: 6px; cursor: pointer;">⏯ Play</button>
-                        <button id="skipBackBtn" class="btn-secondary" style="padding: 6px 12px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: 6px; cursor: pointer;">⏪ 10s</button>
-                        <button id="skipForwardBtn" class="btn-secondary" style="padding: 6px 12px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: 6px; cursor: pointer;">⏩ 10s</button>
-                        <label class="btn-secondary" style="padding: 6px 12px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: 6px; display: inline-flex; align-items: center; gap: 6px; cursor: pointer;">
-                            <input type="checkbox" id="autoplayToggle" checked style="margin: 0;"> Autoplay
+                    <div class="video-controls-row">
+                        <button id="playPauseBtn" class="btn btn-secondary" aria-label="Play or pause video">⏯ Play</button>
+                        <button id="skipBackBtn" class="btn btn-secondary" aria-label="Skip back 10 seconds">⏪ 10s</button>
+                        <button id="skipForwardBtn" class="btn btn-secondary" aria-label="Skip forward 10 seconds">⏩ 10s</button>
+                        <label class="btn btn-secondary" aria-label="Autoplay toggle">
+                            <input type="checkbox" id="autoplayToggle" checked> Autoplay
                         </label>
-                        <button id="downloadBtn" class="btn-secondary" style="padding: 6px 12px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: 6px; cursor: pointer;">⬇️</button>
-                        <button id="shareBtn" class="btn-secondary" style="padding: 6px 12px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: 6px; cursor: pointer;">📤</button>
-                        <button id="nextBtn" class="btn-primary" style="padding: 6px 12px; background: var(--primary); color: white; border: none; border-radius: 6px; cursor: pointer;">⏭️ Next</button>
+                        <button id="downloadBtn" class="btn btn-secondary" aria-label="Download episode">⬇️</button>
+                        <button id="shareBtn" class="btn btn-secondary" aria-label="Share episode">📤</button>
+                        <button id="nextBtn" class="btn btn-primary" aria-label="Next episode">⏭️ Next</button>
                     </div>
                 </div>
             </div>
         </div>
         
-        <!-- RIGHT COLUMN (35%) - PLAYLIST -->
+        <!-- RIGHT COLUMN (35%) - VIRTUALIZED PLAYLIST WITH VIEW TOGGLE -->
         <div class="playlist-section">
-            <div class="playlist-header" style="padding: var(--spacing-lg); border-bottom: 1px solid var(--border);">
-                <h2 style="font-size: 1.1rem;">📋 Playlist</h2>
-                <div class="playlist-stats" id="playlistStats" style="font-size: 0.75rem; color: var(--text-secondary);">Loading...</div>
-            </div>
-            <div class="playlist-container" id="playlistContainer" style="position: relative; flex: 1; overflow-y: auto; height: 100%; min-height: 400px;">
-                <div class="loading-placeholder" id="playlistLoading">
-                    <div class="spinner"></div>
-                    <div style="margin-top: 12px;">Loading episodes...</div>
+            <div class="playlist-header">
+                <div>
+                    <h2>📋 All Episodes</h2>
+                    <div class="playlist-stats" id="playlistStats" aria-live="polite">Loading episodes...</div>
                 </div>
+            </div>
+            <div class="playlist-container" id="playlistContainer">
+                <div id="scrollSpacer" style="height: 0px; position: relative;"></div>
                 <div id="virtualList" style="position: absolute; top: 0; left: 0; width: 100%;"></div>
             </div>
         </div>
@@ -261,121 +1626,329 @@ body {
     </div>
 </main>
 
-<!-- Deferred sections loaded after LCP -->
-<div id="deferredContent" style="display: none;">
-    <!-- Queue Section -->
-    <div class="queue-section" id="queueSection">
-        <div class="queue-header" style="display: flex; justify-content: space-between; align-items: center; padding: var(--spacing-md) var(--spacing-lg); border-bottom: 1px solid var(--border);">
-            <h3 style="font-size: 1rem;">📋 Play Queue <span id="queueStats" style="font-size: 0.75rem; color: var(--text-secondary); margin-left: 8px;">0 items</span></h3>
-            <button id="clearQueueBtn" style="padding: 4px 12px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: 6px; cursor: pointer;">Clear Queue</button>
-        </div>
-        <div id="queueContainer" class="queue-container" style="max-height: 300px; overflow-y: auto; padding: var(--spacing-sm);"></div>
-    </div>
-    
-    <!-- Calendar Section -->
-    <div class="calendar-section" id="calendarSection">
-        <div class="calendar-container" style="background: var(--bg-surface); border-radius: var(--border-radius); padding: var(--spacing-md); margin-top: var(--spacing-md);">
-            <div class="calendar-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-lg);">
-                <button id="calendarPrevMonth" style="padding: 6px 12px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: 6px; cursor: pointer;">◀</button>
-                <h2 id="calendarMonthTitle" style="font-size: 1.1rem; color: var(--primary);"></h2>
-                <button id="calendarNextMonth" style="padding: 6px 12px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: 6px; cursor: pointer;">▶</button>
-            </div>
-            <div id="calendarGrid" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;"></div>
-        </div>
-    </div>
-    
-    <!-- Search Section -->
-    <div class="search-section" id="searchSection">
-        <div class="search-input-wrapper" style="position: relative; margin-top: var(--spacing-md);">
-            <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%);">🔍</span>
-            <input type="text" id="globalSearchInput" placeholder="Search episodes..." style="width: 100%; padding: 10px 35px 10px 35px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-surface); color: var(--text-primary);">
-        </div>
-    </div>
-</div>
-
 <script>
-// ============ OPTIMIZED PERFORMANCE VERSION ==========
-// Defer non-critical CSS loading
-(function loadDeferredStyles() {
-    const deferredStyles = `
-        .view-toggle-container { display: flex; gap: 8px; margin-left: auto; }
-        .view-toggle-btn { padding: 6px 12px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; font-size: 0.75rem; }
-        .view-toggle-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
-        .playlist-item { position: relative; display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 8px; cursor: pointer; transition: all 0.2s ease; border: 1px solid transparent; height: 80px; }
-        .playlist-item:hover { background: var(--bg-surface-hover); transform: translateX(4px); }
-        .playlist-item.active { background: var(--primary-light); border-color: var(--primary); }
-        .playlist-thumbnail { width: 56px; height: 56px; background: linear-gradient(135deg, var(--primary-light), var(--border)); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; flex-shrink: 0; }
-        .playlist-info { flex: 1; min-width: 0; }
-        .playlist-title { font-weight: 500; font-size: 0.8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .playlist-date { font-size: 0.65rem; color: var(--text-secondary); }
-        .menu-trigger { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); opacity: 0; transition: opacity 0.2s; cursor: pointer; background: var(--bg-surface); border: 1px solid var(--border); padding: 4px 8px; border-radius: 4px; font-size: 1rem; }
-        .playlist-item:hover .menu-trigger { opacity: 1; }
-        .flyout-menu { position: absolute; right: 8px; top: 45px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: 6px; z-index: 100; display: none; min-width: 140px; }
-        .flyout-menu.active { display: block; }
-        .flyout-menu-item { padding: 8px 12px; cursor: pointer; transition: background 0.2s; display: flex; align-items: center; gap: 8px; font-size: 0.75rem; border-bottom: 1px solid var(--border-light); }
-        .flyout-menu-item:hover { background: var(--bg-surface-hover); }
-        .calendar-day { min-height: 80px; padding: 4px; border: 1px solid var(--border); border-radius: 6px; cursor: pointer; font-size: 0.7rem; background: var(--bg-surface); }
-        .calendar-day.has-episode { background: var(--primary-light); }
-        .calendar-day-number { font-weight: 600; font-size: 0.8rem; }
-        .toast { position: fixed; bottom: 20px; right: 20px; background: var(--bg-surface); color: var(--text-primary); padding: 8px 16px; border-radius: 6px; z-index: 1000; border-left: 3px solid var(--primary); }
-        @media (max-width: 768px) { .playlist-item { height: 70px; padding: 8px; } .playlist-thumbnail { width: 48px; height: 48px; } .calendar-day { min-height: 60px; } }
-    `;
+// ============ FOCUS TRAP UTILITY ==========
+function trapFocus(element) {
+    const focusableElements = element.querySelectorAll(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    );
     
-    const style = document.createElement('style');
-    style.textContent = deferredStyles;
-    document.head.appendChild(style);
-})();
+    if (focusableElements.length === 0) {
+        element.setAttribute('tabindex', '0');
+        element.focus();
+        const handler = (e) => {
+            if (e.key === 'Escape') {
+                if (element.parentNode) element.remove();
+            }
+        };
+        element.addEventListener('keydown', handler);
+        return () => element.removeEventListener('keydown', handler);
+    }
 
-// Load deferred content after LCP
-requestIdleCallback(() => {
-    const deferredContainer = document.getElementById('deferredContent');
-    const queueSection = document.getElementById('queueSection');
-    const calendarSection = document.getElementById('calendarSection');
-    const searchSection = document.getElementById('searchSection');
+    const firstElement = focusableElements[0];
+    const lastElement = focusableElements[focusableElements.length - 1];
+    const previousActiveElement = document.activeElement;
+
+    const handler = (e) => {
+        if (e.key === 'Tab') {
+            if (e.shiftKey) {
+                if (document.activeElement === firstElement) {
+                    lastElement.focus();
+                    e.preventDefault();
+                }
+            } else {
+                if (document.activeElement === lastElement) {
+                    firstElement.focus();
+                    e.preventDefault();
+                }
+            }
+        } else if (e.key === 'Escape') {
+            if (element.parentNode) {
+                element.remove();
+                if (previousActiveElement && previousActiveElement.focus) {
+                    previousActiveElement.focus();
+                }
+            }
+        }
+    };
+
+    element.addEventListener('keydown', handler);
+    firstElement.focus();
     
-    if (deferredContainer && queueSection && calendarSection && searchSection) {
-        const header = document.querySelector('.sticky-header');
-        if (header) {
-            const queueClone = queueSection.cloneNode(true);
-            const calendarClone = calendarSection.cloneNode(true);
-            const searchClone = searchSection.cloneNode(true);
-            
-            queueClone.style.display = 'block';
-            calendarClone.style.display = 'block';
-            searchClone.style.display = 'block';
-            queueClone.classList.add('loaded');
-            calendarClone.classList.add('loaded');
-            searchClone.classList.add('loaded');
-            
-            header.appendChild(queueClone);
-            header.appendChild(calendarClone);
-            header.appendChild(searchClone);
+    return () => {
+        element.removeEventListener('keydown', handler);
+        if (previousActiveElement && previousActiveElement.focus) {
+            previousActiveElement.focus();
+        }
+    };
+}
+
+// ============ QUEUE MANAGER CLASS ==========
+class QueueManager {
+    constructor(containerId) {
+        this.container = document.getElementById(containerId);
+        this.queue = [];
+        this.draggedItem = null;
+        this.dragOverItem = null;
+        this.loadQueue();
+        this.init();
+    }
+
+    init() {
+        this.render();
+        this.setupDragAndDrop();
+        this.updateStats();
+    }
+
+    loadQueue() {
+        try {
+            const saved = localStorage.getItem('userQueue');
+            if (saved) {
+                this.queue = JSON.parse(saved);
+                console.log(`Loaded ${this.queue.length} items from queue`);
+            }
+        } catch (error) {
+            console.error('Failed to load queue:', error);
+            this.queue = [];
         }
     }
-});
 
-// ============ CORE APPLICATION ==========
+    saveQueue() {
+        try {
+            localStorage.setItem('userQueue', JSON.stringify(this.queue));
+            console.log(`Saved ${this.queue.length} items to queue`);
+        } catch (error) {
+            console.error('Failed to save queue:', error);
+        }
+    }
+
+    updateStats() {
+        const statsElement = document.getElementById('queueStats');
+        if (statsElement) {
+            statsElement.textContent = `${this.queue.length} item${this.queue.length !== 1 ? 's' : ''}`;
+        }
+    }
+
+    addToQueue(episode, episodeIndex) {
+        if (!episode) return;
+        
+        const queueItem = {
+            id: episode.id,
+            title: episode.title,
+            show: episode.show,
+            hour: episode.hour,
+            dateKey: episode.dateKey,
+            centralDate: episode.centralDate,
+            videoUrl: episode.videoUrl,
+            originalIndex: episodeIndex,
+            addedAt: Date.now()
+        };
+        
+        this.queue.push(queueItem);
+        this.saveQueue();
+        this.render();
+        this.updateStats();
+        this.showToast(`Added "${episode.title.substring(0, 50)}..." to queue`);
+    }
+
+    removeFromQueue(index) {
+        if (index < 0 || index >= this.queue.length) return;
+        
+        const removed = this.queue.splice(index, 1)[0];
+        this.saveQueue();
+        this.render();
+        this.updateStats();
+        this.showToast(`Removed from queue`);
+    }
+
+    clearQueue() {
+        if (this.queue.length === 0) return;
+        
+        if (confirm(`Clear ${this.queue.length} item${this.queue.length !== 1 ? 's' : ''} from queue?`)) {
+            this.queue = [];
+            this.saveQueue();
+            this.render();
+            this.updateStats();
+            this.showToast('Queue cleared');
+        }
+    }
+
+    playQueueItem(index) {
+        if (index < 0 || index >= this.queue.length) return;
+        
+        const item = this.queue[index];
+        const episodeData = {
+            id: item.id,
+            title: item.title,
+            show: item.show,
+            hour: item.hour,
+            centralDate: new Date(item.centralDate),
+            videoUrl: item.videoUrl,
+            description: item.description || 'No description available'
+        };
+        
+        if (typeof window.playEpisodeFromQueue === 'function') {
+            window.playEpisodeFromQueue(episodeData);
+        }
+        
+        this.showToast(`Now playing: ${item.title.substring(0, 50)}...`);
+    }
+
+    setupDragAndDrop() {
+        if (!this.container) return;
+        
+        this.container.addEventListener('dragstart', (e) => {
+            const item = e.target.closest('.queue-item');
+            if (!item) return;
+            
+            this.draggedItem = item;
+            item.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/html', item.innerHTML);
+        });
+        
+        this.container.addEventListener('dragend', (e) => {
+            const item = e.target.closest('.queue-item');
+            if (item) item.classList.remove('dragging');
+            
+            document.querySelectorAll('.queue-item').forEach(el => {
+                el.classList.remove('drag-over');
+            });
+        });
+        
+        this.container.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            
+            const targetItem = e.target.closest('.queue-item');
+            if (!targetItem || targetItem === this.draggedItem) return;
+            
+            document.querySelectorAll('.queue-item').forEach(el => {
+                el.classList.remove('drag-over');
+            });
+            targetItem.classList.add('drag-over');
+            this.dragOverItem = targetItem;
+        });
+        
+        this.container.addEventListener('drop', (e) => {
+            e.preventDefault();
+            
+            if (!this.draggedItem || !this.dragOverItem) {
+                this.resetDragState();
+                return;
+            }
+            
+            const fromIndex = parseInt(this.draggedItem.dataset.index);
+            const toIndex = parseInt(this.dragOverItem.dataset.index);
+            
+            if (!isNaN(fromIndex) && !isNaN(toIndex) && fromIndex !== toIndex) {
+                this.reorderQueue(fromIndex, toIndex);
+            }
+            
+            this.resetDragState();
+        });
+    }
+    
+    reorderQueue(fromIndex, toIndex) {
+        if (fromIndex < 0 || fromIndex >= this.queue.length || toIndex < 0 || toIndex >= this.queue.length) return;
+        
+        const [movedItem] = this.queue.splice(fromIndex, 1);
+        this.queue.splice(toIndex, 0, movedItem);
+        
+        this.saveQueue();
+        this.render();
+        this.showToast('Queue reordered');
+    }
+    
+    resetDragState() {
+        document.querySelectorAll('.queue-item').forEach(el => {
+            el.classList.remove('dragging', 'drag-over');
+        });
+        this.draggedItem = null;
+        this.dragOverItem = null;
+    }
+
+    render() {
+        if (!this.container) return;
+        
+        if (this.queue.length === 0) {
+            this.container.innerHTML = '<div class="empty-queue">Queue is empty. Add episodes using the "Add to Queue" button on any episode.</div>';
+            return;
+        }
+        
+        this.container.innerHTML = this.queue.map((item, index) => {
+            const date = item.centralDate ? new Date(item.centralDate) : new Date();
+            const formattedDate = date.toLocaleDateString();
+            
+            return `
+                <div class="queue-item" draggable="true" data-index="${index}" data-id="${item.id}">
+                    <span class="drag-handle" draggable="false" aria-label="Drag to reorder">⠿</span>
+                    <div class="queue-info" onclick="window.queueManager.playQueueItem(${index})" style="cursor: pointer;" role="button" tabindex="0" onkeypress="if(event.key==='Enter') window.queueManager.playQueueItem(${index})">
+                        <div class="queue-title">${this.escapeHtml(item.title)}</div>
+                        <div class="queue-date">${this.escapeHtml(item.show)} ${this.escapeHtml(item.hour)} • ${formattedDate}</div>
+                    </div>
+                    <button onclick="event.stopPropagation(); window.queueManager.removeFromQueue(${index})" aria-label="Remove from queue">×</button>
+                </div>
+            `;
+        }).join('');
+        
+        this.setupDragAndDrop();
+    }
+    
+    escapeHtml(str) {
+        if (!str) return '';
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+    
+    showToast(message) {
+        const existingToast = document.querySelector('.toast');
+        if (existingToast) existingToast.remove();
+        
+        const toast = document.createElement('div');
+        toast.className = 'toast';
+        toast.textContent = message;
+        toast.setAttribute('role', 'status');
+        toast.setAttribute('aria-live', 'polite');
+        document.body.appendChild(toast);
+        
+        setTimeout(() => toast.remove(), 3000);
+    }
+    
+    getQueue() {
+        return this.queue;
+    }
+}
+
+// ============ MAIN APPLICATION ==========
 document.addEventListener('DOMContentLoaded', () => {
-    console.log("Optimized app loading...");
+    console.log("DOM is ready. Initializing application...");
     
     // ============ STORAGE KEYS ==========
     const STORAGE_KEYS = {
         PLAYBACK_POSITIONS: 'ajn_playback_positions',
         LAST_EPISODE_ID: 'ajn_last_episode_id',
-        DARK_MODE: 'darkMode'
+        AUTOPLAY_STATE: 'autoplayEnabled',
+        DARK_MODE: 'darkMode',
+        VIEW_MODE: 'ajn_view_mode'
     };
     
     // ============ GLOBAL STATE ==========
     let allEpisodes = [];
     let currentPlaylist = [];
     let currentIndex = 0;
+    let currentEpisodeData = null;
     let playbackPositions = {};
-    let currentSearchTerm = '';
-    let selectedCalendarDate = null;
-    let currentCalendarDate = new Date();
     let saveTimeout = null;
     let saveInterval = null;
-    let viewMode = 'list';
+    let currentSearchTerm = '';
+    let currentCalendarDate = new Date();
+    let selectedCalendarDate = null;
+    let debounceTimeout = null;
+    let currentViewMode = 'list';
+    let queueManager = null;
+    let activeFlyoutCleanup = null;
     
     // ============ DOM ELEMENTS ==========
     const videoPlayer = document.getElementById('videoPlayer');
@@ -391,19 +1964,35 @@ document.addEventListener('DOMContentLoaded', () => {
     const currentTitle = document.getElementById('currentTitle');
     const playlistStats = document.getElementById('playlistStats');
     const playlistContainer = document.getElementById('playlistContainer');
+    const scrollSpacer = document.getElementById('scrollSpacer');
     const virtualList = document.getElementById('virtualList');
     const darkModeToggle = document.getElementById('darkModeToggle');
     const downloadBtn = document.getElementById('downloadBtn');
     const shareBtn = document.getElementById('shareBtn');
     const nextBtn = document.getElementById('nextBtn');
     const searchInput = document.getElementById('globalSearchInput');
+    const clearSearchBtn = document.getElementById('clearSearchBtn');
+    const activeFiltersContainer = document.getElementById('activeFilters');
     const calendarPrevMonth = document.getElementById('calendarPrevMonth');
     const calendarNextMonth = document.getElementById('calendarNextMonth');
     const calendarMonthTitle = document.getElementById('calendarMonthTitle');
+    const calendarWeekdays = document.getElementById('calendarWeekdays');
     const calendarGrid = document.getElementById('calendarGrid');
-    const queueContainer = document.getElementById('queueContainer');
+    const calendarFilterBadge = document.getElementById('calendarFilterBadge');
+    const activeCalendarDate = document.getElementById('activeCalendarDate');
+    const clearCalendarFilterBtn = document.getElementById('clearCalendarFilterBtn');
+    const listViewBtn = document.getElementById('listViewBtn');
+    const gridViewBtn = document.getElementById('gridViewBtn');
     const clearQueueBtn = document.getElementById('clearQueueBtn');
-    const queueStats = document.getElementById('queueStats');
+    
+    // ============ CONSTANTS ==========
+    const LIST_ROW_HEIGHT = 80;
+    const GRID_ROW_HEIGHT = 220;
+    let currentRowHeight = LIST_ROW_HEIGHT;
+    const BUFFER = 5;
+    const RSS_URL = 'https://rss.alexjones.media/AJNHourlyVideo.xml';
+    const API_URL = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(RSS_URL)}`;
+    const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     
     // ============ HELPER FUNCTIONS ==========
     function transformVideoUrl(originalUrl) {
@@ -421,26 +2010,50 @@ document.addEventListener('DOMContentLoaded', () => {
     
     function formatCentralTime(date) {
         if (!date) return 'Date unknown';
-        return date.toLocaleString('en-US', { timeZone: 'America/Chicago', weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+        return date.toLocaleString('en-US', {
+            timeZone: 'America/Chicago',
+            weekday: 'short',
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+        });
     }
     
     function formatShortDate(date) {
         if (!date) return 'Unknown';
-        return date.toLocaleDateString('en-US', { timeZone: 'America/Chicago', month: 'short', day: 'numeric' });
+        return date.toLocaleDateString('en-US', {
+            timeZone: 'America/Chicago',
+            month: 'short',
+            day: 'numeric'
+        });
     }
     
     function formatTime(seconds) {
         if (isNaN(seconds) || !isFinite(seconds)) return '0:00';
-        const mins = Math.floor(seconds / 60);
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
         const secs = Math.floor(seconds % 60);
-        return `${mins}:${secs.toString().padStart(2, '0')}`;
+        if (hours > 0) {
+            return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+        return `${minutes}:${secs.toString().padStart(2, '0')}`;
     }
     
     function parseEpisodeDetails(title) {
         const warRoomMatch = title.match(/WarRoom[- ]Hr(\d+)/i);
         const alexMatch = title.match(/Alex[- ]Jones[- ]Show[- ]Hr(\d+)/i);
-        if (warRoomMatch) return { show: 'War Room', hour: `Hour ${warRoomMatch[1]}` };
-        if (alexMatch) return { show: 'Alex Jones Show', hour: `Hour ${alexMatch[1]}` };
+        if (warRoomMatch) {
+            return { show: 'War Room', hour: `Hour ${warRoomMatch[1]}` };
+        }
+        if (alexMatch) {
+            return { show: 'Alex Jones Show', hour: `Hour ${alexMatch[1]}` };
+        }
+        if (title.match(/Nightline/i)) {
+            return { show: 'Nightline', hour: '' };
+        }
         return { show: 'Episode', hour: '' };
     }
     
@@ -451,12 +2064,14 @@ document.addEventListener('DOMContentLoaded', () => {
         return div.innerHTML;
     }
     
-    function showToast(message, duration = 2500) {
+    function showToast(message, duration = 3000) {
         const existingToast = document.querySelector('.toast');
         if (existingToast) existingToast.remove();
         const toast = document.createElement('div');
         toast.className = 'toast';
         toast.textContent = message;
+        toast.setAttribute('role', 'status');
+        toast.setAttribute('aria-live', 'polite');
         document.body.appendChild(toast);
         setTimeout(() => toast.remove(), duration);
     }
@@ -465,12 +2080,16 @@ document.addEventListener('DOMContentLoaded', () => {
         return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
     }
     
-    // ============ PLAYBACK PERSISTENCE ==========
+    // ============ PLAYBACK PERSISTENCE FUNCTIONS ==========
     function loadPlaybackPositions() {
         try {
             const saved = localStorage.getItem(STORAGE_KEYS.PLAYBACK_POSITIONS);
-            if (saved) playbackPositions = JSON.parse(saved);
+            if (saved) {
+                playbackPositions = JSON.parse(saved);
+                console.log(`Loaded ${Object.keys(playbackPositions).length} saved playback positions`);
+            }
         } catch (error) {
+            console.error('Failed to load playback positions:', error);
             playbackPositions = {};
         }
     }
@@ -480,24 +2099,44 @@ document.addEventListener('DOMContentLoaded', () => {
         if (duration && position >= duration - 2) {
             delete playbackPositions[episodeId];
         } else {
-            playbackPositions[episodeId] = { position: Math.floor(position), timestamp: Date.now(), duration: duration || 0 };
+            playbackPositions[episodeId] = {
+                position: Math.floor(position),
+                timestamp: Date.now(),
+                duration: duration || 0,
+                lastUpdated: new Date().toISOString()
+            };
         }
         if (saveTimeout) clearTimeout(saveTimeout);
         saveTimeout = setTimeout(() => {
-            localStorage.setItem(STORAGE_KEYS.PLAYBACK_POSITIONS, JSON.stringify(playbackPositions));
+            try {
+                localStorage.setItem(STORAGE_KEYS.PLAYBACK_POSITIONS, JSON.stringify(playbackPositions));
+            } catch (error) {
+                console.error('Failed to save playback position:', error);
+            }
         }, 500);
     }
     
     function getPlaybackPosition(episodeId) {
         const saved = playbackPositions[episodeId];
-        return saved && saved.position ? saved.position : 0;
+        if (saved && saved.position) return saved.position;
+        return 0;
+    }
+    
+    function clearPlaybackPosition(episodeId) {
+        if (episodeId && playbackPositions[episodeId]) {
+            delete playbackPositions[episodeId];
+            localStorage.setItem(STORAGE_KEYS.PLAYBACK_POSITIONS, JSON.stringify(playbackPositions));
+        }
     }
     
     function startPositionTracking() {
         if (saveInterval) clearInterval(saveInterval);
         saveInterval = setInterval(() => {
             if (videoPlayer && videoPlayer.currentTime && currentPlaylist[currentIndex]) {
-                savePlaybackPosition(currentPlaylist[currentIndex].id, videoPlayer.currentTime, videoPlayer.duration);
+                const episode = currentPlaylist[currentIndex];
+                if (episode && videoPlayer.currentTime > 0) {
+                    savePlaybackPosition(episode.id, videoPlayer.currentTime, videoPlayer.duration);
+                }
             }
         }, 5000);
     }
@@ -508,7 +2147,8 @@ document.addEventListener('DOMContentLoaded', () => {
         
         videoPlayer.addEventListener('timeupdate', () => {
             if (!isSeeking && videoPlayer.duration) {
-                progressBar.value = (videoPlayer.currentTime / videoPlayer.duration) * 100;
+                const percent = (videoPlayer.currentTime / videoPlayer.duration) * 100;
+                progressBar.value = percent;
                 currentTimeDisplay.textContent = formatTime(videoPlayer.currentTime);
             }
         });
@@ -520,17 +2160,22 @@ document.addEventListener('DOMContentLoaded', () => {
         
         progressBar.addEventListener('input', (e) => {
             isSeeking = true;
-            currentTimeDisplay.textContent = formatTime((e.target.value / 100) * videoPlayer.duration);
+            const seekTime = (e.target.value / 100) * videoPlayer.duration;
+            currentTimeDisplay.textContent = formatTime(seekTime);
         });
         
         progressBar.addEventListener('change', (e) => {
-            videoPlayer.currentTime = (e.target.value / 100) * videoPlayer.duration;
+            const seekTime = (e.target.value / 100) * videoPlayer.duration;
+            videoPlayer.currentTime = seekTime;
             isSeeking = false;
         });
         
         playPauseBtn.addEventListener('click', () => {
             if (videoPlayer.paused) {
-                videoPlayer.play();
+                videoPlayer.play().catch(e => {
+                    console.log('Playback prevented:', e);
+                    showToast('Click play to start', 2000);
+                });
                 playPauseBtn.innerHTML = '⏸ Pause';
             } else {
                 videoPlayer.pause();
@@ -543,155 +2188,667 @@ document.addEventListener('DOMContentLoaded', () => {
         
         skipBackBtn.addEventListener('click', () => {
             videoPlayer.currentTime = Math.max(0, videoPlayer.currentTime - 10);
-            showToast('Back 10s');
+            showToast('Back 10 seconds');
         });
         
         skipForwardBtn.addEventListener('click', () => {
             videoPlayer.currentTime = Math.min(videoPlayer.duration, videoPlayer.currentTime + 10);
-            showToast('Forward 10s');
+            showToast('Forward 10 seconds');
         });
         
         immersiveBtn.addEventListener('click', () => {
             if (videoContainer.requestFullscreen) videoContainer.requestFullscreen();
             else if (videoContainer.webkitRequestFullscreen) videoContainer.webkitRequestFullscreen();
+            else if (videoContainer.msRequestFullscreen) videoContainer.msRequestFullscreen();
         });
         
         videoPlayer.addEventListener('ended', () => {
+            if (currentPlaylist[currentIndex]) clearPlaybackPosition(currentPlaylist[currentIndex].id);
+            
+            if (queueManager && queueManager.getQueue().length > 0) {
+                const queue = queueManager.getQueue();
+                if (queue.length > 0) {
+                    const nextQueueItem = queue[0];
+                    queueManager.removeFromQueue(0);
+                    const episodeData = {
+                        id: nextQueueItem.id,
+                        title: nextQueueItem.title,
+                        show: nextQueueItem.show,
+                        hour: nextQueueItem.hour,
+                        centralDate: new Date(nextQueueItem.centralDate),
+                        videoUrl: nextQueueItem.videoUrl,
+                        description: nextQueueItem.description || 'No description available'
+                    };
+                    playEpisodeFromQueue(episodeData);
+                    showToast('▶ Playing next from queue');
+                    return;
+                }
+            }
+            
             if (autoplayToggle.checked && currentIndex + 1 < currentPlaylist.length) {
                 playEpisode(currentIndex + 1);
-                showToast('▶ Next episode');
+                showToast('▶ Auto-playing next episode');
             }
         });
     }
     
-    // ============ RENDER PLAYLIST ==========
-    function renderPlaylist() {
+    // ============ VIEW MODE TOGGLE FUNCTIONS ==========
+    function setListView() {
+        if (currentViewMode === 'list') return;
+        
+        currentViewMode = 'list';
+        currentRowHeight = LIST_ROW_HEIGHT;
+        playlistContainer.classList.remove('grid-view');
+        listViewBtn.classList.add('active');
+        gridViewBtn.classList.remove('active');
+        
+        localStorage.setItem(STORAGE_KEYS.VIEW_MODE, 'list');
+        
+        renderVirtualPlaylist();
+        showToast('Switched to list view', 1500);
+    }
+    
+    function setGridView() {
+        if (currentViewMode === 'grid') return;
+        
+        currentViewMode = 'grid';
+        currentRowHeight = GRID_ROW_HEIGHT;
+        playlistContainer.classList.add('grid-view');
+        gridViewBtn.classList.add('active');
+        listViewBtn.classList.remove('active');
+        
+        localStorage.setItem(STORAGE_KEYS.VIEW_MODE, 'grid');
+        
+        renderVirtualPlaylist();
+        showToast('Switched to grid view', 1500);
+    }
+    
+    function loadSavedViewMode() {
+        const savedMode = localStorage.getItem(STORAGE_KEYS.VIEW_MODE);
+        if (savedMode === 'grid') {
+            setGridView();
+        } else {
+            setListView();
+        }
+    }
+    
+    // ============ RENDER ITEM FUNCTION ==========
+    function renderItem(episode, index, isActive) {
+        const isGrid = currentViewMode === 'grid';
+        const escapedTitle = escapeHtml(episode.title);
+        const escapedDate = escapeHtml(formatCentralTime(episode.centralDate));
+        const escapedShortDate = escapeHtml(formatShortDate(episode.centralDate));
+        const escapedShow = escapeHtml(episode.show);
+        const escapedHour = escapeHtml(episode.hour);
+        const flyoutId = `flyout-${index}`;
+        const savedPosition = getPlaybackPosition(episode.id);
+        const hasResume = savedPosition > 0;
+        const resumeTime = savedPosition ? formatTime(savedPosition) : '';
+        
+        const menuHtml = `
+            <div class="menu-trigger" data-flyout="${flyoutId}" 
+                 onclick="event.stopPropagation(); window.toggleFlyout(event, ${index}, this)"
+                 onkeypress="if(event.key==='Enter' || event.key===' ') { event.stopPropagation(); window.toggleFlyout(event, ${index}, this); }"
+                 role="button"
+                 tabindex="0"
+                 aria-label="More options for ${escapedTitle}"
+                 aria-haspopup="true"
+                 aria-expanded="false">⋮</div>
+            <div class="flyout-menu" id="${flyoutId}" role="menu" aria-label="Episode actions">
+                <div class="flyout-menu-item" role="menuitem" tabindex="0" onclick="event.stopPropagation(); window.downloadEpisodeByIndex(${index})" onkeypress="if(event.key==='Enter') window.downloadEpisodeByIndex(${index})">⬇️ Download</div>
+                <div class="flyout-menu-item" role="menuitem" tabindex="0" onclick="event.stopPropagation(); window.shareEpisodeByIndex(${index})" onkeypress="if(event.key==='Enter') window.shareEpisodeByIndex(${index})">📤 Share</div>
+                <div class="flyout-menu-item" role="menuitem" tabindex="0" onclick="event.stopPropagation(); window.addToQueueFromEpisode(${index})" onkeypress="if(event.key==='Enter') window.addToQueueFromEpisode(${index})">📋 Add to Queue</div>
+                ${hasResume ? `<div class="flyout-menu-item" role="menuitem" tabindex="0" onclick="event.stopPropagation(); window.clearPlaybackPositionById(${episode.id}); renderVirtualPlaylist(); showToast('Resume point cleared');" onkeypress="if(event.key==='Enter') { window.clearPlaybackPositionById(${episode.id}); renderVirtualPlaylist(); showToast('Resume point cleared'); }">🗑️ Clear Resume Point</div>` : ''}
+                <div class="flyout-menu-divider" role="separator"></div>
+                <div class="flyout-menu-item" role="menuitem" tabindex="0" onclick="event.stopPropagation(); window.copyLink(${index})" onkeypress="if(event.key==='Enter') window.copyLink(${index})">🔗 Copy Link</div>
+                <div class="flyout-menu-item" role="menuitem" tabindex="0" onclick="event.stopPropagation(); window.viewDetails(${index})" onkeypress="if(event.key==='Enter') window.viewDetails(${index})">📄 Details</div>
+            </div>
+        `;
+        
+        if (isGrid) {
+            return `
+                <div class="playlist-item grid-item ${isActive ? 'active' : ''} ${hasResume ? 'has-resume' : ''}" 
+                     data-index="${index}"
+                     data-episode-id="${episode.id}"
+                     onclick="window.playEpisodeFromGrid(${index})"
+                     tabindex="0"
+                     role="button"
+                     aria-label="Play episode: ${escapedTitle}">
+                    ${menuHtml}
+                    <div class="grid-thumbnail" aria-hidden="true">🎬</div>
+                    <div class="grid-title">${escapedTitle}</div>
+                    <div class="grid-date">📅 ${escapedShortDate}</div>
+                    <div class="grid-duration">🎬 ${escapedShow} ${escapedHour}</div>
+                    ${hasResume ? `<span class="resume-indicator">▶ Resume ${resumeTime}</span>` : ''}
+                    <button class="add-to-queue-btn" onclick="event.stopPropagation(); window.addToQueueFromEpisode(${index})" onkeypress="if(event.key==='Enter') window.addToQueueFromEpisode(${index})" style="margin-top: 8px;">📋 Add to Queue</button>
+                </div>
+            `;
+        }
+        
+        return `
+            <div class="playlist-item list-item ${isActive ? 'active' : ''} ${hasResume ? 'has-resume' : ''}" 
+                 data-index="${index}"
+                 data-episode-id="${episode.id}"
+                 onclick="window.playEpisodeFromList(${index})"
+                 tabindex="0"
+                 role="button"
+                 aria-label="Play episode: ${escapedTitle}${hasResume ? ` - Resume from ${resumeTime}` : ''}">
+                ${menuHtml}
+                <div class="playlist-thumbnail" aria-hidden="true">🎬</div>
+                <div class="playlist-info">
+                    <div class="playlist-title">${escapedTitle}${hasResume ? `<span class="resume-indicator">▶ Resume ${resumeTime}</span>` : ''}</div>
+                    <div class="playlist-date">📅 ${escapedDate}</div>
+                    <div class="playlist-duration">🎬 ${escapedShow} ${escapedHour}</div>
+                </div>
+                <button class="add-to-queue-btn" onclick="event.stopPropagation(); window.addToQueueFromEpisode(${index})" onkeypress="if(event.key==='Enter') window.addToQueueFromEpisode(${index})" style="margin-right: 40px;">📋 Add to Queue</button>
+            </div>
+        `;
+    }
+    
+    // ============ VIRTUAL PLAYLIST RENDERING ==========
+    function renderVirtualPlaylist() {
         if (!currentPlaylist.length) {
-            virtualList.innerHTML = '<div class="loading-placeholder">No episodes found</div>';
+            virtualList.innerHTML = '<div class="empty-state" style="padding: 40px; text-align: center;">📭 No episodes found</div>';
+            if (currentViewMode !== 'grid') {
+                scrollSpacer.style.height = '0px';
+            }
             return;
         }
         
-        virtualList.innerHTML = currentPlaylist.map((ep, idx) => {
-            const isActive = idx === currentIndex;
-            const flyoutId = `flyout-${idx}`;
-            const hasResume = getPlaybackPosition(ep.id) > 0;
+        const isGrid = currentViewMode === 'grid';
+        
+        if (isGrid) {
+            virtualList.style.position = 'relative';
+            virtualList.style.transform = 'none';
+            scrollSpacer.style.display = 'none';
             
-            return `
-                <div class="playlist-item ${isActive ? 'active' : ''}" data-index="${idx}" onclick="window.playEpisodeByIndex(${idx})">
-                    <div class="menu-trigger" data-flyout="${flyoutId}" onclick="event.stopPropagation(); window.toggleFlyout(event, ${idx})">⋮</div>
-                    <div class="flyout-menu" id="${flyoutId}">
-                        <div class="flyout-menu-item" onclick="event.stopPropagation(); window.downloadEpisode(${idx})">⬇️ Download</div>
-                        <div class="flyout-menu-item" onclick="event.stopPropagation(); window.shareEpisode(${idx})">📤 Share</div>
-                        <div class="flyout-menu-item" onclick="event.stopPropagation(); window.addToQueue(${idx})">📋 Add to Queue</div>
-                        <div class="flyout-menu-divider"></div>
-                        <div class="flyout-menu-item" onclick="event.stopPropagation(); window.viewDetails(${idx})">📄 Details</div>
-                    </div>
-                    <div class="playlist-thumbnail">🎬</div>
-                    <div class="playlist-info">
-                        <div class="playlist-title">${escapeHtml(ep.title)}${hasResume ? ' ▶' : ''}</div>
-                        <div class="playlist-date">${formatCentralTime(ep.centralDate)}</div>
-                        <div style="font-size:0.65rem;color:var(--text-tertiary)">${ep.show} ${ep.hour}</div>
-                    </div>
-                </div>
-            `;
-        }).join('');
+            virtualList.innerHTML = currentPlaylist.map((ep, idx) => {
+                const isActive = idx === currentIndex;
+                return renderItem(ep, idx, isActive);
+            }).join('');
+        } else {
+            virtualList.style.position = 'absolute';
+            scrollSpacer.style.display = 'block';
+            
+            const scrollTop = playlistContainer.scrollTop;
+            const viewportHeight = playlistContainer.clientHeight;
+            const totalHeight = currentPlaylist.length * currentRowHeight;
+            scrollSpacer.style.height = `${totalHeight}px`;
+            
+            const startIndex = Math.max(0, Math.floor(scrollTop / currentRowHeight) - BUFFER);
+            const endIndex = Math.min(currentPlaylist.length - 1, Math.floor((scrollTop + viewportHeight) / currentRowHeight) + BUFFER);
+            const offsetY = startIndex * currentRowHeight;
+            virtualList.style.transform = `translateY(${offsetY}px)`;
+            const visibleItems = currentPlaylist.slice(startIndex, endIndex + 1);
+            
+            virtualList.innerHTML = visibleItems.map((ep, idx) => {
+                const actualIndex = startIndex + idx;
+                const isActive = actualIndex === currentIndex;
+                return renderItem(ep, actualIndex, isActive);
+            }).join('');
+        }
     }
     
-    // ============ PLAY EPISODE ==========
+    // ============ PLAY EPISODE FUNCTIONS ==========
     function playEpisode(index) {
         if (index < 0 || index >= currentPlaylist.length) return;
         
         currentIndex = index;
         const episode = currentPlaylist[currentIndex];
+        currentEpisodeData = episode;
         
         currentTitle.textContent = episode.title;
         videoPlayer.src = episode.videoUrl;
         videoPlayer.load();
         
-        const savedPos = getPlaybackPosition(episode.id);
-        if (savedPos > 0 && savedPos < videoPlayer.duration - 2) {
-            videoPlayer.addEventListener('loadedmetadata', () => {
-                videoPlayer.currentTime = savedPos;
-            }, { once: true });
+        const savedPosition = getPlaybackPosition(episode.id);
+        if (savedPosition > 0 && savedPosition < videoPlayer.duration - 2) {
+            const setPosition = () => {
+                if (savedPosition < videoPlayer.duration && savedPosition > 0) {
+                    videoPlayer.currentTime = savedPosition;
+                    const notification = document.createElement('div');
+                    notification.className = 'resume-notification';
+                    notification.innerHTML = `<span class="resume-icon">▶</span><span class="resume-text">Resuming from ${formatTime(savedPosition)}</span>`;
+                    document.body.appendChild(notification);
+                    setTimeout(() => notification.remove(), 3000);
+                }
+                videoPlayer.removeEventListener('loadedmetadata', setPosition);
+            };
+            videoPlayer.addEventListener('loadedmetadata', setPosition);
+            setTimeout(() => {
+                if (videoPlayer.readyState === 0) {
+                    videoPlayer.removeEventListener('loadedmetadata', setPosition);
+                }
+            }, 3000);
+        }
+        
+        // Only auto-play if user has interacted with the page
+        if (autoplayToggle.checked) {
+            const playPromise = videoPlayer.play();
+            if (playPromise !== undefined) {
+                playPromise.catch(e => {
+                    console.log('Autoplay prevented - waiting for user interaction');
+                    showToast('Click play to start', 2000);
+                });
+            }
+        }
+        
+        renderVirtualPlaylist();
+        
+        if ('mediaSession' in navigator) {
+            navigator.mediaSession.metadata = new MediaMetadata({
+                title: episode.title,
+                artist: episode.show,
+                album: 'AJN Hourly Archive'
+            });
+        }
+        
+        document.title = `${episode.show} - AJN Hourly Archive`;
+        localStorage.setItem(STORAGE_KEYS.LAST_EPISODE_ID, episode.id);
+    }
+    
+    function playEpisodeFromQueue(episodeData) {
+        if (!episodeData) return;
+        
+        currentEpisodeData = episodeData;
+        currentTitle.textContent = episodeData.title;
+        videoPlayer.src = episodeData.videoUrl;
+        videoPlayer.load();
+        
+        const savedPosition = getPlaybackPosition(episodeData.id);
+        if (savedPosition > 0 && savedPosition < videoPlayer.duration - 2) {
+            const setPosition = () => {
+                if (savedPosition < videoPlayer.duration && savedPosition > 0) {
+                    videoPlayer.currentTime = savedPosition;
+                    const notification = document.createElement('div');
+                    notification.className = 'resume-notification';
+                    notification.innerHTML = `<span class="resume-icon">▶</span><span class="resume-text">Resuming from ${formatTime(savedPosition)}</span>`;
+                    document.body.appendChild(notification);
+                    setTimeout(() => notification.remove(), 3000);
+                }
+                videoPlayer.removeEventListener('loadedmetadata', setPosition);
+            };
+            videoPlayer.addEventListener('loadedmetadata', setPosition);
         }
         
         if (autoplayToggle.checked) {
-            videoPlayer.play().catch(e => console.log('Autoplay prevented'));
+            const playPromise = videoPlayer.play();
+            if (playPromise !== undefined) {
+                playPromise.catch(e => {
+                    console.log('Autoplay prevented - waiting for user interaction');
+                });
+            }
         }
         
-        renderPlaylist();
-    }
-    
-    // ============ QUEUE MANAGEMENT ==========
-    let userQueue = [];
-    
-    function loadQueue() {
-        try {
-            const saved = localStorage.getItem('userQueue');
-            if (saved) userQueue = JSON.parse(saved);
-            renderQueue();
-        } catch (error) {
-            userQueue = [];
+        if ('mediaSession' in navigator) {
+            navigator.mediaSession.metadata = new MediaMetadata({
+                title: episodeData.title,
+                artist: episodeData.show,
+                album: 'AJN Hourly Archive'
+            });
         }
+        
+        document.title = `${episodeData.show} - AJN Hourly Archive`;
     }
     
-    function saveQueue() {
-        localStorage.setItem('userQueue', JSON.stringify(userQueue));
-        renderQueue();
-        if (queueStats) queueStats.textContent = `${userQueue.length} item${userQueue.length !== 1 ? 's' : ''}`;
-    }
+    window.playEpisodeFromList = function(index) {
+        playEpisode(index);
+    };
     
-    function renderQueue() {
-        if (!queueContainer) return;
-        if (userQueue.length === 0) {
-            queueContainer.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-secondary)">Queue empty</div>';
-            return;
+    window.playEpisodeFromGrid = function(index) {
+        playEpisode(index);
+    };
+    
+    window.playEpisodeFromQueue = playEpisodeFromQueue;
+    window.playEpisode = playEpisode;
+    
+    // ============ FOCUS TRAP INTEGRATION - FLYOUT ==========
+    window.toggleFlyout = function(event, index, triggerElement) {
+        event.stopPropagation();
+        const flyoutId = `flyout-${index}`;
+        const menu = document.getElementById(flyoutId);
+        const trigger = triggerElement || document.querySelector(`.menu-trigger[data-flyout="${flyoutId}"]`);
+        
+        if (!menu) return;
+        
+        document.querySelectorAll('.flyout-menu').forEach(f => {
+            if (f.id !== flyoutId && f.classList.contains('active')) {
+                f.classList.remove('active');
+                const oldTrigger = document.querySelector(`.menu-trigger[data-flyout="${f.id}"]`);
+                if (oldTrigger) oldTrigger.setAttribute('aria-expanded', 'false');
+            }
+        });
+        
+        menu.classList.toggle('active');
+        
+        if (trigger) {
+            trigger.setAttribute('aria-expanded', menu.classList.contains('active'));
         }
-        queueContainer.innerHTML = userQueue.map((item, idx) => `
-            <div style="display:flex;align-items:center;gap:8px;padding:8px;border:1px solid var(--border);border-radius:6px;margin-bottom:6px;">
-                <span style="cursor:grab;">⠿</span>
-                <div style="flex:1;min-width:0" onclick="window.playFromQueue(${idx})">
-                    <div style="font-size:0.75rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(item.title)}</div>
-                    <div style="font-size:0.6rem;color:var(--text-secondary)">${item.show}</div>
-                </div>
-                <button onclick="event.stopPropagation(); removeFromQueue(${idx})" style="background:none;border:none;cursor:pointer;font-size:1rem;">×</button>
-            </div>
-        `).join('');
-        if (queueStats) queueStats.textContent = `${userQueue.length} item${userQueue.length !== 1 ? 's' : ''}`;
-    }
+        
+        if (menu.classList.contains('active')) {
+            const menuItems = menu.querySelectorAll('.flyout-menu-item');
+            if (menuItems.length > 0) {
+                menuItems[0].focus();
+                if (activeFlyoutCleanup) activeFlyoutCleanup();
+                activeFlyoutCleanup = trapFocus(menu);
+            }
+        } else {
+            if (activeFlyoutCleanup) {
+                activeFlyoutCleanup();
+                activeFlyoutCleanup = null;
+            }
+            if (trigger && trigger.focus) trigger.focus();
+        }
+    };
     
-    function addToQueue(index) {
+    // ============ QUEUE ACTIONS ==========
+    window.addToQueueFromEpisode = function(index) {
         const episode = currentPlaylist[index];
-        if (episode) {
-            userQueue.push({ id: episode.id, title: episode.title, show: episode.show, hour: episode.hour, videoUrl: episode.videoUrl });
-            saveQueue();
+        if (episode && queueManager) {
+            queueManager.addToQueue(episode, index);
             showToast(`Added to queue`);
         }
-    }
+        closeAllFlyouts();
+    };
     
-    function removeFromQueue(index) {
-        userQueue.splice(index, 1);
-        saveQueue();
-    }
+    // ============ ACTION HANDLERS ==========
+    window.downloadEpisodeByIndex = function(index) {
+        const episode = currentPlaylist[index];
+        if (!episode) return;
+        const link = document.createElement('a');
+        link.href = episode.videoUrl;
+        link.download = `${episode.title.replace(/[^a-z0-9]/gi, '_')}.m4v`;
+        link.click();
+        showToast(`Downloading: ${episode.title.substring(0, 50)}...`);
+        closeAllFlyouts();
+    };
     
-    function playFromQueue(index) {
-        const item = userQueue[index];
-        if (item && item.videoUrl) {
-            currentTitle.textContent = item.title;
-            videoPlayer.src = item.videoUrl;
-            videoPlayer.load();
-            if (autoplayToggle.checked) videoPlayer.play();
-            showToast(`Playing from queue`);
+    window.shareEpisodeByIndex = function(index) {
+        const episode = currentPlaylist[index];
+        if (!episode) return;
+        if (navigator.share) {
+            navigator.share({
+                title: episode.title,
+                text: episode.description.substring(0, 100),
+                url: episode.videoUrl
+            }).catch(e => console.log('Share cancelled'));
+        } else {
+            navigator.clipboard.writeText(episode.videoUrl);
+            showToast('Link copied to clipboard');
         }
+        closeAllFlyouts();
+    };
+    
+    window.copyLink = function(index) {
+        const episode = currentPlaylist[index];
+        if (!episode) return;
+        navigator.clipboard.writeText(episode.videoUrl);
+        showToast('Link copied to clipboard');
+        closeAllFlyouts();
+    };
+    
+    // ============ FOCUS TRAP INTEGRATION - MODAL ==========
+    window.viewDetails = function(index) {
+        const episode = currentPlaylist[index];
+        if (!episode) return;
+        closeAllFlyouts();
+        
+        const modal = document.createElement('div');
+        modal.className = 'modal-overlay';
+        modal.setAttribute('role', 'dialog');
+        modal.setAttribute('aria-modal', 'true');
+        modal.setAttribute('aria-label', 'Episode Details');
+        
+        modal.innerHTML = `
+            <div class="modal-content">
+                <h3 style="margin-bottom: 16px; color: var(--primary);">Episode Details</h3>
+                <div style="margin-bottom: 12px;"><strong>Title:</strong><br>${escapeHtml(episode.title)}</div>
+                <div style="margin-bottom: 12px;"><strong>Show:</strong><br>${episode.show} ${episode.hour}</div>
+                <div style="margin-bottom: 12px;"><strong>Date (CT):</strong><br>${formatCentralTime(episode.centralDate)}</div>
+                <div style="margin-bottom: 12px;"><strong>Description:</strong><br>${escapeHtml(episode.description)}</div>
+                <div style="margin-bottom: 12px;"><strong>Video URL:</strong><br><a href="${episode.videoUrl}" target="_blank" style="color: var(--primary); word-break: break-all;">${episode.videoUrl}</a></div>
+                <button class="btn btn-primary" style="margin-top: 16px;" aria-label="Close modal">Close</button>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        const closeBtn = modal.querySelector('.btn-primary');
+        closeBtn.addEventListener('click', () => modal.remove());
+        modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+        
+        trapFocus(modal);
+    };
+    
+    window.clearPlaybackPositionById = function(episodeId) {
+        clearPlaybackPosition(episodeId);
+        renderVirtualPlaylist();
+    };
+    
+    function closeAllFlyouts() {
+        document.querySelectorAll('.flyout-menu').forEach(menu => {
+            menu.classList.remove('active');
+            const trigger = document.querySelector(`.menu-trigger[data-flyout="${menu.id}"]`);
+            if (trigger) trigger.setAttribute('aria-expanded', 'false');
+        });
+        if (activeFlyoutCleanup) {
+            activeFlyoutCleanup();
+            activeFlyoutCleanup = null;
+        }
+    }
+    
+    // ============ CALENDAR RENDERING ==========
+    function renderCalendar() {
+        const year = currentCalendarDate.getFullYear();
+        const month = currentCalendarDate.getMonth();
+        const firstDayOfMonth = new Date(year, month, 1);
+        const lastDayOfMonth = new Date(year, month + 1, 0);
+        const startDayOfWeek = firstDayOfMonth.getDay();
+        const daysInMonth = lastDayOfMonth.getDate();
+        const today = new Date();
+        const todayKey = formatDateKey(today);
+        
+        calendarMonthTitle.textContent = firstDayOfMonth.toLocaleString('default', { month: 'long', year: 'numeric' });
+        
+        calendarWeekdays.innerHTML = WEEKDAYS.map(day => `<div class="calendar-weekday">${day}</div>`).join('');
+        
+        let html = '';
+        let dayCounter = 1;
+        const totalCells = Math.ceil((daysInMonth + startDayOfWeek) / 7) * 7;
+        
+        for (let i = 0; i < totalCells; i++) {
+            if (i < startDayOfWeek || dayCounter > daysInMonth) {
+                html += `<div class="calendar-day other-month"></div>`;
+            } else {
+                const currentDate = new Date(year, month, dayCounter);
+                const dateKey = formatDateKey(currentDate);
+                const dayEpisodes = allEpisodes.filter(ep => ep.dateKey === dateKey);
+                const isToday = dateKey === todayKey;
+                const isSelected = selectedCalendarDate === dateKey;
+                
+                let tooltipHtml = '';
+                if (dayEpisodes.length > 0) {
+                    tooltipHtml = `<div class="calendar-tooltip">
+                        ${dayEpisodes.slice(0, 5).map(ep => `
+                            <div class="tooltip-episode">
+                                <div class="tooltip-episode-title">${escapeHtml(ep.title.substring(0, 50))}${ep.title.length > 50 ? '...' : ''}</div>
+                                <div class="tooltip-episode-time">${ep.show} ${ep.hour}</div>
+                            </div>
+                        `).join('')}
+                        ${dayEpisodes.length > 5 ? `<div class="tooltip-episode">+${dayEpisodes.length - 5} more episodes</div>` : ''}
+                    </div>`;
+                }
+                
+                let indicatorsHtml = '';
+                if (dayEpisodes.length > 0) {
+                    indicatorsHtml = `<div class="episode-indicators">
+                        ${dayEpisodes.slice(0, 3).map(() => `<span class="dot-indicator"></span>`).join('')}
+                    </div>`;
+                }
+                
+                html += `
+                    <div class="calendar-day ${isToday ? 'today' : ''} ${isSelected ? 'selected' : ''}" 
+                         data-date="${dateKey}"
+                         onclick="window.filterByCalendarDate('${dateKey}')"
+                         onkeypress="if(event.key==='Enter') window.filterByCalendarDate('${dateKey}')"
+                         tabindex="0"
+                         role="button">
+                        <span class="calendar-day-number">${dayCounter}</span>
+                        ${indicatorsHtml}
+                        ${dayEpisodes.length > 3 ? `<span class="episode-count-badge">+${dayEpisodes.length - 3}</span>` : ''}
+                        ${tooltipHtml}
+                    </div>
+                `;
+                dayCounter++;
+            }
+        }
+        
+        calendarGrid.innerHTML = html;
+    }
+    
+    // ============ FILTER FUNCTIONS ==========
+    function filterByCalendarDate(dateKey) {
+        selectedCalendarDate = dateKey;
+        currentSearchTerm = '';
+        if (searchInput) searchInput.value = '';
+        if (clearSearchBtn) clearSearchBtn.classList.remove('visible');
+        
+        const selectedDate = new Date(dateKey);
+        const formattedDate = selectedDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+        
+        currentPlaylist = allEpisodes.filter(ep => ep.dateKey === dateKey);
+        currentIndex = 0;
+        
+        calendarFilterBadge.style.display = 'inline-flex';
+        activeCalendarDate.textContent = formattedDate;
+        
+        const uniqueDates = new Set(currentPlaylist.map(e => e.dateKey));
+        playlistStats.innerHTML = `${currentPlaylist.length.toLocaleString()} episodes • ${uniqueDates.size} days • CT Timezone • 📅 Filtered to ${formattedDate}`;
+        
+        renderVirtualPlaylist();
+        updateActiveFiltersDisplay();
+        
+        if (currentPlaylist.length > 0) {
+            playEpisode(0);
+        } else {
+            showToast(`No episodes found for ${formattedDate}`, 3000);
+        }
+        
+        renderCalendar();
+        showToast(`Showing ${currentPlaylist.length} episodes for ${formattedDate}`, 3000);
+    }
+    
+    function clearCalendarFilter() {
+        selectedCalendarDate = null;
+        currentPlaylist = [...allEpisodes];
+        currentIndex = 0;
+        calendarFilterBadge.style.display = 'none';
+        activeCalendarDate.textContent = '';
+        
+        applySearchFilter();
+        renderCalendar();
+        
+        const uniqueDates = new Set(currentPlaylist.map(e => e.dateKey));
+        playlistStats.innerHTML = `${currentPlaylist.length.toLocaleString()} episodes • ${uniqueDates.size} days • CT Timezone`;
+        
+        renderVirtualPlaylist();
+        if (currentPlaylist.length > 0) playEpisode(0);
+        showToast('Calendar filter cleared', 2000);
+    }
+    
+    function applySearchFilter() {
+        if (currentSearchTerm) {
+            const term = currentSearchTerm.toLowerCase();
+            currentPlaylist = allEpisodes.filter(ep => 
+                ep.title.toLowerCase().includes(term) || ep.description.toLowerCase().includes(term)
+            );
+            if (selectedCalendarDate) {
+                currentPlaylist = currentPlaylist.filter(ep => ep.dateKey === selectedCalendarDate);
+            }
+        } else if (selectedCalendarDate) {
+            currentPlaylist = allEpisodes.filter(ep => ep.dateKey === selectedCalendarDate);
+        } else {
+            currentPlaylist = [...allEpisodes];
+        }
+        currentIndex = 0;
+        renderVirtualPlaylist();
+        updateActiveFiltersDisplay();
+        if (currentPlaylist.length > 0) playEpisode(0);
+        
+        const uniqueDates = new Set(currentPlaylist.map(e => e.dateKey));
+        let filterText = '';
+        if (currentSearchTerm) filterText += ` 🔍 "${currentSearchTerm}"`;
+        if (selectedCalendarDate) filterText += ` 📅 ${new Date(selectedCalendarDate).toLocaleDateString()}`;
+        playlistStats.innerHTML = `${currentPlaylist.length.toLocaleString()} episodes • ${uniqueDates.size} days • CT Timezone${filterText}`;
+    }
+    
+    function updateActiveFiltersDisplay() {
+        if (!activeFiltersContainer) return;
+        activeFiltersContainer.innerHTML = '';
+        
+        if (currentSearchTerm) {
+            const tag = document.createElement('div');
+            tag.className = 'filter-tag';
+            tag.innerHTML = `🔍 ${escapeHtml(currentSearchTerm)} <span class="remove-filter" data-filter="search" tabindex="0" role="button" aria-label="Remove search filter">✖</span>`;
+            activeFiltersContainer.appendChild(tag);
+        }
+        
+        document.querySelectorAll('.remove-filter').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const filterType = btn.getAttribute('data-filter');
+                if (filterType === 'search') {
+                    currentSearchTerm = '';
+                    searchInput.value = '';
+                    clearSearchBtn.classList.remove('visible');
+                    applySearchFilter();
+                }
+            });
+            btn.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    e.stopPropagation();
+                    const filterType = btn.getAttribute('data-filter');
+                    if (filterType === 'search') {
+                        currentSearchTerm = '';
+                        searchInput.value = '';
+                        clearSearchBtn.classList.remove('visible');
+                        applySearchFilter();
+                    }
+                }
+            });
+        });
+    }
+    
+    function debounce(func, delay) {
+        return function(...args) {
+            clearTimeout(debounceTimeout);
+            debounceTimeout = setTimeout(() => func.apply(this, args), delay);
+        };
+    }
+    
+    function setupSearch() {
+        if (!searchInput) return;
+        const debouncedSearch = debounce(() => {
+            currentSearchTerm = searchInput.value;
+            clearSearchBtn.classList.toggle('visible', currentSearchTerm.length > 0);
+            applySearchFilter();
+        }, 200);
+        searchInput.addEventListener('input', debouncedSearch);
+        if (clearSearchBtn) clearSearchBtn.addEventListener('click', () => {
+            currentSearchTerm = '';
+            searchInput.value = '';
+            clearSearchBtn.classList.remove('visible');
+            applySearchFilter();
+        });
     }
     
     // ============ LOAD EPISODES ==========
     async function loadEpisodes() {
-        const loadingEl = document.getElementById('playlistLoading');
+        showToast('Loading episodes...');
         try {
-            const response = await fetch('https://api.rss2json.com/v1/api.json?rss_url=https://rss.alexjones.media/AJNHourlyVideo.xml');
+            const response = await fetch(API_URL);
             const data = await response.json();
-            if (data.status !== 'ok') throw new Error('Failed to load');
+            if (data.status !== 'ok') throw new Error('Failed to load RSS feed');
             
             allEpisodes = data.items.map((item, idx) => {
                 const utcDate = new Date(item.pubDate);
@@ -700,158 +2857,165 @@ document.addEventListener('DOMContentLoaded', () => {
                 return {
                     id: idx,
                     title: item.title,
-                    description: item.description ? item.description.replace(/<[^>]*>/g, '') : '',
+                    description: item.description ? item.description.replace(/<[^>]*>/g, '') : 'No description',
                     centralDate: centralDate,
                     dateKey: formatDateKey(centralDate),
                     show: show,
                     hour: hour,
-                    videoUrl: transformVideoUrl(item.link)
+                    videoUrl: transformVideoUrl(item.link),
+                    originalLink: item.link
                 };
             });
             
             allEpisodes.sort((a, b) => b.centralDate - a.centralDate);
             currentPlaylist = [...allEpisodes];
             
-            if (loadingEl) loadingEl.style.display = 'none';
-            playlistStats.innerHTML = `${currentPlaylist.length} episodes • CT`;
-            renderPlaylist();
-            if (currentPlaylist.length > 0) playEpisode(0);
+            const uniqueDates = new Set(currentPlaylist.map(e => e.dateKey));
+            playlistStats.innerHTML = `${currentPlaylist.length.toLocaleString()} episodes • ${uniqueDates.size} days • CT Timezone`;
             
+            renderCalendar();
+            renderVirtualPlaylist();
+            
+            if (currentPlaylist.length > 0) playEpisode(0);
+            showToast(`Loaded ${allEpisodes.length.toLocaleString()} episodes`);
         } catch (error) {
-            console.error(error);
-            if (loadingEl) loadingEl.innerHTML = '<div class="error-state">Failed to load</div>';
-            showToast('Failed to load episodes');
+            console.error('Error loading episodes:', error);
+            playlistStats.innerHTML = '❌ Failed to load episodes';
+            virtualList.innerHTML = '<div class="error-state">❌ Failed to load episodes. Please refresh.</div>';
+            showToast('Failed to load episodes', 4000);
         }
     }
     
     // ============ DARK MODE ==========
     function initDarkMode() {
         const isDark = localStorage.getItem(STORAGE_KEYS.DARK_MODE) === 'true';
-        if (isDark) document.body.classList.add('dark');
+        if (isDark) {
+            document.body.classList.add('dark');
+            if (darkModeToggle) darkModeToggle.innerHTML = '☀️ Light';
+        }
         if (darkModeToggle) {
-            darkModeToggle.textContent = isDark ? '☀️' : '🌙';
             darkModeToggle.addEventListener('click', () => {
                 document.body.classList.toggle('dark');
                 const dark = document.body.classList.contains('dark');
                 localStorage.setItem(STORAGE_KEYS.DARK_MODE, dark);
-                darkModeToggle.textContent = dark ? '☀️' : '🌙';
+                darkModeToggle.innerHTML = dark ? '☀️ Light' : '🌙 Dark';
+                renderCalendar();
+                renderVirtualPlaylist();
+                if (queueManager) queueManager.render();
             });
         }
     }
     
-    // ============ EVENT HANDLERS ==========
-    window.playEpisodeByIndex = playEpisode;
-    window.downloadEpisode = (idx) => {
-        const ep = currentPlaylist[idx];
-        if (ep) {
-            const link = document.createElement('a');
-            link.href = ep.videoUrl;
-            link.download = `${ep.title.replace(/[^a-z0-9]/gi, '_')}.m4v`;
-            link.click();
-            showToast('Download started');
-        }
-    };
-    window.shareEpisode = (idx) => {
-        const ep = currentPlaylist[idx];
-        if (ep && navigator.share) navigator.share({ title: ep.title, url: ep.videoUrl });
-        else if (ep) navigator.clipboard.writeText(ep.videoUrl), showToast('Link copied');
-    };
-    window.addToQueue = addToQueue;
-    window.viewDetails = (idx) => {
-        const ep = currentPlaylist[idx];
-        if (ep) alert(`Title: ${ep.title}\nShow: ${ep.show} ${ep.hour}\nDate: ${formatCentralTime(ep.centralDate)}`);
-    };
-    window.toggleFlyout = (event, idx) => {
-        event.stopPropagation();
-        const menu = document.getElementById(`flyout-${idx}`);
-        if (menu) {
-            document.querySelectorAll('.flyout-menu').forEach(m => { if (m.id !== menu.id) m.classList.remove('active'); });
-            menu.classList.toggle('active');
-        }
-    };
-    window.playFromQueue = playFromQueue;
-    window.removeFromQueue = removeFromQueue;
-    
-    if (nextBtn) {
-        nextBtn.addEventListener('click', () => {
-            if (currentIndex + 1 < currentPlaylist.length) playEpisode(currentIndex + 1);
-            else showToast('End of playlist');
-        });
-    }
-    
-    if (downloadBtn) downloadBtn.addEventListener('click', () => window.downloadEpisode(currentIndex));
-    if (shareBtn) shareBtn.addEventListener('click', () => window.shareEpisode(currentIndex));
-    if (clearQueueBtn) clearQueueBtn.addEventListener('click', () => { userQueue = []; saveQueue(); showToast('Queue cleared'); });
-    
-    if (searchInput) {
-        searchInput.addEventListener('input', (e) => {
-            const term = e.target.value.toLowerCase();
-            if (term) {
-                currentPlaylist = allEpisodes.filter(ep => ep.title.toLowerCase().includes(term));
-            } else {
-                currentPlaylist = [...allEpisodes];
+    // ============ EVENT DELEGATION ==========
+    playlistContainer.addEventListener('click', (e) => {
+        if (currentViewMode === 'grid') {
+            const gridItem = e.target.closest('.grid-item');
+            if (gridItem && !e.target.closest('.menu-trigger') && !e.target.closest('.flyout-menu') && !e.target.closest('.add-to-queue-btn')) {
+                const index = parseInt(gridItem.dataset.index);
+                if (!isNaN(index)) playEpisode(index);
             }
-            currentIndex = 0;
-            playlistStats.innerHTML = `${currentPlaylist.length} episodes • CT`;
-            renderPlaylist();
-            if (currentPlaylist.length > 0) playEpisode(0);
+        }
+    });
+    
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.menu-trigger') && !e.target.closest('.flyout-menu')) {
+            closeAllFlyouts();
+        }
+    });
+    
+    if (currentViewMode !== 'grid') {
+        playlistContainer.addEventListener('scroll', () => {
+            if (currentViewMode !== 'grid') {
+                requestAnimationFrame(renderVirtualPlaylist);
+            }
         });
     }
     
-    // Simple calendar render
-    function renderCalendar() {
-        if (!calendarGrid || !calendarMonthTitle) return;
-        const year = currentCalendarDate.getFullYear();
-        const month = currentCalendarDate.getMonth();
-        const firstDay = new Date(year, month, 1);
-        const startDay = firstDay.getDay();
-        const daysInMonth = new Date(year, month + 1, 0).getDate();
-        
-        calendarMonthTitle.textContent = firstDay.toLocaleString('default', { month: 'long', year: 'numeric' });
-        
-        let html = '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:8px;">';
-        ['Su','Mo','Tu','We','Th','Fr','Sa'].forEach(d => { html += `<div style="text-align:center;padding:4px;font-size:0.7rem;">${d}</div>`; });
-        html += '</div><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;">';
-        
-        for (let i = 0; i < startDay; i++) html += '<div></div>';
-        
-        for (let day = 1; day <= daysInMonth; day++) {
-            const dateKey = `${year}-${String(month + 1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
-            const hasEpisode = allEpisodes.some(ep => ep.dateKey === dateKey);
-            html += `<div class="calendar-day ${hasEpisode ? 'has-episode' : ''}" onclick="window.filterByDate('${dateKey}')"><div class="calendar-day-number">${day}</div></div>`;
+    if (downloadBtn) downloadBtn.addEventListener('click', () => { if (currentEpisodeData) window.downloadEpisodeByIndex(currentIndex); });
+    if (shareBtn) shareBtn.addEventListener('click', () => { if (currentEpisodeData) window.shareEpisodeByIndex(currentIndex); });
+    if (nextBtn) nextBtn.addEventListener('click', () => {
+        if (queueManager && queueManager.getQueue().length > 0) {
+            const queue = queueManager.getQueue();
+            if (queue.length > 0) {
+                const nextQueueItem = queue[0];
+                queueManager.removeFromQueue(0);
+                const episodeData = {
+                    id: nextQueueItem.id,
+                    title: nextQueueItem.title,
+                    show: nextQueueItem.show,
+                    hour: nextQueueItem.hour,
+                    centralDate: new Date(nextQueueItem.centralDate),
+                    videoUrl: nextQueueItem.videoUrl,
+                    description: nextQueueItem.description || 'No description available'
+                };
+                playEpisodeFromQueue(episodeData);
+                showToast('▶ Playing next from queue');
+                return;
+            }
         }
-        html += '</div>';
-        calendarGrid.innerHTML = html;
+        
+        if (currentIndex + 1 < currentPlaylist.length) {
+            playEpisode(currentIndex + 1);
+            showToast('Playing next episode...');
+        } else {
+            showToast('End of playlist');
+        }
+    });
+    
+    if (listViewBtn) listViewBtn.addEventListener('click', setListView);
+    if (gridViewBtn) gridViewBtn.addEventListener('click', setGridView);
+    
+    if (calendarPrevMonth) {
+        calendarPrevMonth.addEventListener('click', () => {
+            currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1);
+            renderCalendar();
+        });
     }
     
-    window.filterByDate = (dateKey) => {
-        currentPlaylist = allEpisodes.filter(ep => ep.dateKey === dateKey);
-        currentIndex = 0;
-        playlistStats.innerHTML = `${currentPlaylist.length} episodes • ${dateKey}`;
-        renderPlaylist();
-        if (currentPlaylist.length > 0) playEpisode(0);
-        showToast(`Filtered to ${dateKey}`);
-    };
+    if (calendarNextMonth) {
+        calendarNextMonth.addEventListener('click', () => {
+            currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1);
+            renderCalendar();
+        });
+    }
     
-    if (calendarPrevMonth) calendarPrevMonth.addEventListener('click', () => {
-        currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1);
-        renderCalendar();
-    });
-    if (calendarNextMonth) calendarNextMonth.addEventListener('click', () => {
-        currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1);
-        renderCalendar();
-    });
+    if (clearCalendarFilterBtn) {
+        clearCalendarFilterBtn.addEventListener('click', clearCalendarFilter);
+        clearCalendarFilterBtn.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') clearCalendarFilter();
+        });
+    }
+    
+    if (clearQueueBtn) {
+        clearQueueBtn.addEventListener('click', () => {
+            if (queueManager) queueManager.clearQueue();
+        });
+    }
+    
+    // Make filter function available globally
+    window.filterByCalendarDate = filterByCalendarDate;
     
     // ============ INITIALIZATION ==========
-    initDarkMode();
-    loadPlaybackPositions();
-    initVideoControls();
-    startPositionTracking();
-    loadQueue();
-    loadEpisodes();
-    setTimeout(() => renderCalendar(), 500);
+    function init() {
+        document.body.classList.add('preload');
+        setTimeout(() => document.body.classList.remove('preload'), 100);
+        
+        initDarkMode();
+        loadPlaybackPositions();
+        initVideoControls();
+        startPositionTracking();
+        setupSearch();
+        loadSavedViewMode();
+        
+        queueManager = new QueueManager('queueContainer');
+        window.queueManager = queueManager;
+        
+        loadEpisodes();
+        
+        console.log('Application initialized - Focus trap and autoplay fixes applied');
+    }
     
-    console.log("Optimized app ready - LCP optimized, deferred non-critical content");
+    init();
 });
 </script>
 </body>
