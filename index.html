@@ -1,868 +1,2220 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AJN Hourly Archive - Search Episodes</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
-            background: #f5f7fa;
-            color: #1a2c3e;
-            transition: background 0.3s, color 0.3s;
-        }
-
-        /* Dark Mode */
-        body.dark-mode {
-            background: #1a1e2c;
-            color: #e2e8f0;
-        }
-
-        body.dark-mode .sticky-header,
-        body.dark-mode .episode-card {
-            background: #2d3748;
-            color: #e2e8f0;
-        }
-
-        body.dark-mode .global-search-input,
-        body.dark-mode .episode-card {
-            border-color: #4a5568;
-        }
-
-        body.dark-mode .btn-secondary {
-            background: #4a5568;
-            color: #e2e8f0;
-        }
-
-        /* Sticky Header */
-        .sticky-header {
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            background: white;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        }
-
-        .header-content {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 1rem 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 1rem;
-        }
-
-        .logo {
-            display: flex;
-            align-items: baseline;
-            gap: 1rem;
-            flex-wrap: wrap;
-        }
-
-        .logo h1 {
-            font-size: 1.5rem;
-            color: #2d3748;
-        }
-
-        body.dark-mode .logo h1 {
-            color: #f7fafc;
-        }
-
-        .logo-badge {
-            background: #e53e3e;
-            color: white;
-            padding: 0.25rem 0.75rem;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: 600;
-        }
-
-        .btn-secondary {
-            background: #edf2f7;
-            border: none;
-            padding: 0.5rem 1rem;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 0.9rem;
-            transition: all 0.2s;
-        }
-
-        .btn-secondary:hover {
-            background: #e2e8f0;
-            transform: translateY(-1px);
-        }
-
-        /* Search Section */
-        .search-section {
-            background: white;
-            border-top: 1px solid #e2e8f0;
-            border-bottom: 1px solid #e2e8f0;
-        }
-
-        body.dark-mode .search-section {
-            background: #2d3748;
-            border-color: #4a5568;
-        }
-
-        .search-bar-container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 1rem 2rem;
-        }
-
-        .search-input-wrapper {
-            position: relative;
-            margin-bottom: 1rem;
-        }
-
-        .search-icon {
-            position: absolute;
-            left: 1rem;
-            top: 50%;
-            transform: translateY(-50%);
-            font-size: 1.2rem;
-            opacity: 0.6;
-        }
-
-        .global-search-input {
-            width: 100%;
-            padding: 0.75rem 2.5rem 0.75rem 2.5rem;
-            border: 2px solid #e2e8f0;
-            border-radius: 12px;
-            font-size: 1rem;
-            transition: all 0.2s;
-            background: white;
-        }
-
-        body.dark-mode .global-search-input {
-            background: #1a1e2c;
-            border-color: #4a5568;
-            color: #e2e8f0;
-        }
-
-        .global-search-input:focus {
-            outline: none;
-            border-color: #4299e1;
-            box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
-        }
-
-        .clear-search-btn {
-            position: absolute;
-            right: 1rem;
-            top: 50%;
-            transform: translateY(-50%);
-            background: none;
-            border: none;
-            cursor: pointer;
-            font-size: 1rem;
-            opacity: 0.5;
-            transition: opacity 0.2s;
-        }
-
-        .clear-search-btn:hover {
-            opacity: 1;
-        }
-
-        /* Filter Controls */
-        .filter-controls {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 1rem;
-            align-items: center;
-        }
-
-        /* Calendar Filter */
-        .calendar-filter-container {
-            position: relative;
-        }
-
-        .calendar-filter-btn {
-            background: #edf2f7;
-            border: none;
-            padding: 0.5rem 1rem;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 1rem;
-            transition: all 0.2s;
-            position: relative;
-        }
-
-        body.dark-mode .calendar-filter-btn {
-            background: #4a5568;
-            color: #e2e8f0;
-        }
-
-        .calendar-filter-btn:hover {
-            background: #e2e8f0;
-            transform: translateY(-1px);
-        }
-
-        .date-filter-badge {
-            position: absolute;
-            top: -5px;
-            right: -5px;
-            background: #e53e3e;
-            color: white;
-            border-radius: 50%;
-            width: 18px;
-            height: 18px;
-            font-size: 0.7rem;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        /* Calendar Flyout */
-        .calendar-flyout-filter {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            margin-top: 0.5rem;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-            padding: 1rem;
-            min-width: 280px;
-            z-index: 1000;
-            display: none;
-        }
-
-        body.dark-mode .calendar-flyout-filter {
-            background: #2d3748;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
-        }
-
-        .calendar-flyout-filter.active {
-            display: block;
-        }
-
-        .calendar-flyout-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-        }
-
-        .close-calendar-btn {
-            background: none;
-            border: none;
-            font-size: 1.2rem;
-            cursor: pointer;
-            opacity: 0.6;
-        }
-
-        .calendar-nav {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-        }
-
-        .calendar-nav-btn {
-            background: none;
-            border: none;
-            cursor: pointer;
-            font-size: 1rem;
-            padding: 0.25rem 0.5rem;
-        }
-
-        .calendar-weekdays {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            text-align: center;
-            font-weight: bold;
-            margin-bottom: 0.5rem;
-        }
-
-        .calendar-days-grid {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 4px;
-            margin-bottom: 1rem;
-        }
-
-        .calendar-day {
-            text-align: center;
-            padding: 0.5rem;
-            cursor: pointer;
-            border-radius: 6px;
-            transition: all 0.2s;
-        }
-
-        .calendar-day:hover {
-            background: #e2e8f0;
-        }
-
-        body.dark-mode .calendar-day:hover {
-            background: #4a5568;
-        }
-
-        .calendar-day.selected {
-            background: #4299e1;
-            color: white;
-        }
-
-        .calendar-day.other-month {
-            opacity: 0.4;
-        }
-
-        .calendar-actions {
-            display: flex;
-            gap: 0.5rem;
-            justify-content: space-between;
-        }
-
-        .calendar-action-btn {
-            flex: 1;
-            padding: 0.5rem;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            background: #e2e8f0;
-        }
-
-        .calendar-action-btn.primary {
-            background: #4299e1;
-            color: white;
-        }
-
-        /* Quick Filters */
-        .quick-filters {
-            display: flex;
-            gap: 0.5rem;
-        }
-
-        .quick-filter-btn {
-            background: #edf2f7;
-            border: none;
-            padding: 0.5rem 1rem;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        body.dark-mode .quick-filter-btn {
-            background: #4a5568;
-            color: #e2e8f0;
-        }
-
-        .quick-filter-btn.active {
-            background: #4299e1;
-            color: white;
-        }
-
-        .quick-filter-btn:hover {
-            transform: translateY(-1px);
-        }
-
-        /* Active Filters */
-        .active-filters {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.5rem;
-        }
-
-        .filter-tag {
-            background: #e2e8f0;
-            padding: 0.25rem 0.75rem;
-            border-radius: 20px;
-            font-size: 0.85rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        body.dark-mode .filter-tag {
-            background: #4a5568;
-        }
-
-        .remove-filter {
-            background: none;
-            border: none;
-            cursor: pointer;
-            font-size: 1rem;
-            opacity: 0.6;
-        }
-
-        /* Episodes Grid */
-        .episodes-container {
-            max-width: 1400px;
-            margin: 2rem auto;
-            padding: 0 2rem;
-        }
-
-        .episodes-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-            gap: 1.5rem;
-        }
-
-        .episode-card {
-            background: white;
-            border-radius: 12px;
-            padding: 1.5rem;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-
-        .episode-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        }
-
-        .episode-title {
-            font-size: 1.1rem;
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-            color: #2d3748;
-        }
-
-        body.dark-mode .episode-title {
-            color: #f7fafc;
-        }
-
-        .episode-date {
-            font-size: 0.85rem;
-            color: #718096;
-            margin-bottom: 0.75rem;
-        }
-
-        .episode-description {
-            font-size: 0.9rem;
-            line-height: 1.5;
-            color: #4a5568;
-        }
-
-        body.dark-mode .episode-description {
-            color: #cbd5e0;
-        }
-
-        .no-results {
-            text-align: center;
-            padding: 3rem;
-            font-size: 1.2rem;
-            color: #718096;
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            .header-content, .search-bar-container {
-                padding: 1rem;
-            }
-
-            .filter-controls {
-                flex-direction: column;
-                align-items: stretch;
-            }
-
-            .quick-filters {
-                justify-content: center;
-            }
-
-            .episodes-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>AJN Hourly Archive - Complete Player</title>
+<style>
+/* ============ CSS RESET & VARIABLES ============ */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --primary: #d32f2f;
+    --primary-dark: #b71c1c;
+    --primary-light: #ffebee;
+    --text-primary: #111111;
+    --text-secondary: #666666;
+    --text-tertiary: #999999;
+    --bg-body: #f5f5f5;
+    --bg-surface: #ffffff;
+    --bg-surface-hover: #fafafa;
+    --bg-surface-active: #eeeeee;
+    --border: #e0e0e0;
+    --border-light: #eeeeee;
+    --border-dark: #cccccc;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+    --shadow-md: 0 2px 8px rgba(0,0,0,0.10);
+    --shadow-lg: 0 4px 16px rgba(0,0,0,0.12);
+    --shadow-xl: 0 8px 24px rgba(0,0,0,0.15);
+    --success: #2e7d32;
+    --warning: #ed6c02;
+    --error: #d32f2f;
+    --info: #0288d1;
+    --border-radius: 12px;
+    --header-height: 70px;
+    --spacing-xs: 4px;
+    --spacing-sm: 8px;
+    --spacing-md: 16px;
+    --spacing-lg: 24px;
+    --spacing-xl: 32px;
+}
+
+.dark {
+    --primary: #ef5350;
+    --primary-dark: #c62828;
+    --primary-light: #3d1e1e;
+    --text-primary: #e0e0e0;
+    --text-secondary: #aaaaaa;
+    --text-tertiary: #777777;
+    --bg-body: #121212;
+    --bg-surface: #1e1e1e;
+    --bg-surface-hover: #2a2a2a;
+    --bg-surface-active: #353535;
+    --border: #333333;
+    --border-light: #2a2a2a;
+    --border-dark: #404040;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+    --shadow-md: 0 2px 8px rgba(0,0,0,0.35);
+    --shadow-lg: 0 4px 16px rgba(0,0,0,0.4);
+    --shadow-xl: 0 8px 24px rgba(0,0,0,0.45);
+    --success: #4caf50;
+    --warning: #ffa726;
+    --error: #ef5350;
+    --info: #29b6f6;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background: var(--bg-body);
+    color: var(--text-primary);
+    line-height: 1.5;
+    transition: background-color 200ms cubic-bezier(0.4, 0, 0.2, 1), color 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body.preload * {
+    transition: none !important;
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 var(--spacing-md);
+}
+
+/* ============ STICKY HEADER ============ */
+.sticky-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--bg-surface);
+    border-bottom: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: var(--header-height);
+    padding: 0 var(--spacing-md);
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.logo h1 {
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: var(--primary);
+}
+
+.logo-badge {
+    background: var(--primary);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 500;
+}
+
+.header-controls {
+    display: flex;
+    gap: var(--spacing-sm);
+}
+
+/* ============ SEARCH SECTION ============ */
+.search-section {
+    margin-top: 16px;
+    padding: 0 var(--spacing-md) var(--spacing-md) var(--spacing-md);
+    border-top: 1px solid var(--border);
+}
+
+.search-bar-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.search-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.search-icon {
+    position: absolute;
+    left: 12px;
+    font-size: 1.1rem;
+    color: var(--text-secondary);
+    pointer-events: none;
+}
+
+.global-search-input {
+    width: 100%;
+    padding: 12px 40px 12px 40px;
+    font-size: 1rem;
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    transition: all 0.2s ease;
+}
+
+.global-search-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(211, 47, 47, 0.1);
+}
+
+.clear-search-btn {
+    position: absolute;
+    right: 12px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    color: var(--text-secondary);
+    padding: 4px;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+    display: none;
+}
+
+.clear-search-btn.visible {
+    display: block;
+}
+
+.clear-search-btn:hover {
+    background: var(--bg-surface-hover);
+    color: var(--text-primary);
+}
+
+.filter-controls {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+/* Calendar Filter Button */
+.calendar-filter-container {
+    position: relative;
+}
+
+.calendar-filter-btn {
+    padding: 8px 16px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 1rem;
+    color: var(--text-primary);
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.calendar-filter-btn:hover {
+    background: var(--bg-surface-hover);
+    border-color: var(--primary);
+}
+
+.date-filter-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: var(--primary);
+    color: white;
+    border-radius: 10px;
+    padding: 2px 6px;
+    font-size: 0.7rem;
+    font-weight: bold;
+}
+
+/* Calendar Flyout */
+.calendar-flyout-filter {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    margin-top: 8px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    box-shadow: var(--shadow-lg);
+    z-index: 200;
+    min-width: 300px;
+    display: none;
+    animation: fadeIn 0.2s ease;
+}
+
+.calendar-flyout-filter.active {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.calendar-flyout-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+}
+
+.calendar-flyout-header h4 {
+    margin: 0;
+    font-size: 1rem;
+}
+
+.close-calendar-btn {
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    color: var(--text-secondary);
+    padding: 4px;
+    border-radius: 6px;
+}
+
+.close-calendar-btn:hover {
+    background: var(--bg-surface-hover);
+}
+
+.calendar-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: var(--bg-surface);
+}
+
+.calendar-nav-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 4px 8px;
+    border-radius: 6px;
+    color: var(--text-primary);
+}
+
+.calendar-nav-btn:hover {
+    background: var(--bg-surface-hover);
+}
+
+.calendar-weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    text-align: center;
+    padding: 8px 0;
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.calendar-days-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    padding: 12px;
+}
+
+.calendar-day {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    transition: all 0.2s ease;
+    background: var(--bg-surface);
+    color: var(--text-primary);
+}
+
+.calendar-day:hover {
+    background: var(--bg-surface-hover);
+}
+
+.calendar-day.has-episode {
+    background: var(--primary-light);
+    color: var(--primary);
+    font-weight: bold;
+}
+
+.calendar-day.selected {
+    background: var(--primary);
+    color: white;
+}
+
+.calendar-day.other-month {
+    color: var(--text-tertiary);
+}
+
+.calendar-actions {
+    display: flex;
+    gap: 8px;
+    padding: 12px 16px;
+    border-top: 1px solid var(--border);
+}
+
+.calendar-action-btn {
+    flex: 1;
+    padding: 8px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    background: var(--bg-surface-hover);
+    color: var(--text-primary);
+    transition: all 0.2s ease;
+}
+
+.calendar-action-btn.primary {
+    background: var(--primary);
+    color: white;
+}
+
+.calendar-action-btn.primary:hover {
+    background: var(--primary-dark);
+}
+
+.calendar-action-btn:hover {
+    transform: translateY(-1px);
+}
+
+/* Quick Filters */
+.quick-filters {
+    display: flex;
+    gap: 8px;
+}
+
+.quick-filter-btn {
+    padding: 8px 16px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    transition: all 0.2s ease;
+}
+
+.quick-filter-btn:hover {
+    background: var(--bg-surface-hover);
+    border-color: var(--primary);
+}
+
+.quick-filter-btn.active {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+
+/* Active Filters Display */
+.active-filters {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.filter-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: var(--primary-light);
+    border-radius: 20px;
+    font-size: 0.8rem;
+    color: var(--primary);
+}
+
+.filter-tag .remove-filter {
+    cursor: pointer;
+    font-weight: bold;
+    padding: 0 4px;
+}
+
+.filter-tag .remove-filter:hover {
+    color: var(--primary-dark);
+}
+
+/* ============ BUTTONS ============ */
+.btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn-primary {
+    background: var(--primary);
+    color: white;
+    border: none;
+}
+
+.btn-primary:hover {
+    background: var(--primary-dark);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+}
+
+.btn-secondary {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+}
+
+.btn-secondary:hover {
+    background: var(--bg-surface-hover);
+    transform: translateY(-1px);
+}
+
+/* ============ MAIN LAYOUT ============ */
+.main-grid {
+    display: grid;
+    grid-template-columns: 65% 35%;
+    gap: 20px;
+    margin: 24px 0;
+}
+
+.video-section {
+    background: var(--bg-surface);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+}
+
+.playlist-section {
+    background: var(--bg-surface);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+    height: fit-content;
+    max-height: calc(100vh - var(--header-height) - 40px);
+    position: sticky;
+    top: calc(var(--header-height) + 20px);
+}
+
+/* ============ NOW PLAYING CARD ============ */
+.now-playing-card {
+    padding: var(--spacing-lg);
+}
+
+.now-playing-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-sm);
+}
+
+.now-playing-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: var(--spacing-md);
+    line-height: 1.3;
+}
+
+.video-container {
+    position: relative;
+    width: 100%;
+    background: #000;
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    margin-bottom: var(--spacing-md);
+}
+
+.video-container video {
+    width: 100%;
+    display: block;
+}
+
+.immersive-overlay-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1.2rem;
+    transition: all 0.2s ease;
+    z-index: 10;
+    backdrop-filter: blur(4px);
+}
+
+.immersive-overlay-btn:hover {
+    background: rgba(0, 0, 0, 0.8);
+    transform: scale(1.05);
+}
+
+.controls-ui {
+    margin-top: var(--spacing-md);
+}
+
+.progress-container {
+    margin-bottom: var(--spacing-md);
+}
+
+.progress-container input[type="range"] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    outline: none;
+    cursor: pointer;
+}
+
+.progress-container input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    background: var(--primary);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: transform 0.1s ease;
+}
+
+.progress-container input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+}
+
+.time-display {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 8px;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.video-controls-row {
+    display: flex;
+    gap: var(--spacing-sm);
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.video-controls-row label.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.video-controls-row label.btn input[type="checkbox"] {
+    margin: 0;
+    cursor: pointer;
+    width: 16px;
+    height: 16px;
+}
+
+/* ============ PLAYLIST HEADER ============ */
+.playlist-header {
+    padding: var(--spacing-lg);
+    border-bottom: 1px solid var(--border);
+}
+
+.playlist-header h2 {
+    font-size: 1.1rem;
+    margin-bottom: var(--spacing-xs);
+}
+
+.playlist-stats {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-top: var(--spacing-xs);
+}
+
+/* ============ VIRTUAL PLAYLIST ============ */
+.playlist-container {
+    position: relative;
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    height: 100%;
+    min-height: 400px;
+    scroll-behavior: smooth;
+}
+
+.playlist-container::-webkit-scrollbar {
+    width: 8px;
+}
+
+.playlist-container::-webkit-scrollbar-track {
+    background: var(--border);
+    border-radius: 4px;
+}
+
+.playlist-container::-webkit-scrollbar-thumb {
+    background: var(--primary);
+    border-radius: 4px;
+}
+
+.playlist-container::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-dark);
+}
+
+#virtualList {
+    will-change: transform;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+}
+
+.playlist-item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md);
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+    height: 80px;
+    box-sizing: border-box;
+    overflow: visible;
+}
+
+.playlist-item:hover {
+    background: var(--bg-surface-hover);
+    transform: translateX(4px);
+}
+
+.playlist-item.active {
+    background: var(--primary-light);
+    border-color: var(--primary);
+}
+
+.playlist-item.has-resume {
+    position: relative;
+}
+
+.playlist-item.has-resume::after {
+    content: '▶';
+    position: absolute;
+    right: 40px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.7rem;
+    color: var(--primary);
+    animation: pulse 1s ease infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+}
+
+/* Three-dot menu */
+.menu-trigger {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0;
+    transition: opacity 0.2s ease, background 0.2s ease;
+    cursor: pointer;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: var(--text-primary);
+    z-index: 5;
+    line-height: 1;
+    box-shadow: var(--shadow-sm);
+}
+
+.playlist-item:hover .menu-trigger,
+.playlist-item:focus-within .menu-trigger {
+    opacity: 1;
+}
+
+.menu-trigger:hover {
+    background: var(--primary-light);
+    border-color: var(--primary);
+    transform: translateY(-50%) scale(1.05);
+}
+
+.menu-trigger:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+    opacity: 1;
+}
+
+/* Flyout menu */
+.flyout-menu {
+    position: absolute;
+    right: 12px;
+    top: 50px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-lg);
+    border-radius: 8px;
+    z-index: 100;
+    display: none;
+    min-width: 160px;
+    overflow: hidden;
+    animation: fadeIn 0.15s ease;
+}
+
+.flyout-menu.active {
+    display: block;
+}
+
+.flyout-menu-item {
+    padding: 10px 16px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border-light);
+}
+
+.flyout-menu-item:last-child {
+    border-bottom: none;
+}
+
+.flyout-menu-item:hover {
+    background: var(--bg-surface-hover);
+}
+
+.flyout-menu-item:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: -2px;
+}
+
+.flyout-menu-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 4px 0;
+}
+
+.playlist-thumbnail {
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(135deg, var(--primary-light), var(--border));
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.playlist-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    margin-right: 40px;
+}
+
+.playlist-title {
+    font-weight: 500;
+    font-size: 0.875rem;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.resume-indicator {
+    display: inline-block;
+    margin-left: 8px;
+    font-size: 0.7rem;
+    color: var(--primary);
+    background: var(--primary-light);
+    padding: 2px 6px;
+    border-radius: 10px;
+}
+
+.playlist-date {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    margin-bottom: 2px;
+}
+
+.playlist-duration {
+    font-size: 0.65rem;
+    color: var(--text-tertiary);
+}
+
+/* Loading State */
+.loading-state {
+    text-align: center;
+    padding: var(--spacing-xl);
+    color: var(--text-secondary);
+}
+
+.loader {
+    display: inline-block;
+    width: 30px;
+    height: 30px;
+    border: 3px solid var(--border);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Error State */
+.error-state {
+    text-align: center;
+    padding: var(--spacing-xl);
+    color: var(--primary);
+}
+
+.empty-state {
+    text-align: center;
+    padding: var(--spacing-xl);
+    color: var(--text-secondary);
+}
+
+/* Toast Notifications */
+.toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    padding: 12px 20px;
+    border-radius: 8px;
+    box-shadow: var(--shadow-lg);
+    z-index: 1000;
+    animation: slideIn 0.3s ease;
+    border-left: 3px solid var(--primary);
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Resume Notification */
+.resume-notification {
+    position: fixed;
+    bottom: 100px;
+    right: 20px;
+    background: var(--primary);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    z-index: 1500;
+    animation: slideInRight 0.3s ease, fadeOut 0.3s ease 2.7s forwards;
+    box-shadow: var(--shadow-lg);
+}
+
+.resume-notification .resume-icon {
+    font-size: 1.2rem;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes fadeOut {
+    to {
+        opacity: 0;
+        visibility: hidden;
+    }
+}
+
+/* ============ RESPONSIVE ============ */
+@media (max-width: 768px) {
+    .main-grid {
+        grid-template-columns: 1fr;
+        gap: var(--spacing-md);
+    }
+    
+    .playlist-section {
+        position: relative;
+        top: 0;
+        max-height: 500px;
+    }
+    
+    .header-content {
+        padding: 0 var(--spacing-sm);
+    }
+    
+    .logo h1 {
+        font-size: 1.1rem;
+    }
+    
+    .logo-badge {
+        font-size: 0.6rem;
+    }
+    
+    .now-playing-card {
+        padding: var(--spacing-md);
+    }
+    
+    .now-playing-title {
+        font-size: 1rem;
+    }
+    
+    .btn {
+        padding: 6px 12px;
+        font-size: 0.75rem;
+    }
+    
+    .playlist-thumbnail {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .playlist-item {
+        height: 70px;
+    }
+    
+    .playlist-info {
+        margin-right: 35px;
+    }
+    
+    .menu-trigger {
+        padding: 4px 8px;
+        right: 8px;
+    }
+    
+    .flyout-menu {
+        right: 8px;
+        min-width: 140px;
+    }
+    
+    .filter-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .quick-filters {
+        justify-content: space-between;
+    }
+    
+    .quick-filter-btn {
+        flex: 1;
+        text-align: center;
+    }
+    
+    .calendar-flyout-filter {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 90%;
+        max-width: 350px;
+        margin: 0;
+    }
+}
+
+@media (max-width: 480px) {
+    .container {
+        padding: 0 var(--spacing-sm);
+    }
+    
+    .playlist-item {
+        height: 65px;
+        padding: 10px;
+    }
+    
+    .playlist-info {
+        margin-right: 30px;
+    }
+    
+    .playlist-title {
+        font-size: 0.75rem;
+    }
+    
+    .menu-trigger {
+        padding: 3px 6px;
+        font-size: 0.9rem;
+    }
+    
+    .flyout-menu {
+        min-width: 130px;
+        top: 45px;
+    }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+    }
+}
+
+@media (prefers-contrast: high) {
+    .playlist-item {
+        border: 1px solid currentColor;
+    }
+    
+    .playlist-item.active {
+        border-width: 2px;
+    }
+    
+    .menu-trigger {
+        border: 2px solid currentColor;
+    }
+}
+</style>
 </head>
 <body>
-    <header class="sticky-header">
-        <div class="header-content">
-            <div class="logo">
-                <h1>🎙️ AJN Hourly Archive</h1>
-                <span class="logo-badge">Central Time</span>
-            </div>
-            <div class="header-controls">
-                <button id="darkModeToggle" class="btn-secondary" aria-label="Switch to dark mode">🌙 Dark</button>
-            </div>
+
+<!-- STICKY HEADER -->
+<header class="sticky-header">
+    <div class="header-content">
+        <div class="logo">
+            <h1>🎙️ AJN Hourly Archive</h1>
+            <span class="logo-badge">Central Time</span>
         </div>
-        
-        <!-- Search and Filter Section -->
-        <div class="search-section">
-            <div class="search-bar-container">
-                <div class="search-input-wrapper">
-                    <span class="search-icon">🔍</span>
-                    <input type="text" 
-                           id="globalSearchInput" 
-                           class="global-search-input" 
-                           placeholder="Search episodes by title or description..." 
-                           aria-label="Search episodes">
-                    <button id="clearSearchBtn" class="clear-search-btn" aria-label="Clear search">✖</button>
+        <div class="header-controls">
+            <button id="darkModeToggle" class="btn btn-secondary" aria-label="Switch to dark mode">🌙 Dark</button>
+        </div>
+    </div>
+    
+    <!-- Search and Filter Section -->
+    <div class="search-section">
+        <div class="search-bar-container">
+            <div class="search-input-wrapper">
+                <span class="search-icon">🔍</span>
+                <input type="text" 
+                       id="globalSearchInput" 
+                       class="global-search-input" 
+                       placeholder="Search episodes by title or description..." 
+                       aria-label="Search episodes">
+                <button id="clearSearchBtn" class="clear-search-btn" aria-label="Clear search">✖</button>
+            </div>
+            
+            <div class="filter-controls">
+                <!-- Calendar Filter Button -->
+                <div class="calendar-filter-container">
+                    <button id="calendarFilterBtn" class="calendar-filter-btn" aria-label="Filter by date">
+                        📅 <span id="activeDateFilterBadge" class="date-filter-badge" style="display:none"></span>
+                    </button>
+                    
+                    <!-- Calendar Flyout -->
+                    <div id="calendarFlyout" class="calendar-flyout-filter">
+                        <div class="calendar-flyout-header">
+                            <h4>Filter by Date</h4>
+                            <button id="closeCalendarBtn" class="close-calendar-btn" aria-label="Close calendar">✖</button>
+                        </div>
+                        
+                        <div class="calendar-nav">
+                            <button id="calendarPrevMonth" class="calendar-nav-btn">◀</button>
+                            <span id="calendarMonthYear"></span>
+                            <button id="calendarNextMonth" class="calendar-nav-btn">▶</button>
+                        </div>
+                        
+                        <div class="calendar-weekdays">
+                            <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
+                        </div>
+                        
+                        <div id="calendarDaysGrid" class="calendar-days-grid"></div>
+                        
+                        <div class="calendar-actions">
+                            <button id="clearDateFilter" class="calendar-action-btn">Clear Date Filter</button>
+                            <button id="applyDateFilter" class="calendar-action-btn primary">Apply Filter</button>
+                        </div>
+                    </div>
                 </div>
                 
-                <div class="filter-controls">
-                    <!-- Calendar Filter Button -->
-                    <div class="calendar-filter-container">
-                        <button id="calendarFilterBtn" class="calendar-filter-btn" aria-label="Filter by date">
-                            📅 <span id="activeDateFilterBadge" class="date-filter-badge" style="display:none"></span>
-                        </button>
-                        
-                        <!-- Calendar Flyout -->
-                        <div id="calendarFlyout" class="calendar-flyout-filter">
-                            <div class="calendar-flyout-header">
-                                <h4>Filter by Date</h4>
-                                <button id="closeCalendarBtn" class="close-calendar-btn" aria-label="Close calendar">✖</button>
-                            </div>
-                            
-                            <div class="calendar-nav">
-                                <button id="calendarPrevMonth" class="calendar-nav-btn">◀</button>
-                                <span id="calendarMonthYear"></span>
-                                <button id="calendarNextMonth" class="calendar-nav-btn">▶</button>
-                            </div>
-                            
-                            <div class="calendar-weekdays">
-                                <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
-                            </div>
-                            
-                            <div id="calendarDaysGrid" class="calendar-days-grid"></div>
-                            
-                            <div class="calendar-actions">
-                                <button id="clearDateFilter" class="calendar-action-btn">Clear Date Filter</button>
-                                <button id="applyDateFilter" class="calendar-action-btn primary">Apply Filter</button>
-                            </div>
+                <!-- Quick Date Range Buttons -->
+                <div class="quick-filters">
+                    <button class="quick-filter-btn" data-days="7">Last 7 days</button>
+                    <button class="quick-filter-btn" data-days="30">Last 30 days</button>
+                    <button class="quick-filter-btn" data-days="90">Last 90 days</button>
+                </div>
+                
+                <!-- Active Filters Display -->
+                <div id="activeFilters" class="active-filters"></div>
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- MAIN CONTAINER -->
+<main class="container">
+    <div class="main-grid">
+        
+        <!-- LEFT COLUMN (65%) - NOW PLAYING CARD -->
+        <div class="video-section">
+            <div class="now-playing-card">
+                <div class="now-playing-label">▶ NOW PLAYING</div>
+                <div class="now-playing-title" id="currentTitle" aria-live="polite">Select an episode to begin</div>
+                
+                <div class="video-container" id="videoThumbnailContainer" style="cursor: pointer;">
+                    <video id="videoPlayer" preload="metadata" aria-label="Video player">
+                        <source src="" type="video/mp4">
+                        Your browser does not support the video tag.
+                    </video>
+                    <div class="immersive-overlay-btn" id="immersiveViewBtn" title="Open Immersive View" aria-label="Enter fullscreen mode">📺</div>
+                </div>
+
+                <div class="controls-ui">
+                    <div class="progress-container">
+                        <input type="range" id="progressBar" value="0" max="100" step="0.1" aria-label="Video progress">
+                        <div class="time-display">
+                            <span id="currentTime">0:00</span>
+                            <span id="duration">0:00</span>
                         </div>
                     </div>
                     
-                    <!-- Quick Date Range Buttons -->
-                    <div class="quick-filters">
-                        <button class="quick-filter-btn" data-days="7">Last 7 days</button>
-                        <button class="quick-filter-btn" data-days="30">Last 30 days</button>
-                        <button class="quick-filter-btn" data-days="90">Last 90 days</button>
+                    <div class="video-controls-row">
+                        <button id="playPauseBtn" class="btn btn-secondary" aria-label="Play or pause video">⏯ Play</button>
+                        <button id="skipBackBtn" class="btn btn-secondary" aria-label="Skip back 10 seconds">⏪ 10s</button>
+                        <button id="skipForwardBtn" class="btn btn-secondary" aria-label="Skip forward 10 seconds">⏩ 10s</button>
+                        <label class="btn btn-secondary" aria-label="Autoplay toggle">
+                            <input type="checkbox" id="autoplayToggle" checked> Autoplay
+                        </label>
+                        <button id="downloadBtn" class="btn btn-secondary" aria-label="Download episode">⬇️</button>
+                        <button id="shareBtn" class="btn btn-secondary" aria-label="Share episode">📤</button>
+                        <button id="nextBtn" class="btn btn-primary" aria-label="Next episode">⏭️ Next</button>
                     </div>
-                    
-                    <!-- Active Filters Display -->
-                    <div id="activeFilters" class="active-filters"></div>
                 </div>
             </div>
         </div>
-    </header>
+        
+        <!-- RIGHT COLUMN (35%) - VIRTUALIZED PLAYLIST -->
+        <div class="playlist-section">
+            <div class="playlist-header">
+                <h2>📋 Playlist</h2>
+                <div class="playlist-stats" id="playlistStats" aria-live="polite">Loading episodes...</div>
+            </div>
+            <div class="playlist-container" id="playlistContainer">
+                <div id="scrollSpacer" style="height: 0px; position: relative;"></div>
+                <div id="virtualList" style="position: absolute; top: 0; left: 0; width: 100%;"></div>
+            </div>
+        </div>
+        
+    </div>
+</main>
 
-    <main class="episodes-container">
-        <div id="episodesGrid" class="episodes-grid"></div>
-    </main>
+<script>
+// ============ MAIN APPLICATION - COMPLETE WORKING VERSION ============
 
-    <script>
-        // Sample episode data
-        const episodes = [
-            { id: 1, title: "Morning News Briefing - May 26, 2026", date: "2026-05-26", description: "Top stories and breaking news from around the world, plus weather and traffic updates." },
-            { id: 2, title: "Technology Hour - AI Revolution", date: "2026-05-25", description: "Exploring the latest advancements in artificial intelligence and their impact on daily life." },
-            { id: 3, title: "Evening Edition - Political Analysis", date: "2026-05-24", description: "In-depth political analysis and commentary on current legislative developments." },
-            { id: 4, title: "Health & Wellness Special", date: "2026-05-23", description: "Expert interviews on mental health, fitness trends, and nutritional advice." },
-            { id: 5, title: "Business Roundtable", date: "2026-05-22", description: "Market analysis, economic forecasts, and interviews with industry leaders." },
-            { id: 6, title: "Weekend Review", date: "2026-05-21", description: "Highlights from the week's most important stories and cultural events." },
-            { id: 7, title: "Science Spotlight", date: "2026-05-20", description: "Breakthrough discoveries in space exploration and medical research." },
-            { id: 8, title: "Arts & Culture Hour", date: "2026-05-19", description: "Interviews with artists, musicians, and reviews of new exhibitions." }
-        ];
-
-        let currentSearchTerm = '';
-        let currentDateFilter = null; // Store as YYYY-MM-DD
-        let currentRangeFilter = null; // Store as days number
-
-        // DOM Elements
-        const episodesGrid = document.getElementById('episodesGrid');
-        const searchInput = document.getElementById('globalSearchInput');
-        const clearSearchBtn = document.getElementById('clearSearchBtn');
-        const calendarFilterBtn = document.getElementById('calendarFilterBtn');
-        const calendarFlyout = document.getElementById('calendarFlyout');
-        const closeCalendarBtn = document.getElementById('closeCalendarBtn');
-        const clearDateFilterBtn = document.getElementById('clearDateFilter');
-        const applyDateFilterBtn = document.getElementById('applyDateFilter');
-        const dateFilterBadge = document.getElementById('activeDateFilterBadge');
-        const activeFiltersDiv = document.getElementById('activeFilters');
-        const quickFilterBtns = document.querySelectorAll('.quick-filter-btn');
-        const darkModeToggle = document.getElementById('darkModeToggle');
-
-        let currentMonth = new Date();
-        let selectedDate = null;
-
-        // Render episodes based on filters
-        function renderEpisodes() {
-            let filtered = [...episodes];
-
-            // Apply search filter
-            if (currentSearchTerm) {
-                const term = currentSearchTerm.toLowerCase();
-                filtered = filtered.filter(ep => 
-                    ep.title.toLowerCase().includes(term) || 
-                    ep.description.toLowerCase().includes(term)
-                );
-            }
-
-            // Apply date filter (specific day)
-            if (currentDateFilter) {
-                filtered = filtered.filter(ep => ep.date === currentDateFilter);
-            }
-
-            // Apply range filter
-            if (currentRangeFilter) {
-                const today = new Date();
-                const cutoffDate = new Date();
-                cutoffDate.setDate(today.getDate() - currentRangeFilter);
-                
-                filtered = filtered.filter(ep => {
-                    const epDate = new Date(ep.date);
-                    return epDate >= cutoffDate && epDate <= today;
-                });
-            }
-
-            // Render grid
-            if (filtered.length === 0) {
-                episodesGrid.innerHTML = '<div class="no-results">No episodes match your filters. Try adjusting your search or filter criteria.</div>';
-                return;
-            }
-
-            episodesGrid.innerHTML = filtered.map(ep => `
-                <div class="episode-card">
-                    <h3 class="episode-title">${escapeHtml(ep.title)}</h3>
-                    <div class="episode-date">📅 ${formatDate(ep.date)}</div>
-                    <p class="episode-description">${escapeHtml(ep.description)}</p>
-                </div>
-            `).join('');
+// Wait for DOM to be fully loaded
+document.addEventListener('DOMContentLoaded', () => {
+    console.log("DOM is ready. Initializing components...");
+    
+    // ============ STORAGE KEYS ============
+    const STORAGE_KEYS = {
+        PLAYBACK_POSITIONS: 'ajn_playback_positions',
+        LAST_EPISODE_ID: 'ajn_last_episode_id',
+        LAST_POSITION: 'ajn_last_position',
+        AUTOPLAY_STATE: 'autoplayEnabled',
+        DARK_MODE: 'darkMode'
+    };
+    
+    // ============ GLOBAL STATE ============
+    let allEpisodes = [];
+    let currentPlaylist = [];
+    let currentIndex = 0;
+    let videoControls = null;
+    let currentEpisodeData = null;
+    let playbackPositions = {};
+    let saveTimeout = null;
+    let saveInterval = null;
+    let currentSearchTerm = '';
+    let currentDateFilter = null;
+    let debounceTimeout = null;
+    let selectedCalendarDate = null;
+    let currentCalendarYear = new Date().getFullYear();
+    let currentCalendarMonth = new Date().getMonth();
+    
+    // ============ DOM ELEMENTS ============
+    const videoPlayer = document.getElementById('videoPlayer');
+    const progressBar = document.getElementById('progressBar');
+    const playPauseBtn = document.getElementById('playPauseBtn');
+    const currentTimeDisplay = document.getElementById('currentTime');
+    const durationDisplay = document.getElementById('duration');
+    const skipBackBtn = document.getElementById('skipBackBtn');
+    const skipForwardBtn = document.getElementById('skipForwardBtn');
+    const autoplayToggle = document.getElementById('autoplayToggle');
+    const immersiveBtn = document.getElementById('immersiveViewBtn');
+    const videoContainer = document.getElementById('videoThumbnailContainer');
+    const currentTitle = document.getElementById('currentTitle');
+    const playlistStats = document.getElementById('playlistStats');
+    const playlistContainer = document.getElementById('playlistContainer');
+    const scrollSpacer = document.getElementById('scrollSpacer');
+    const virtualList = document.getElementById('virtualList');
+    const darkModeToggle = document.getElementById('darkModeToggle');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const shareBtn = document.getElementById('shareBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const searchInput = document.getElementById('globalSearchInput');
+    const clearSearchBtn = document.getElementById('clearSearchBtn');
+    const calendarFilterBtn = document.getElementById('calendarFilterBtn');
+    const calendarFlyout = document.getElementById('calendarFlyout');
+    const closeCalendarBtn = document.getElementById('closeCalendarBtn');
+    const calendarPrevMonth = document.getElementById('calendarPrevMonth');
+    const calendarNextMonth = document.getElementById('calendarNextMonth');
+    const calendarMonthYear = document.getElementById('calendarMonthYear');
+    const calendarDaysGrid = document.getElementById('calendarDaysGrid');
+    const clearDateFilterBtn = document.getElementById('clearDateFilter');
+    const applyDateFilterBtn = document.getElementById('applyDateFilter');
+    const activeFiltersContainer = document.getElementById('activeFilters');
+    const dateFilterBadge = document.getElementById('activeDateFilterBadge');
+    
+    // ============ CONSTANTS ============
+    const ROW_HEIGHT = 80;
+    const BUFFER = 5;
+    const RSS_URL = 'https://rss.alexjones.media/AJNHourlyVideo.xml';
+    const API_URL = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(RSS_URL)}`;
+    
+    // ============ HELPER FUNCTIONS ============
+    function transformVideoUrl(originalUrl) {
+        if (!originalUrl) return '#';
+        const filename = originalUrl.substring(originalUrl.lastIndexOf('/') + 1);
+        if (filename.endsWith('.m4v') || filename.endsWith('.mp4')) {
+            return `https://ajn.archives.pub/hourly-m4v/${filename}`;
         }
-
-        // Helper: Escape HTML
-        function escapeHtml(str) {
-            return str.replace(/[&<>]/g, function(m) {
-                if (m === '&') return '&amp;';
-                if (m === '<') return '&lt;';
-                if (m === '>') return '&gt;';
-                return m;
-            });
+        return originalUrl;
+    }
+    
+    function toCentralTime(date) {
+        return new Date(date.toLocaleString('en-US', { timeZone: 'America/Chicago' }));
+    }
+    
+    function formatCentralTime(date) {
+        if (!date) return 'Date unknown';
+        return date.toLocaleString('en-US', {
+            timeZone: 'America/Chicago',
+            weekday: 'short',
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+        });
+    }
+    
+    function formatTime(seconds) {
+        if (isNaN(seconds) || !isFinite(seconds)) return '0:00';
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        const secs = Math.floor(seconds % 60);
+        if (hours > 0) {
+            return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
         }
-
-        // Format date
-        function formatDate(dateStr) {
-            const date = new Date(dateStr);
-            return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+        return `${minutes}:${secs.toString().padStart(2, '0')}`;
+    }
+    
+    function parseEpisodeDetails(title) {
+        const warRoomMatch = title.match(/WarRoom[- ]Hr(\d+)/i);
+        const alexMatch = title.match(/Alex[- ]Jones[- ]Show[- ]Hr(\d+)/i);
+        if (warRoomMatch) {
+            return { show: 'War Room', hour: `Hour ${warRoomMatch[1]}` };
         }
-
-        // Update active filters display
-        function updateActiveFiltersUI() {
-            activeFiltersDiv.innerHTML = '';
-            
-            if (currentSearchTerm) {
-                addFilterTag(`Search: "${currentSearchTerm}"`, () => {
-                    currentSearchTerm = '';
-                    searchInput.value = '';
-                    renderEpisodes();
-                    updateActiveFiltersUI();
-                });
-            }
-            
-            if (currentDateFilter) {
-                addFilterTag(`Date: ${formatDate(currentDateFilter)}`, () => {
-                    currentDateFilter = null;
-                    selectedDate = null;
-                    dateFilterBadge.style.display = 'none';
-                    renderEpisodes();
-                    updateActiveFiltersUI();
-                    updateCalendarSelection();
-                });
-            }
-            
-            if (currentRangeFilter) {
-                addFilterTag(`Last ${currentRangeFilter} days`, () => {
-                    currentRangeFilter = null;
-                    // Remove active class from quick filters
-                    quickFilterBtns.forEach(btn => btn.classList.remove('active'));
-                    renderEpisodes();
-                    updateActiveFiltersUI();
-                });
-            }
+        if (alexMatch) {
+            return { show: 'Alex Jones Show', hour: `Hour ${alexMatch[1]}` };
         }
-
-        function addFilterTag(text, onRemove) {
-            const tag = document.createElement('div');
-            tag.className = 'filter-tag';
-            tag.innerHTML = `${text} <button class="remove-filter" onclick="this.parentElement.remove(); window.dispatchEvent(new Event('filterRemoved'))">✖</button>`;
-            activeFiltersDiv.appendChild(tag);
-            
-            const removeBtn = tag.querySelector('.remove-filter');
-            removeBtn.onclick = () => {
-                onRemove();
-                tag.remove();
+        if (title.match(/Nightline/i)) {
+            return { show: 'Nightline', hour: '' };
+        }
+        return { show: 'Episode', hour: '' };
+    }
+    
+    function escapeHtml(str) {
+        if (!str) return '';
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+    
+    function showToast(message, duration = 3000) {
+        const existingToast = document.querySelector('.toast');
+        if (existingToast) existingToast.remove();
+        
+        const toast = document.createElement('div');
+        toast.className = 'toast';
+        toast.textContent = message;
+        toast.setAttribute('role', 'status');
+        toast.setAttribute('aria-live', 'polite');
+        document.body.appendChild(toast);
+        
+        setTimeout(() => toast.remove(), duration);
+    }
+    
+    function showResumeNotification(position) {
+        const notification = document.createElement('div');
+        notification.className = 'resume-notification';
+        notification.innerHTML = `<span class="resume-icon">▶</span><span class="resume-text">Resuming from ${formatTime(position)}</span>`;
+        document.body.appendChild(notification);
+        setTimeout(() => notification.remove(), 3000);
+    }
+    
+    // ============ PLAYBACK PERSISTENCE FUNCTIONS ============
+    function loadPlaybackPositions() {
+        try {
+            const saved = localStorage.getItem(STORAGE_KEYS.PLAYBACK_POSITIONS);
+            if (saved) {
+                playbackPositions = JSON.parse(saved);
+                console.log(`Loaded ${Object.keys(playbackPositions).length} saved playback positions`);
+            }
+        } catch (error) {
+            console.error('Failed to load playback positions:', error);
+            playbackPositions = {};
+        }
+    }
+    
+    function savePlaybackPosition(episodeId, position, duration) {
+        if (!episodeId || isNaN(position) || position < 0) return;
+        
+        if (duration && position >= duration - 2) {
+            delete playbackPositions[episodeId];
+        } else {
+            playbackPositions[episodeId] = {
+                position: Math.floor(position),
+                timestamp: Date.now(),
+                duration: duration || 0,
+                lastUpdated: new Date().toISOString()
             };
         }
-
-        // Calendar functionality
-        function buildCalendar() {
-            const year = currentMonth.getFullYear();
-            const month = currentMonth.getMonth();
-            
-            const firstDay = new Date(year, month, 1);
-            const startDayOfWeek = firstDay.getDay();
-            const daysInMonth = new Date(year, month + 1, 0).getDate();
-            
-            const prevMonthDays = new Date(year, month, 0).getDate();
-            
-            const grid = document.getElementById('calendarDaysGrid');
-            grid.innerHTML = '';
-            
-            // Previous month days
-            for (let i = startDayOfWeek - 1; i >= 0; i--) {
-                const day = prevMonthDays - i;
-                const dayDiv = createCalendarDay(day, true);
-                grid.appendChild(dayDiv);
+        
+        if (saveTimeout) clearTimeout(saveTimeout);
+        saveTimeout = setTimeout(() => {
+            try {
+                localStorage.setItem(STORAGE_KEYS.PLAYBACK_POSITIONS, JSON.stringify(playbackPositions));
+                console.log(`Saved playback position for episode ${episodeId}: ${Math.floor(position)}s`);
+            } catch (error) {
+                console.error('Failed to save playback position:', error);
             }
-            
-            // Current month days
-            for (let day = 1; day <= daysInMonth; day++) {
-                const dayDiv = createCalendarDay(day, false);
-                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                if (selectedDate === dateStr) {
-                    dayDiv.classList.add('selected');
+        }, 500);
+    }
+    
+    function getPlaybackPosition(episodeId) {
+        const saved = playbackPositions[episodeId];
+        if (saved && saved.position) {
+            return saved.position;
+        }
+        return 0;
+    }
+    
+    function clearPlaybackPosition(episodeId) {
+        if (episodeId && playbackPositions[episodeId]) {
+            delete playbackPositions[episodeId];
+            localStorage.setItem(STORAGE_KEYS.PLAYBACK_POSITIONS, JSON.stringify(playbackPositions));
+            console.log(`Cleared playback position for episode ${episodeId}`);
+        }
+    }
+    
+    function saveLastPlayedEpisode(episodeId, position) {
+        if (!episodeId) return;
+        try {
+            localStorage.setItem(STORAGE_KEYS.LAST_EPISODE_ID, episodeId);
+            localStorage.setItem(STORAGE_KEYS.LAST_POSITION, JSON.stringify({
+                episodeId: episodeId,
+                position: Math.floor(position),
+                timestamp: Date.now()
+            }));
+        } catch (error) {
+            console.error('Failed to save last episode:', error);
+        }
+    }
+    
+    function startPositionTracking() {
+        if (saveInterval) clearInterval(saveInterval);
+        saveInterval = setInterval(() => {
+            if (videoPlayer && videoPlayer.currentTime && currentPlaylist[currentIndex]) {
+                const episode = currentPlaylist[currentIndex];
+                if (episode && videoPlayer.currentTime > 0) {
+                    savePlaybackPosition(episode.id, videoPlayer.currentTime, videoPlayer.duration);
+                    saveLastPlayedEpisode(episode.id, videoPlayer.currentTime);
                 }
-                dayDiv.onclick = () => {
-                    document.querySelectorAll('.calendar-day').forEach(d => d.classList.remove('selected'));
-                    dayDiv.classList.add('selected');
-                    selectedDate = dateStr;
-                };
-                grid.appendChild(dayDiv);
             }
-            
-            // Next month days
-            const totalCells = 42;
-            const currentCells = startDayOfWeek + daysInMonth;
-            const remainingCells = totalCells - currentCells;
-            for (let day = 1; day <= remainingCells; day++) {
-                const dayDiv = createCalendarDay(day, true);
-                grid.appendChild(dayDiv);
+        }, 5000);
+    }
+    
+    function stopPositionTracking() {
+        if (saveInterval) {
+            clearInterval(saveInterval);
+            saveInterval = null;
+        }
+        if (videoPlayer && videoPlayer.currentTime && currentPlaylist[currentIndex]) {
+            const episode = currentPlaylist[currentIndex];
+            if (episode) {
+                savePlaybackPosition(episode.id, videoPlayer.currentTime, videoPlayer.duration);
             }
-            
-            document.getElementById('calendarMonthYear').innerText = 
-                `${firstDay.toLocaleString('default', { month: 'long' })} ${year}`;
         }
-        
-        function createCalendarDay(day, isOtherMonth) {
-            const div = document.createElement('div');
-            div.className = 'calendar-day';
-            if (isOtherMonth) div.classList.add('other-month');
-            div.innerText = day;
-            return div;
+    }
+    
+    function cleanupOldPlaybackPositions() {
+        const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
+        let changed = false;
+        Object.keys(playbackPositions).forEach(episodeId => {
+            if (playbackPositions[episodeId].timestamp < thirtyDaysAgo) {
+                delete playbackPositions[episodeId];
+                changed = true;
+            }
+        });
+        if (changed) {
+            localStorage.setItem(STORAGE_KEYS.PLAYBACK_POSITIONS, JSON.stringify(playbackPositions));
         }
+    }
+    
+    // ============ VIDEO CONTROLS ============
+    function initVideoControls() {
+        let isSeeking = false;
         
-        function updateCalendarSelection() {
-            if (selectedDate) {
-                const [year, month, day] = selectedDate.split('-');
-                currentMonth = new Date(parseInt(year), parseInt(month) - 1, 1);
-                buildCalendar();
-                // Re-highlight
-                setTimeout(() => {
-                    const targetDate = `${year}-${month}-${day}`;
-                    document.querySelectorAll('.calendar-day').forEach((dayDiv, idx) => {
-                        const dayNum = parseInt(dayDiv.innerText);
-                        if (!dayDiv.classList.contains('other-month') && dayNum === parseInt(day)) {
-                            const dateStr = `${year}-${month}-${day}`;
-                            if (dateStr === targetDate) {
-                                dayDiv.classList.add('selected');
-                            }
-                        }
-                    });
-                }, 10);
+        videoPlayer.addEventListener('timeupdate', () => {
+            if (!isSeeking && videoPlayer.duration) {
+                const percent = (videoPlayer.currentTime / videoPlayer.duration) * 100;
+                progressBar.value = percent;
+                currentTimeDisplay.textContent = formatTime(videoPlayer.currentTime);
+            }
+        });
+        
+        videoPlayer.addEventListener('loadedmetadata', () => {
+            durationDisplay.textContent = formatTime(videoPlayer.duration);
+            progressBar.max = 100;
+        });
+        
+        progressBar.addEventListener('input', (e) => {
+            isSeeking = true;
+            const seekTime = (e.target.value / 100) * videoPlayer.duration;
+            currentTimeDisplay.textContent = formatTime(seekTime);
+        });
+        
+        progressBar.addEventListener('change', (e) => {
+            const seekTime = (e.target.value / 100) * videoPlayer.duration;
+            videoPlayer.currentTime = seekTime;
+            isSeeking = false;
+        });
+        
+        playPauseBtn.addEventListener('click', () => {
+            if (videoPlayer.paused) {
+                videoPlayer.play();
+                playPauseBtn.innerHTML = '⏸ Pause';
             } else {
-                buildCalendar();
+                videoPlayer.pause();
+                playPauseBtn.innerHTML = '⏯ Play';
             }
+        });
+        
+        videoPlayer.addEventListener('play', () => {
+            playPauseBtn.innerHTML = '⏸ Pause';
+        });
+        
+        videoPlayer.addEventListener('pause', () => {
+            playPauseBtn.innerHTML = '⏯ Play';
+        });
+        
+        skipBackBtn.addEventListener('click', () => {
+            videoPlayer.currentTime = Math.max(0, videoPlayer.currentTime - 10);
+            showToast('Back 10 seconds');
+        });
+        
+        skipForwardBtn.addEventListener('click', () => {
+            videoPlayer.currentTime = Math.min(videoPlayer.duration, videoPlayer.currentTime + 10);
+            showToast('Forward 10 seconds');
+        });
+        
+        immersiveBtn.addEventListener('click', () => {
+            if (videoContainer.requestFullscreen) {
+                videoContainer.requestFullscreen();
+            } else if (videoContainer.webkitRequestFullscreen) {
+                videoContainer.webkitRequestFullscreen();
+            } else if (videoContainer.msRequestFullscreen) {
+                videoContainer.msRequestFullscreen();
+            }
+        });
+        
+        videoPlayer.addEventListener('pause', () => {
+            if (currentPlaylist[currentIndex]) {
+                savePlaybackPosition(currentPlaylist[currentIndex].id, videoPlayer.currentTime, videoPlayer.duration);
+            }
+        });
+        
+        videoPlayer.addEventListener('seeked', () => {
+            if (currentPlaylist[currentIndex]) {
+                savePlaybackPosition(currentPlaylist[currentIndex].id, videoPlayer.currentTime, videoPlayer.duration);
+            }
+        });
+        
+        videoPlayer.addEventListener('ended', () => {
+            if (currentPlaylist[currentIndex]) {
+                clearPlaybackPosition(currentPlaylist[currentIndex].id);
+            }
+            if (autoplayToggle.checked && currentIndex + 1 < currentPlaylist.length) {
+                playEpisode(currentIndex + 1);
+                showToast('▶ Auto-playing next episode');
+            }
+        });
+        
+        window.addEventListener('beforeunload', () => {
+            if (currentPlaylist[currentIndex] && videoPlayer.currentTime) {
+                savePlaybackPosition(currentPlaylist[currentIndex].id, videoPlayer.currentTime, videoPlayer.duration);
+            }
+        });
+    }
+    
+    // ============ VIRTUAL PLAYLIST RENDERING ============
+    function renderVirtualPlaylist() {
+        if (!currentPlaylist.length) {
+            virtualList.innerHTML = '<div class="empty-state" style="padding: 40px; text-align: center;">📭 No episodes found</div>';
+            return;
         }
         
-        // Event Listeners
-        searchInput.addEventListener('input', (e) => {
-            currentSearchTerm = e.target.value;
-            renderEpisodes();
-            updateActiveFiltersUI();
-        });
+        const scrollTop = playlistContainer.scrollTop;
+        const viewportHeight = playlistContainer.clientHeight;
+        const totalHeight = currentPlaylist.length * ROW_HEIGHT;
+        scrollSpacer.style.height = `${totalHeight}px`;
         
-        clearSearchBtn.addEventListener('click', () => {
-            searchInput.value = '';
-            currentSearchTerm = '';
-            renderEpisodes();
-            updateActiveFiltersUI();
-        });
+        const startIndex = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - BUFFER);
+        const endIndex = Math.min(currentPlaylist.length - 1, Math.floor((scrollTop + viewportHeight) / ROW_HEIGHT) + BUFFER);
         
-        calendarFilterBtn.addEventListener('click', () => {
-            calendarFlyout.classList.toggle('active');
-            if (calendarFlyout.classList.contains('active')) {
-                updateCalendarSelection();
-            }
-        });
+        const offsetY = startIndex * ROW_HEIGHT;
+        virtualList.style.transform = `translateY(${offsetY}px)`;
         
-        closeCalendarBtn.addEventListener('click', () => {
-            calendarFlyout.classList.remove('active');
-        });
+        const visibleItems = currentPlaylist.slice(startIndex, endIndex + 1);
         
-        document.getElementById('calendarPrevMonth').addEventListener('click', () => {
-            currentMonth.setMonth(currentMonth.getMonth() - 1);
-            buildCalendar();
-        });
+        virtualList.innerHTML = visibleItems.map((ep, idx) => {
+            const actualIndex = startIndex + idx;
+            const isActive = actualIndex === currentIndex;
+            const flyoutId = `flyout-${actualIndex}`;
+            const savedPosition = getPlaybackPosition(ep.id);
+            const hasResume = savedPosition > 0;
+            const resumeTime = savedPosition ? formatTime(savedPosition) : '';
+            
+            return `
+                <div class="playlist-item ${isActive ? 'active' : ''} ${hasResume ? 'has-resume' : ''}" 
+                     data-index="${actualIndex}"
+                     data-episode-id="${ep.id}"
+                     style="height: ${ROW_HEIGHT}px"
+                     tabindex="0"
+                     role="button"
+                     aria-label="Play episode: ${escapeHtml(ep.title)}${hasResume ? ` - Resume from ${resumeTime}` : ''}">
+                    
+                    <div class="menu-trigger" 
+                         data-flyout="${flyoutId}"
+                         onclick="event.stopPropagation(); document.getElementById('${flyoutId}').classList.toggle('active')"
+                         onkeypress="if(event.key==='Enter' || event.key===' ') { event.stopPropagation(); document.getElementById('${flyoutId}').classList.toggle('active'); }"
+                         role="button"
+                         tabindex="0"
+                         aria-label="More options for ${escapeHtml(ep.title)}">
+                        ⋮
+                    </div>
+                    
+                    <div class="flyout-menu" id="${flyoutId}" role="menu" aria-label="Episode actions">
+                        <div class="flyout-menu-item" role="menuitem" tabindex="0" onclick="event.stopPropagation(); downloadEpisode(${actualIndex})">⬇️ Download</div>
+                        <div class="flyout-menu-item" role="menuitem" tabindex="0" onclick="event.stopPropagation(); shareEpisode(${actualIndex})">📤 Share</div>
+                        ${hasResume ? `<div class="flyout-menu-item" role="menuitem" tabindex="0" onclick="event.stopPropagation(); clearPlaybackPosition(${ep.id}); renderVirtualPlaylist(); showToast('Resume point cleared');">🗑️ Clear Resume Point</div>` : ''}
+                        <div class="flyout-menu-divider" role="separator"></div>
+                        <div class="flyout-menu-item" role="menuitem" tabindex="0" onclick="event.stopPropagation(); copyLink(${actualIndex})">🔗 Copy Link</div>
+                        <div class="flyout-menu-item" role="menuitem" tabindex="0" onclick="event.stopPropagation(); viewDetails(${actualIndex})">📄 Details</div>
+                    </div>
+                    
+                    <div class="playlist-thumbnail" aria-hidden="true">🎬</div>
+                    <div class="playlist-info">
+                        <div class="playlist-title">
+                            ${escapeHtml(ep.title)}
+                            ${hasResume ? `<span class="resume-indicator">▶ Resume ${resumeTime}</span>` : ''}
+                        </div>
+                        <div class="playlist-date">📅 ${formatCentralTime(ep.centralDate)}</div>
+                        <div class="playlist-duration">🎬 ${ep.show} ${ep.hour}</div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+    
+    // ============ PLAY EPISODE FUNCTION ============
+    function playEpisode(index) {
+        if (index < 0 || index >= currentPlaylist.length) return;
         
-        document.getElementById('calendarNextMonth').addEventListener('click', () => {
-            currentMonth.setMonth(currentMonth.getMonth() + 1);
-            buildCalendar();
-        });
+        currentIndex = index;
+        const episode = currentPlaylist[currentIndex];
+        currentEpisodeData = episode;
         
-        clearDateFilterBtn.addEventListener('click', () => {
-            selectedDate = null;
-            currentDateFilter = null;
-            dateFilterBadge.style.display = 'none';
-            calendarFlyout.classList.remove('active');
-            renderEpisodes();
-            updateActiveFiltersUI();
-            updateCalendarSelection();
-        });
+        currentTitle.textContent = episode.title;
+        videoPlayer.src = episode.videoUrl;
+        videoPlayer.load();
         
-        applyDateFilterBtn.addEventListener('click', () => {
-            if (selectedDate) {
-                currentDateFilter = selectedDate;
-                currentRangeFilter = null; // Clear range filter
-                quickFilterBtns.forEach(btn => btn.classList.remove('active'));
-                dateFilterBadge.style.display = 'inline-flex';
-                dateFilterBadge.innerText = '✓';
-                calendarFlyout.classList.remove('active');
-                renderEpisodes();
-                updateActiveFiltersUI();
-            }
-        });
+        const savedPosition = getPlaybackPosition(episode.id);
+        if (savedPosition > 0 && savedPosition < videoPlayer.duration - 2) {
+            const setPosition = () => {
+                if (savedPosition < videoPlayer.duration && savedPosition > 0) {
+                    videoPlayer.currentTime = savedPosition;
+                    showResumeNotification(savedPosition);
+                }
+                videoPlayer.removeEventListener('loadedmetadata', setPosition);
+            };
+            videoPlayer.addEventListener('loadedmetadata', setPosition);
+            setTimeout(() => {
+                if (videoPlayer.readyState === 0) {
+                    videoPlayer.removeEventListener('loadedmetadata', setPosition);
+                }
+            }, 3000);
+        }
         
-        quickFilterBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                const days = parseInt(btn.dataset.days);
-                currentRangeFilter = days;
-                currentDateFilter = null; // Clear specific date filter
-                selectedDate = null;
-                dateFilterBadge.style.display = 'none';
-                
-                quickFilterBtns.forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                
-                renderEpisodes();
-                updateActiveFiltersUI();
+        if (autoplayToggle.checked) {
+            videoPlayer.play().catch(e => console.log('Autoplay prevented:', e));
+        }
+        
+        renderVirtualPlaylist();
+        
+        if ('mediaSession' in navigator) {
+            navigator.mediaSession.metadata = new MediaMetadata({
+                title: episode.title,
+                artist: episode.show,
+                album: 'AJN Hourly Archive'
+            });
+        }
+        
+        document.title = `${episode.show} - AJN Hourly Archive`;
+        saveLastPlayedEpisode(episode.id, savedPosition || 0);
+    }
+    
+    // ============ ACTION HANDLERS ============
+    window.downloadEpisode = function(index) {
+        const episode = currentPlaylist[index];
+        if (!episode) return;
+        const link = document.createElement('a');
+        link.href = episode.videoUrl;
+        link.download = `${episode.title.replace(/[^a-z0-9]/gi, '_')}.m4v`;
+        link.click();
+        showToast(`Downloading: ${episode.title.substring(0, 50)}...`);
+        closeAllFlyouts();
+    };
+    
+    window.shareEpisode = function(index) {
+        const episode = currentPlaylist[index];
+        if (!episode) return;
+        if (navigator.share) {
+            navigator.share({
+                title: episode.title,
+                text: episode.description.substring(0, 100),
+                url: episode.videoUrl
+            }).catch(e => console.log('Share cancelled'));
+        } else {
+            navigator.clipboard.writeText(episode.videoUrl);
+            showToast('Link copied to clipboard');
+        }
+        closeAllFlyouts();
+    };
+    
+    window.copyLink = function(index) {
+        const episode = currentPlaylist[index];
+        if (!episode) return;
+        navigator.clipboard.writeText(episode.videoUrl);
+        showToast('Link copied to clipboard');
+        closeAllFlyouts();
+    };
+    
+    window.viewDetails = function(index) {
+        const episode = currentPlaylist[index];
+        if (!episode) return;
+        closeAllFlyouts();
+        
+        const modal = document.createElement('div');
+        modal.style.cssText = `
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.8); display: flex; align-items: center;
+            justify-content: center; z-index: 2000; backdrop-filter: blur(4px);
+        `;
+        
+        modal.innerHTML = `
+            <div style="background: var(--bg-surface); border-radius: 16px; 
+                        max-width: 500px; width: 90%; max-height: 80vh; 
+                        overflow-y: auto; padding: 24px;">
+                <h3 style="margin-bottom: 16px; color: var(--primary);">Episode Details</h3>
+                <div style="margin-bottom: 12px;"><strong>Title:</strong><br>${escapeHtml(episode.title)}</div>
+                <div style="margin-bottom: 12px;"><strong>Show:</strong><br>${episode.show} ${episode.hour}</div>
+                <div style="margin-bottom: 12px;"><strong>Date (CT):</strong><br>${formatCentralTime(episode.centralDate)}</div>
+                <div style="margin-bottom: 12px;"><strong>Description:</strong><br>${escapeHtml(episode.description)}</div>
+                <div style="margin-bottom: 12px;"><strong>Video URL:</strong><br><a href="${episode.videoUrl}" target="_blank" style="color: var(--primary); word-break: break-all;">${episode.videoUrl}</a></div>
+                <button onclick="this.closest('div').parentElement.remove()" class="btn btn-primary" style="margin-top: 16px;">Close</button>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+    };
+    
+    window.clearPlaybackPosition = function(episodeId) {
+        clearPlaybackPosition(episodeId);
+    };
+    
+    function closeAllFlyouts() {
+        document.querySelectorAll('.flyout-menu').forEach(menu => menu.classList.remove('active'));
+    }
+    
+    // ============ SEARCH AND FILTER FUNCTIONS ============
+    function debounce(func, delay) {
+        return function(...args) {
+            clearTimeout(debounceTimeout);
+            debounceTimeout = setTimeout(() => func.apply(this, args), delay);
+        };
+    }
+    
+    function applyAllFilters() {
+        let filtered = [...allEpisodes];
+        
+        if (currentSearchTerm) {
+            const term = currentSearchTerm.toLowerCase();
+            filtered = filtered.filter(ep => 
+                ep.title.toLowerCase().includes(term) || 
+                ep.description.toLowerCase().includes(term)
+            );
+        }
+        
+        if (currentDateFilter) {
+            filtered = filtered.filter(ep => 
+                ep.dateKey >= currentDateFilter.start && 
+                ep.dateKey <= currentDateFilter.end
+            );
+        }
+        
+        currentPlaylist = filtered;
+        currentIndex = 0;
+        
+        const uniqueDates = new Set(currentPlaylist.map(e => e.dateKey));
+        let filterText = '';
+        if (currentSearchTerm) filterText += ` 🔍 "${currentSearchTerm}"`;
+        if (currentDateFilter) filterText += ` 📅 ${currentDateFilter.start} to ${currentDateFilter.end}`;
+        playlistStats.innerHTML = `${currentPlaylist.length.toLocaleString()} episodes • ${uniqueDates.size} days • CT Timezone${filterText}`;
+        
+        updateActiveFiltersDisplay();
+        renderVirtualPlaylist();
+        
+        if (currentPlaylist.length > 0) {
+            playEpisode(0);
+        }
+        
+        updateQuickFilterButtons();
+    }
+    
+    function updateActiveFiltersDisplay() {
+        if (!activeFiltersContainer) return;
+        activeFiltersContainer.innerHTML = '';
+        
+        if (currentSearchTerm) {
+            const tag = document.createElement('div');
+            tag.className = 'filter-tag';
+            tag.innerHTML = `🔍 ${escapeHtml(currentSearchTerm)} <span class="remove-filter" data-filter="search">✖</span>`;
+            activeFiltersContainer.appendChild(tag);
+        }
+        
+        if (currentDateFilter) {
+            const tag = document.createElement('div');
+            tag.className = 'filter-tag';
+            tag.innerHTML = `📅 ${currentDateFilter.start} – ${currentDateFilter.end} <span class="remove-filter" data-filter="date">✖</span>`;
+            activeFiltersContainer.appendChild(tag);
+        }
+        
+        document.querySelectorAll('.remove-filter').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const filterType = btn.getAttribute('data-filter');
+                if (filterType === 'search') {
+                    currentSearchTerm = '';
+                    searchInput.value = '';
+                    clearSearchBtn.classList.remove('visible');
+                    applyAllFilters();
+                } else if (filterType === 'date') {
+                    currentDateFilter = null;
+                    selectedCalendarDate = null;
+                    if (dateFilterBadge) dateFilterBadge.style.display = 'none';
+                    applyAllFilters();
+                    renderCalendar(currentCalendarYear, currentCalendarMonth);
+                }
             });
         });
+    }
+    
+    function updateQuickFilterButtons() {
+        const quickBtns = document.querySelectorAll('.quick-filter-btn');
+        quickBtns.forEach(btn => btn.classList.remove('active'));
         
-        // Dark Mode
-        darkModeToggle.addEventListener('click', () => {
-            document.body.classList.toggle('dark-mode');
-            const isDark = document.body.classList.contains('dark-mode');
-            darkModeToggle.textContent = isDark ? '☀️ Light' : '🌙 Dark';
+        if (currentDateFilter) {
+            const startDate = new Date(currentDateFilter.start);
+            const endDate = new Date(currentDateFilter.end);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const diffDays = Math.ceil((today - startDate) / (1000 * 60 * 60 * 24));
+            
+            quickBtns.forEach(btn => {
+                const days = parseInt(btn.getAttribute('data-days'));
+                if (days === diffDays && endDate.toDateString() === today.toDateString()) {
+                    btn.classList.add('active');
+                }
+            });
+        }
+    }
+    
+    function clearSearch() {
+        if (searchInput) {
+            searchInput.value = '';
+            currentSearchTerm = '';
+            clearSearchBtn.classList.remove('visible');
+            applyAllFilters();
+        }
+    }
+    
+    function setQuickDateFilter(days) {
+        const endDate = new Date();
+        endDate.setHours(23, 59, 59, 999);
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - days + 1);
+        startDate.setHours(0, 0, 0, 0);
+        
+        currentDateFilter = {
+            start: startDate.toISOString().split('T')[0],
+            end: endDate.toISOString().split('T')[0]
+        };
+        
+        if (dateFilterBadge) {
+            dateFilterBadge.textContent = `${days}d`;
+            dateFilterBadge.style.display = 'inline-block';
+        }
+        
+        applyAllFilters();
+        closeCalendar();
+    }
+    
+    function renderCalendar(year, month) {
+        const firstDay = new Date(year, month, 1);
+        const lastDay = new Date(year, month + 1, 0);
+        const startDay = firstDay.getDay();
+        const daysInMonth = lastDay.getDate();
+        
+        calendarMonthYear.textContent = firstDay.toLocaleString('default', { month: 'long', year: 'numeric' });
+        
+        let html = '';
+        
+        for (let i = 0; i < startDay; i++) {
+            html += '<div class="calendar-day other-month"></div>';
+        }
+        
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            const hasEpisode = allEpisodes.some(ep => ep.dateKey === dateKey);
+            const isSelected = currentDateFilter && dateKey >= currentDateFilter.start && dateKey <= currentDateFilter.end;
+            
+            html += `
+                <div class="calendar-day ${hasEpisode ? 'has-episode' : ''} ${isSelected ? 'selected' : ''}"
+                     data-date="${dateKey}">
+                    ${day}
+                </div>
+            `;
+        }
+        
+        calendarDaysGrid.innerHTML = html;
+        
+        document.querySelectorAll('.calendar-day[data-date]').forEach(day => {
+            day.addEventListener('click', () => {
+                const date = day.getAttribute('data-date');
+                if (selectedCalendarDate === date) {
+                    selectedCalendarDate = null;
+                    day.classList.remove('selected');
+                } else {
+                    document.querySelectorAll('.calendar-day.selected').forEach(d => d.classList.remove('selected'));
+                    selectedCalendarDate = date;
+                    day.classList.add('selected');
+                }
+            });
         });
+    }
+    
+    function applyDateFilter() {
+        if (selectedCalendarDate) {
+            currentDateFilter = {
+                start: selectedCalendarDate,
+                end: selectedCalendarDate
+            };
+            if (dateFilterBadge) {
+                dateFilterBadge.textContent = '📅';
+                dateFilterBadge.style.display = 'inline-block';
+            }
+            applyAllFilters();
+        }
+        closeCalendar();
+    }
+    
+    function openCalendar() {
+        calendarFlyout.classList.add('active');
+        renderCalendar(currentCalendarYear, currentCalendarMonth);
+    }
+    
+    function closeCalendar() {
+        calendarFlyout.classList.remove('active');
+    }
+    
+    function setupSearch() {
+        if (!searchInput) return;
         
-        // Close calendar when clicking outside
-        document.addEventListener('click', (e) => {
-            if (!calendarFilterBtn.contains(e.target) && !calendarFlyout.contains(e.target)) {
-                calendarFlyout.classList.remove('active');
+        const debouncedSearch = debounce(() => {
+            currentSearchTerm = searchInput.value;
+            clearSearchBtn.classList.toggle('visible', currentSearchTerm.length > 0);
+            applyAllFilters();
+        }, 200);
+        
+        searchInput.addEventListener('input', debouncedSearch);
+        if (clearSearchBtn) {
+            clearSearchBtn.addEventListener('click', clearSearch);
+        }
+    }
+    
+    function setupCalendar() {
+        if (!calendarFilterBtn) return;
+        
+        calendarFilterBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (calendarFlyout.classList.contains('active')) {
+                closeCalendar();
+            } else {
+                openCalendar();
             }
         });
         
-        // Initial render
-        renderEpisodes();
-        buildCalendar();
-    </script>
+        if (closeCalendarBtn) {
+            closeCalendarBtn.addEventListener('click', closeCalendar);
+        }
+        
+        if (calendarPrevMonth) {
+            calendarPrevMonth.addEventListener('click', () => {
+                currentCalendarMonth--;
+                if (currentCalendarMonth < 0) {
+                    currentCalendarMonth = 11;
+                    currentCalendarYear--;
+                }
+                renderCalendar(currentCalendarYear, currentCalendarMonth);
+            });
+        }
+        
+        if (calendarNextMonth) {
+            calendarNextMonth.addEventListener('click', () => {
+                currentCalendarMonth++;
+                if (currentCalendarMonth > 11) {
+                    currentCalendarMonth = 0;
+                    currentCalendarYear++;
+                }
+                renderCalendar(currentCalendarYear, currentCalendarMonth);
+            });
+        }
+        
+        if (clearDateFilterBtn) {
+            clearDateFilterBtn.addEventListener('click', () => {
+                currentDateFilter = null;
+                selectedCalendarDate = null;
+                if (dateFilterBadge) dateFilterBadge.style.display = 'none';
+                applyAllFilters();
+                renderCalendar(currentCalendarYear, currentCalendarMonth);
+            });
+        }
+        
+        if (applyDateFilterBtn) {
+            applyDateFilterBtn.addEventListener('click', applyDateFilter);
+        }
+        
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.calendar-filter-container') && calendarFlyout.classList.contains('active')) {
+                closeCalendar();
+            }
+        });
+    }
+    
+    function setupQuickFilters() {
+        const quickBtns = document.querySelectorAll('.quick-filter-btn');
+        quickBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const days = parseInt(btn.getAttribute('data-days'));
+                if (!isNaN(days)) {
+                    setQuickDateFilter(days);
+                }
+            });
+        });
+    }
+    
+    // ============ LOAD EPISODES FROM RSS ============
+    async function loadEpisodes() {
+        showToast('Loading episodes...');
+        
+        try {
+            const response = await fetch(API_URL);
+            const data = await response.json();
+            
+            if (data.status !== 'ok') throw new Error('Failed to load RSS feed');
+            
+            allEpisodes = data.items.map((item, idx) => {
+                const utcDate = new Date(item.pubDate);
+                const centralDate = toCentralTime(utcDate);
+                const { show, hour } = parseEpisodeDetails(item.title);
+                
+                return {
+                    id: idx,
+                    title: item.title,
+                    description: item.description ? item.description.replace(/<[^>]*>/g, '') : 'No description',
+                    centralDate: centralDate,
+                    dateKey: centralDate.toISOString().split('T')[0],
+                    show: show,
+                    hour: hour,
+                    videoUrl: transformVideoUrl(item.link),
+                    originalLink: item.link
+                };
+            });
+            
+            allEpisodes.sort((a, b) => b.centralDate - a.centralDate);
+            currentPlaylist = [...allEpisodes];
+            
+            const uniqueDates = new Set(currentPlaylist.map(e => e.dateKey));
+            playlistStats.innerHTML = `${currentPlaylist.length.toLocaleString()} episodes • ${uniqueDates.size} days • CT Timezone`;
+            
+            renderVirtualPlaylist();
+            
+            if (currentPlaylist.length > 0) {
+                playEpisode(0);
+            }
+            
+            showToast(`Loaded ${allEpisodes.length.toLocaleString()} episodes`);
+            
+        } catch (error) {
+            console.error('Error loading episodes:', error);
+            playlistStats.innerHTML = '❌ Failed to load episodes';
+            virtualList.innerHTML = '<div class="error-state">❌ Failed to load episodes. Please refresh.</div>';
+            showToast('Failed to load episodes', 4000);
+        }
+    }
+    
+    // ============ DARK MODE ============
+    function initDarkMode() {
+        const isDark = localStorage.getItem(STORAGE_KEYS.DARK_MODE) === 'true';
+        if (isDark) {
+            document.body.classList.add('dark');
+            if (darkModeToggle) darkModeToggle.innerHTML = '☀️ Light';
+        }
+        
+        if (darkModeToggle) {
+            darkModeToggle.addEventListener('click', () => {
+                document.body.classList.toggle('dark');
+                const dark = document.body.classList.contains('dark');
+                localStorage.setItem(STORAGE_KEYS.DARK_MODE, dark);
+                darkModeToggle.innerHTML = dark ? '☀️ Light' : '🌙 Dark';
+            });
+        }
+    }
+    
+    // ============ EVENT DELEGATION ============
+    playlistContainer.addEventListener('click', (e) => {
+        const playlistItem = e.target.closest('.playlist-item');
+        if (playlistItem && !e.target.closest('.menu-trigger') && !e.target.closest('.flyout-menu')) {
+            const index = parseInt(playlistItem.dataset.index);
+            if (!isNaN(index)) playEpisode(index);
+        }
+    });
+    
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.menu-trigger') && !e.target.closest('.flyout-menu')) {
+            closeAllFlyouts();
+        }
+    });
+    
+    playlistContainer.addEventListener('scroll', () => {
+        requestAnimationFrame(renderVirtualPlaylist);
+    });
+    
+    if (downloadBtn) {
+        downloadBtn.addEventListener('click', () => {
+            if (currentEpisodeData) window.downloadEpisode(currentIndex);
+        });
+    }
+    
+    if (shareBtn) {
+        shareBtn.addEventListener('click', () => {
+            if (currentEpisodeData) window.shareEpisode(currentIndex);
+        });
+    }
+    
+    if (nextBtn) {
+        nextBtn.addEventListener('click', () => {
+            if (currentIndex + 1 < currentPlaylist.length) {
+                playEpisode(currentIndex + 1);
+                showToast('Playing next episode...');
+            } else {
+                showToast('End of playlist');
+            }
+        });
+    }
+    
+    // ============ INITIALIZATION ============
+    function init() {
+        document.body.classList.add('preload');
+        setTimeout(() => document.body.classList.remove('preload'), 100);
+        
+        initDarkMode();
+        loadPlaybackPositions();
+        cleanupOldPlaybackPositions();
+        initVideoControls();
+        startPositionTracking();
+        setupSearch();
+        setupCalendar();
+        setupQuickFilters();
+        loadEpisodes();
+        
+        console.log('Application initialized successfully');
+    }
+    
+    init();
+});
+</script>
 </body>
 </html>
