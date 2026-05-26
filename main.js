@@ -1,10 +1,11 @@
-// ============ MAIN APPLICATION ============
+// ============ MAIN APPLICATION WITH VIRTUAL PLAYLIST ============
 
 // Global state
 let allEpisodes = [];
 let currentPlaylist = [];
 let currentIndex = 0;
 let nowPlayingCard = null;
+let virtualPlaylist = null;
 
 // RSS Feed URL
 const RSS_URL = 'https://rss.alexjones.media/AJNHourlyVideo.xml';
@@ -12,8 +13,6 @@ const API_URL = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURICompone
 
 // Load episodes from RSS
 async function loadEpisodes() {
-    const container = document.getElementById('playlistContainer');
-    
     try {
         const response = await fetch(API_URL);
         const data = await response.json();
@@ -48,32 +47,61 @@ async function loadEpisodes() {
         
         // Update UI
         updatePlaylistStats();
-        renderPlaylist();
+        
+        // Initialize Virtual Playlist
+        if (!virtualPlaylist) {
+            virtualPlaylist = new VirtualPlaylist('playlistContainer', {
+                rowHeight: 80, // Must match CSS height
+                buffer: 5
+            });
+            
+            virtualPlaylist.setOnItemClick((index) => {
+                playEpisode(index);
+            });
+            
+            virtualPlaylist.setOnScrollEnd(() => {
+                // For future lazy loading implementation
+                console.log('Scroll end reached - ready for lazy loading');
+            });
+        }
+        
+        // Set items in virtual playlist
+        virtualPlaylist.setItems(currentPlaylist);
         
         // Initialize Now Playing Card component
-        nowPlayingCard = new NowPlayingCard();
-        nowPlayingCard.setOnEpisodeEnd(() => {
-            if (nowPlayingCard.isAutoplayEnabled() && currentIndex + 1 < currentPlaylist.length) {
-                playEpisode(currentIndex + 1);
-                showToast('▶ Auto-playing next episode');
-            }
-        });
+        if (!nowPlayingCard) {
+            nowPlayingCard = new NowPlayingCard();
+            nowPlayingCard.setOnEpisodeEnd(() => {
+                if (nowPlayingCard.isAutoplayEnabled() && currentIndex + 1 < currentPlaylist.length) {
+                    playEpisode(currentIndex + 1);
+                    showToast('▶ Auto-playing next episode');
+                }
+            });
+        }
         
         // Auto-select first episode
         if (currentPlaylist.length > 0) {
             playEpisode(0);
         }
         
-        showToast(`Loaded ${allEpisodes.length} episodes`);
+        // Log performance metrics
+        if (virtualPlaylist) {
+            console.log('Virtual Playlist Metrics:', virtualPlaylist.getPerformanceMetrics());
+        }
+        
+        showToast(`Loaded ${allEpisodes.length} episodes (virtualized for smooth scrolling)`);
         
     } catch (error) {
         console.error('Error loading episodes:', error);
-        container.innerHTML = `
-            <div class="error-state">
-                <div>❌ Failed to load episodes</div>
-                <div class="mt-1">Please check your connection and refresh</div>
-            </div>
-        `;
+        const container = document.getElementById('playlistContainer');
+        if (container) {
+            container.innerHTML = `
+                <div class="error-state">
+                    <div>❌ Failed to load episodes</div>
+                    <div class="mt-1">Please check your connection and refresh</div>
+                </div>
+            `;
+        }
         showToast('Failed to load episodes', 4000);
     }
 }
@@ -83,36 +111,8 @@ function updatePlaylistStats() {
     const uniqueDates = new Set(currentPlaylist.map(e => e.dateKey));
     const statsElement = document.getElementById('playlistStats');
     if (statsElement) {
-        statsElement.innerHTML = `${currentPlaylist.length} episodes • ${uniqueDates.size} days • CT Timezone`;
+        statsElement.innerHTML = `${currentPlaylist.length.toLocaleString()} episodes • ${uniqueDates.size} days • CT Timezone`;
     }
-}
-
-// Render playlist items
-function renderPlaylist() {
-    const container = document.getElementById('playlistContainer');
-    
-    if (!currentPlaylist.length) {
-        container.innerHTML = '<div class="loading-state">No episodes found</div>';
-        return;
-    }
-    
-    container.innerHTML = currentPlaylist.map((ep, idx) => `
-        <div class="playlist-item ${idx === currentIndex ? 'active' : ''}" 
-             onclick="playEpisode(${idx})"
-             onkeypress="if(event.key==='Enter') playEpisode(${idx})"
-             tabindex="0"
-             role="button"
-             aria-label="Play episode: ${escapeHtml(ep.title)}">
-            <div class="playlist-thumbnail" aria-hidden="true">
-                🎬
-            </div>
-            <div class="playlist-info">
-                <div class="playlist-title">${escapeHtml(ep.title)}</div>
-                <div class="playlist-date">📅 ${formatCentralTime(ep.centralDate)}</div>
-                <div class="playlist-duration">🎬 ${ep.show} ${ep.hour}</div>
-            </div>
-        </div>
-    `).join('');
 }
 
 // Play episode
@@ -127,11 +127,16 @@ function playEpisode(index) {
         nowPlayingCard.updateEpisode(episode);
     }
     
-    // Update active state in playlist
-    renderPlaylist();
+    // Update virtual playlist active state
+    if (virtualPlaylist) {
+        virtualPlaylist.setCurrentIndex(currentIndex);
+    }
     
     // Save to localStorage for persistence
     savePlaybackState();
+    
+    // Update document title
+    document.title = `${episode.show} - AJN Hourly Archive`;
 }
 
 // Save playback state
@@ -150,6 +155,9 @@ function restorePlaybackState() {
         const index = parseInt(savedIndex);
         if (index < currentPlaylist.length) {
             playEpisode(index);
+            if (virtualPlaylist) {
+                virtualPlaylist.scrollToIndex(index);
+            }
         }
     }
 }
@@ -185,13 +193,23 @@ function shareEpisode() {
     }
 }
 
-// Next episode (called from main controls)
+// Next episode
 function nextEpisode() {
     if (currentIndex + 1 < currentPlaylist.length) {
         playEpisode(currentIndex + 1);
         showToast('Playing next episode...');
     } else {
         showToast('End of playlist reached');
+    }
+}
+
+// Previous episode
+function previousEpisode() {
+    if (currentIndex - 1 >= 0) {
+        playEpisode(currentIndex - 1);
+        showToast('Playing previous episode...');
+    } else {
+        showToast('Beginning of playlist');
     }
 }
 
@@ -211,14 +229,67 @@ function initDarkMode() {
     });
 }
 
-// Event Listeners
-document.getElementById('downloadBtn').addEventListener('click', downloadEpisode);
-document.getElementById('shareBtn').addEventListener('click', shareEpisode);
-document.getElementById('nextBtn').addEventListener('click', nextEpisode);
+// Search and filter (optimized for virtual list)
+function applyFilters() {
+    const searchTerm = document.getElementById('searchInput')?.value.toLowerCase() || '';
+    const startDate = document.getElementById('startDate')?.value || '';
+    const endDate = document.getElementById('endDate')?.value || '';
+    
+    currentPlaylist = allEpisodes.filter(ep => {
+        if (searchTerm && !ep.title.toLowerCase().includes(searchTerm) && 
+            !ep.description.toLowerCase().includes(searchTerm)) return false;
+        if (startDate && ep.dateKey < startDate) return false;
+        if (endDate && ep.dateKey > endDate) return false;
+        return true;
+    });
+    
+    currentIndex = 0;
+    updatePlaylistStats();
+    
+    // Update virtual playlist with filtered items
+    if (virtualPlaylist) {
+        virtualPlaylist.setItems(currentPlaylist);
+        virtualPlaylist.setCurrentIndex(0);
+    }
+    
+    if (currentPlaylist.length > 0) {
+        playEpisode(0);
+    }
+    
+    showToast(`Found ${currentPlaylist.length.toLocaleString()} episodes`);
+}
 
-// Make playEpisode globally available for onclick
+// Event Listeners
+document.getElementById('downloadBtn')?.addEventListener('click', downloadEpisode);
+document.getElementById('shareBtn')?.addEventListener('click', shareEpisode);
+document.getElementById('nextBtn')?.addEventListener('click', nextEpisode);
+
+// Add keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+    // Ctrl/Cmd + Arrow keys for navigation
+    if ((e.ctrlKey || e.metaKey) && e.key === 'ArrowDown') {
+        e.preventDefault();
+        nextEpisode();
+    } else if ((e.ctrlKey || e.metaKey) && e.key === 'ArrowUp') {
+        e.preventDefault();
+        previousEpisode();
+    } else if (e.key === ' ' && document.activeElement?.tagName !== 'BUTTON') {
+        e.preventDefault();
+        const video = document.getElementById('videoPlayer');
+        if (video) {
+            if (video.paused) video.play();
+            else video.pause();
+        }
+    }
+});
+
+// Make playEpisode globally available
 window.playEpisode = playEpisode;
+window.applyFilters = applyFilters;
 
 // Initialize application
 initDarkMode();
 loadEpisodes();
+
+// Log virtual list initialization
+console.log('P1-3 Virtualized Playlist initialized - Optimized for 1000+ episodes');
