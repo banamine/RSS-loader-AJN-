@@ -1,5 +1,4 @@
-// ============ CALENDAR VIEW COMPONENT ==========
-import { formatDateKey, escapeHtml, showToast } from '../utils/helpers.js';
+// ============ UPDATED CALENDAR VIEW WITH SLIDE ANIMATION ==========
 
 export class CalendarView {
     constructor(containerId, options = {}) {
@@ -7,34 +6,60 @@ export class CalendarView {
         this.episodes = [];
         this.currentDate = new Date();
         this.onDateSelect = options.onDateSelect || null;
+        this.isOpen = false;
         
         this.render();
         this.attachEvents();
-    }
-    
-    setEpisodes(episodes) {
-        this.episodes = episodes;
-        this.renderCalendar();
     }
     
     render() {
         if (!this.container) return;
         
         this.container.innerHTML = `
-            <div class="calendar-container">
-                <div class="calendar-header">
-                    <button id="calendarPrevMonth" class="calendar-nav-btn" aria-label="Previous month">◀</button>
-                    <h2 id="calendarMonthTitle" class="calendar-month-title"></h2>
-                    <button id="calendarNextMonth" class="calendar-nav-btn" aria-label="Next month">▶</button>
+            <div class="calendar-slide-container" id="calendarSlideContainer">
+                <div class="calendar-section">
+                    <div class="calendar-container">
+                        <div class="calendar-header">
+                            <button id="calendarPrevMonth" class="calendar-nav-btn" aria-label="Previous month">◀</button>
+                            <h2 id="calendarMonthTitle" class="calendar-month-title"></h2>
+                            <button id="calendarNextMonth" class="calendar-nav-btn" aria-label="Next month">▶</button>
+                        </div>
+                        <div class="calendar-weekdays">
+                            <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
+                        </div>
+                        <div id="calendarGrid" class="calendar-grid"></div>
+                    </div>
                 </div>
-                <div class="calendar-weekdays">
-                    <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
-                </div>
-                <div id="calendarGrid" class="calendar-grid"></div>
             </div>
         `;
         
         this.renderCalendar();
+    }
+    
+    toggle() {
+        const slideContainer = document.getElementById('calendarSlideContainer');
+        if (slideContainer) {
+            this.isOpen = !this.isOpen;
+            slideContainer.classList.toggle('active', this.isOpen);
+            
+            // Update toggle button if exists
+            const toggleBtn = document.getElementById('calendarToggleBtn');
+            if (toggleBtn) {
+                toggleBtn.classList.toggle('active', this.isOpen);
+                const icon = toggleBtn.querySelector('.calendar-toggle-icon');
+                if (icon) {
+                    icon.textContent = this.isOpen ? '▲' : '▼';
+                }
+            }
+        }
+    }
+    
+    open() {
+        if (!this.isOpen) this.toggle();
+    }
+    
+    close() {
+        if (this.isOpen) this.toggle();
     }
     
     renderCalendar() {
@@ -45,7 +70,7 @@ export class CalendarView {
         const startDayOfWeek = firstDayOfMonth.getDay();
         const daysInMonth = lastDayOfMonth.getDate();
         const today = new Date();
-        const todayKey = formatDateKey(today);
+        const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
         
         const monthTitle = document.getElementById('calendarMonthTitle');
         if (monthTitle) {
@@ -64,7 +89,7 @@ export class CalendarView {
                 html += `<div class="calendar-day other-month"></div>`;
             } else {
                 const currentDate = new Date(year, month, dayCounter);
-                const dateKey = formatDateKey(currentDate);
+                const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(dayCounter).padStart(2, '0')}`;
                 const dayEpisodes = this.episodes.filter(ep => ep.dateKey === dateKey);
                 const isToday = dateKey === todayKey;
                 const hasEpisodes = dayEpisodes.length > 0;
@@ -74,7 +99,7 @@ export class CalendarView {
                     tooltipHtml = `<div class="calendar-tooltip">
                         ${dayEpisodes.slice(0, 3).map(ep => `
                             <div class="tooltip-episode">
-                                <div class="tooltip-episode-title">${escapeHtml(ep.title.substring(0, 40))}${ep.title.length > 40 ? '...' : ''}</div>
+                                <div class="tooltip-episode-title">${this.escapeHtml(ep.title.substring(0, 40))}${ep.title.length > 40 ? '...' : ''}</div>
                                 <div class="tooltip-episode-time">${ep.show} ${ep.hour}</div>
                             </div>
                         `).join('')}
@@ -104,6 +129,7 @@ export class CalendarView {
                 const dateKey = day.getAttribute('data-date');
                 if (this.onDateSelect && dateKey) {
                     this.onDateSelect(dateKey);
+                    this.close(); // Auto-close calendar after selection
                 }
             });
             day.addEventListener('keypress', (e) => {
@@ -111,6 +137,7 @@ export class CalendarView {
                     const dateKey = day.getAttribute('data-date');
                     if (this.onDateSelect && dateKey) {
                         this.onDateSelect(dateKey);
+                        this.close();
                     }
                 }
             });
@@ -136,8 +163,37 @@ export class CalendarView {
         }
     }
     
+    setEpisodes(episodes) {
+        this.episodes = episodes;
+        this.renderCalendar();
+    }
+    
     goToToday() {
         this.currentDate = new Date();
         this.renderCalendar();
     }
+    
+    escapeHtml(str) {
+        if (!str) return '';
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+}
+
+// Create and attach calendar toggle button to header
+export function attachCalendarToggle() {
+    const headerControls = document.querySelector('.header-controls');
+    if (!headerControls) return;
+    
+    const toggleBtn = document.createElement('button');
+    toggleBtn.id = 'calendarToggleBtn';
+    toggleBtn.className = 'calendar-toggle-btn';
+    toggleBtn.setAttribute('aria-label', 'Toggle calendar view');
+    toggleBtn.setAttribute('aria-expanded', 'false');
+    toggleBtn.innerHTML = '<span>📅</span> <span class="calendar-toggle-icon">▼</span>';
+    
+    headerControls.appendChild(toggleBtn);
+    
+    return toggleBtn;
 }

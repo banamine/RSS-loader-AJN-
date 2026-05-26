@@ -12,64 +12,62 @@
 </head>
 <body>
 
-<!-- STICKY HEADER -->
-<header class="sticky-header">
-    <div class="header-content">
-        <div class="logo">
-            <h1>🎙️ AJN Hourly Archive</h1>
-            <span class="logo-badge">Central Time</span>
-        </div>
-        <div class="view-toggle-container">
-            <button id="listViewBtn" class="view-toggle-btn active" aria-label="List view">📋 List</button>
-            <button id="gridViewBtn" class="view-toggle-btn" aria-label="Grid view">🎴 Grid</button>
-        </div>
-        <div class="header-controls">
-            <button id="darkModeToggle" class="btn-dark-mode" aria-label="Switch to dark mode">🌙 Dark</button>
-        </div>
-    </div>
-    
-    <!-- QUEUE SECTION -->
-    <div id="queueSection" class="queue-section"></div>
-    
-    <!-- Calendar Section -->
-    <div id="calendarSection" class="calendar-section"></div>
-    
-    <!-- Search and Filter Section -->
-    <div class="search-section">
-        <div class="search-bar-container">
-            <div class="search-input-wrapper">
-                <span class="search-icon">🔍</span>
-                <input type="text" id="globalSearchInput" class="global-search-input" placeholder="Search episodes by title or description..." aria-label="Search episodes">
-                <button id="clearSearchBtn" class="clear-search-btn" aria-label="Clear search">✖</button>
+<div class="app-container">
+    <!-- STICKY HEADER -->
+    <header class="sticky-header">
+        <div class="header-content">
+            <div class="logo">
+                <h1>🎙️ AJN Hourly Archive</h1>
+                <span class="logo-badge">Central Time</span>
             </div>
-            <div id="activeFilters" class="active-filters"></div>
+            <div class="view-toggle-container">
+                <button id="listViewBtn" class="view-toggle-btn active" aria-label="List view">📋 List</button>
+                <button id="gridViewBtn" class="view-toggle-btn" aria-label="Grid view">🎴 Grid</button>
+            </div>
+            <div class="header-controls">
+                <button id="darkModeToggle" class="btn-dark-mode" aria-label="Switch to dark mode">🌙 Dark</button>
+            </div>
         </div>
-    </div>
-</header>
-
-<!-- MAIN CONTAINER -->
-<main class="container">
-    <div class="main-grid">
-        <!-- LEFT COLUMN (65%) - NOW PLAYING CARD -->
-        <div id="nowPlayingSection" class="video-section"></div>
         
-        <!-- RIGHT COLUMN (35%) - VIRTUALIZED PLAYLIST -->
-        <div class="playlist-section">
-            <div class="playlist-header">
-                <div>
-                    <h2>📋 All Episodes</h2>
-                    <div class="playlist-stats" id="playlistStats" aria-live="polite">Loading episodes...</div>
+        <!-- QUEUE SECTION -->
+        <div id="queueSection" class="queue-section"></div>
+        
+        <!-- Calendar Section (Slide-in) -->
+        <div id="calendarSection" class="calendar-section-container"></div>
+        
+        <!-- Search and Filter Section -->
+        <div class="search-section">
+            <div class="search-bar-container">
+                <div class="search-input-wrapper">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="globalSearchInput" class="global-search-input" placeholder="Search episodes by title or description..." aria-label="Search episodes">
+                    <button id="clearSearchBtn" class="clear-search-btn" aria-label="Clear search">✖</button>
+                </div>
+                <div id="activeFilters" class="active-filters"></div>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTAINER -->
+    <main class="container">
+        <div class="main-grid">
+            <div id="nowPlayingSection" class="video-section"></div>
+            <div class="playlist-section">
+                <div class="playlist-header">
+                    <div>
+                        <h2>📋 All Episodes</h2>
+                        <div class="playlist-stats" id="playlistStats" aria-live="polite">Loading episodes...</div>
+                    </div>
+                </div>
+                <div class="playlist-container" id="playlistContainer">
+                    <div id="scrollSpacer" style="height: 0px; position: relative;"></div>
+                    <div id="virtualList" style="position: absolute; top: 0; left: 0; width: 100%;"></div>
                 </div>
             </div>
-            <div class="playlist-container" id="playlistContainer">
-                <div id="scrollSpacer" style="height: 0px; position: relative;"></div>
-                <div id="virtualList" style="position: absolute; top: 0; left: 0; width: 100%;"></div>
-            </div>
         </div>
-    </div>
-</main>
+    </main>
+</div>
 
-<!-- JavaScript Modules (type="module") -->
 <script type="module" src="js/main.js"></script>
 </body>
 </html>
