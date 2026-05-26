@@ -10,3 +10,9 @@ Thumbs.db
 .env
 node_modules/
 EOF
+# If using Python http.server
+__pycache__/
+*.py[cod]
+
+# If using npx serve
+.serve/
