@@ -1,5 +1,5 @@
-// ============ VIDEO CONTROLS MODULE ==========
-// Place this file at the root level (same as index.html)
+// ============ VIDEO CONTROLS MODULE - USING NAMED IMPORTS ==========
+// Import specific named exports from helpers.js (matching the export style)
 
 import { formatTime, showToast } from './helpers.js';
 
@@ -107,9 +107,7 @@ export class VideoControls {
         if (this.video.paused) {
             this.video.play().catch(e => {
                 console.log('Play prevented:', e);
-                if (typeof showToast === 'function') {
-                    showToast('Click play to start', 2000);
-                }
+                showToast('Click play to start', 2000);
             });
         } else {
             this.video.pause();
@@ -119,9 +117,7 @@ export class VideoControls {
     skip(seconds) {
         if (!this.video) return;
         this.video.currentTime = Math.min(Math.max(this.video.currentTime + seconds, 0), this.video.duration);
-        if (typeof showToast === 'function') {
-            showToast(`${seconds > 0 ? 'Forward' : 'Back'} ${Math.abs(seconds)} seconds`);
-        }
+        showToast(`${seconds > 0 ? 'Forward' : 'Back'} ${Math.abs(seconds)} seconds`);
     }
     
     setOnEnd(callback) {
@@ -141,6 +137,38 @@ export class VideoControls {
     setCurrentTime(position) {
         if (this.video && position > 0 && position < this.video.duration) {
             this.video.currentTime = position;
+        }
+    }
+    
+    getCurrentTime() {
+        return this.video ? this.video.currentTime : 0;
+    }
+    
+    getDuration() {
+        return this.video ? this.video.duration : 0;
+    }
+    
+    isPlaying() {
+        return this.video ? !this.video.paused : false;
+    }
+    
+    pause() {
+        if (this.video && !this.video.paused) {
+            this.video.pause();
+        }
+    }
+    
+    play() {
+        if (this.video && this.video.paused) {
+            this.video.play().catch(e => console.log('Play prevented:', e));
+        }
+    }
+    
+    destroy() {
+        if (this.video) {
+            this.video.pause();
+            this.video.src = '';
+            this.video.load();
         }
     }
 }

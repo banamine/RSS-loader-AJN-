@@ -1,7 +1,6 @@
-// ============ MAIN APPLICATION - CORRECTED IMPORT PATHS ==========
-// All imports now point to files at the root level (not in subdirectories)
+// ============ MAIN APPLICATION - CORRECTED IMPORTS ==========
+// All imports use named exports (curly braces) to match helpers.js
 
-// Import from root-level files (these exist at the same level as index.html)
 import { VideoControls } from './videoControls.js';
 import { 
     showToast, 
@@ -534,5 +533,5 @@ document.addEventListener('DOMContentLoaded', () => {
     initDarkMode();
     loadEpisodes();
     
-    console.log("Main.js loaded - Import paths corrected to root level");
+    console.log("Main.js loaded - Using named exports with curly braces");
 });

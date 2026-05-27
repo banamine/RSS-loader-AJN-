@@ -1,7 +1,8 @@
-// ============ HELPER FUNCTIONS ============
+// ============ HELPER FUNCTIONS - USING NAMED EXPORTS ==========
+// All exports are named exports for consistency
 
 // Transform video URL to playable format
-function transformVideoUrl(originalUrl) {
+export function transformVideoUrl(originalUrl) {
     if (!originalUrl) return '#';
     const filename = originalUrl.substring(originalUrl.lastIndexOf('/') + 1);
     if (filename.endsWith('.m4v') || filename.endsWith('.mp4')) {
@@ -11,12 +12,13 @@ function transformVideoUrl(originalUrl) {
 }
 
 // Convert to Central Time
-function toCentralTime(date) {
+export function toCentralTime(date) {
     return new Date(date.toLocaleString('en-US', { timeZone: 'America/Chicago' }));
 }
 
 // Format date for display
-function formatCentralTime(date) {
+export function formatCentralTime(date) {
+    if (!date) return 'Date unknown';
     return date.toLocaleString('en-US', {
         timeZone: 'America/Chicago',
         weekday: 'short',
@@ -29,24 +31,28 @@ function formatCentralTime(date) {
     });
 }
 
+// Format short date
+export function formatShortDate(date) {
+    if (!date) return 'Unknown';
+    return date.toLocaleDateString('en-US', {
+        timeZone: 'America/Chicago',
+        month: 'short',
+        day: 'numeric'
+    });
+}
+
 // Format time (seconds to MM:SS)
-function formatTime(seconds) {
-    if (isNaN(seconds)) return '0:00';
-    const hrs = Math.floor(seconds / 3600);
-    const mins = Math.floor((seconds % 3600) / 60);
+export function formatTime(seconds) {
+    if (isNaN(seconds) || !isFinite(seconds)) return '0:00';
+    const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
-    
-    if (hrs > 0) {
-        return `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    }
     return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
 // Parse episode details from title
-function parseEpisodeDetails(title) {
+export function parseEpisodeDetails(title) {
     const warRoomMatch = title.match(/WarRoom[- ]Hr(\d+)/i);
     const alexMatch = title.match(/Alex[- ]Jones[- ]Show[- ]Hr(\d+)/i);
-    
     if (warRoomMatch) {
         return { show: 'War Room', hour: `Hour ${warRoomMatch[1]}` };
     }
@@ -60,7 +66,7 @@ function parseEpisodeDetails(title) {
 }
 
 // Escape HTML to prevent XSS
-function escapeHtml(str) {
+export function escapeHtml(str) {
     if (!str) return '';
     const div = document.createElement('div');
     div.textContent = str;
@@ -68,7 +74,7 @@ function escapeHtml(str) {
 }
 
 // Show toast notification
-function showToast(message, duration = 3000) {
+export function showToast(message, duration = 3000) {
     const existingToast = document.querySelector('.toast');
     if (existingToast) existingToast.remove();
     
@@ -82,15 +88,91 @@ function showToast(message, duration = 3000) {
     setTimeout(() => toast.remove(), duration);
 }
 
-// Debounce function for performance
-function debounce(func, wait) {
-    let timeout;
-    return function executedFunction(...args) {
-        const later = () => {
-            clearTimeout(timeout);
-            func(...args);
+// Format date key for comparison (YYYY-MM-DD)
+export function formatDateKey(date) {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+// Trap focus within an element for accessibility
+export function trapFocus(element) {
+    const focusableElements = element.querySelectorAll(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    );
+    
+    if (focusableElements.length === 0) {
+        element.setAttribute('tabindex', '0');
+        element.focus();
+        const handler = (e) => {
+            if (e.key === 'Escape') {
+                if (element.parentNode) element.remove();
+            }
         };
-        clearTimeout(timeout);
-        timeout = setTimeout(later, wait);
+        element.addEventListener('keydown', handler);
+        return () => element.removeEventListener('keydown', handler);
+    }
+
+    const firstElement = focusableElements[0];
+    const lastElement = focusableElements[focusableElements.length - 1];
+    const previousActiveElement = document.activeElement;
+
+    const handler = (e) => {
+        if (e.key === 'Tab') {
+            if (e.shiftKey) {
+                if (document.activeElement === firstElement) {
+                    lastElement.focus();
+                    e.preventDefault();
+                }
+            } else {
+                if (document.activeElement === lastElement) {
+                    firstElement.focus();
+                    e.preventDefault();
+                }
+            }
+        } else if (e.key === 'Escape') {
+            if (element.parentNode) {
+                element.remove();
+                if (previousActiveElement && previousActiveElement.focus) {
+                    previousActiveElement.focus();
+                }
+            }
+        }
     };
+
+    element.addEventListener('keydown', handler);
+    firstElement.focus();
+    
+    return () => {
+        element.removeEventListener('keydown', handler);
+        if (previousActiveElement && previousActiveElement.focus) {
+            previousActiveElement.focus();
+        }
+    };
+}
+
+// Debounce function for performance
+export function debounce(func, delay) {
+    let timeoutId;
+    return function(...args) {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => func.apply(this, args), delay);
+    };
+}
+
+// Generate stable episode ID
+export function generateStableEpisodeId(episode) {
+    const { pubDate, title, link } = episode;
+    const normalizedString = [
+        pubDate || '',
+        (title || '').trim(),
+        (link || '').split('?')[0]
+    ].join('|').toLowerCase();
+    
+    let hash = 2166136261;
+    for (let i = 0; i < normalizedString.length; i++) {
+        hash ^= normalizedString.charCodeAt(i);
+        hash = Math.imul(hash, 16777619);
+        hash >>>= 0;
+    }
+    
+    return hash.toString(16).padStart(8, '0');
 }
