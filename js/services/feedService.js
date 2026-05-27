@@ -1,12 +1,22 @@
-// js/services/feedService.js
-// By defining it this way without 'const' or 'let' inside a module, 
-// it becomes a global variable that main.js can see.
 window.feedService = {
-    fetchFeed: async function(url) {
-        const proxy = "https://api.allorigins.win/get?url=";
-        const response = await fetch(proxy + encodeURIComponent(url));
-        const data = await response.json();
+    async fetchFeed() {
+        try {
+            const response = await fetch(window.APP_CONFIG.feedUrl);
+            if (!response.ok) throw new Error("Network response was not ok");
+            return await response.text();
+        } catch (error) {
+            console.error("Feed fetch failed:", error);
+            return null;
+        }
+    },
+    parseEpisodes(xmlText) {
         const parser = new DOMParser();
-        return parser.parseFromString(data.contents, "application/xml");
+        const xml = parser.parseFromString(xmlText, "application/xml");
+        const items = xml.querySelectorAll("item");
+        return Array.from(items).map(item => ({
+            title: item.querySelector("title")?.textContent || "Untitled",
+            url: item.querySelector("enclosure")?.getAttribute("url") || "",
+            pubDate: item.querySelector("pubDate")?.textContent || ""
+        }));
     }
 };
