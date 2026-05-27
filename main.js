@@ -2,7 +2,7 @@
 import { feedService } from './js/services/feedService.js';
 import { stateManager } from './js/state/stateManager.js';
 import { VideoControls } from './js/components/VideoControls.js';
-import { VirtualList } from './js/components/VirtualList.js';
+import { VirtualPlaylist } from './js/components/VirtualList.js';
 import { CalendarView } from './js/components/CalendarView.js';
 import { 
     escapeHtml, 
