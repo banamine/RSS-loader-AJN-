@@ -4,26 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>AJN Hourly Archive</title>
-<meta name="description" content="AJN Hourly Archive - Browse and play episodes from the Alex Jones Network">
+<meta name="description" content="AJN Hourly Archive - Browse and play episodes">
 <meta name="theme-color" content="#d32f2f">
 
 <!-- Suppress favicon 404 -->
 <link rel="icon" href="data:,">
-
-<!-- Content Security Policy -->
-<meta http-equiv="Content-Security-Policy" content="
-    default-src 'self';
-    script-src 'self' 'unsafe-inline';
-    style-src 'self' 'unsafe-inline';
-    img-src 'self' data: https:;
-    media-src 'self' https:;
-    connect-src 'self' https://api.rss2json.com https://rss.alexjones.media https://ajn.archives.pub;
-    font-src 'self';
-    frame-src 'none';
-    object-src 'none';
-    base-uri 'self';
-    form-action 'self';
-">
 
 <!-- CSS Files -->
 <link rel="stylesheet" href="./main.css">
@@ -99,11 +84,11 @@
     </div>
 </div>
 
-<!-- ============ SCRIPTS LOADED IN ORDER (NO type="module", NO import/export) ============ -->
+<!-- ============ SCRIPTS LOADED IN CORRECT ORDER ============ -->
 <!-- Config first -->
 <script src="./js/config.js"></script>
 
-<!-- Utilities (no dependencies) -->
+<!-- Utilities -->
 <script src="./js/utils/helpers.js"></script>
 <script src="./js/utils/idGenerator.js"></script>
 <script src="./js/utils/urlSanitizer.js"></script>
@@ -111,7 +96,7 @@
 <script src="./js/utils/safeEval.js"></script>
 <script src="./js/utils/keyboardNavigation.js"></script>
 
-<!-- Services -->
+<!-- Services - IMPORTANT: feedService.js MUST load BEFORE main.js -->
 <script src="./js/services/feedService.js"></script>
 
 <!-- State Management -->
@@ -123,7 +108,7 @@
 <script src="./js/components/VirtualList.js"></script>
 <script src="./js/components/CalendarView.js"></script>
 
-<!-- Main Application (MUST BE LAST) -->
+<!-- Main Application - MUST BE LAST -->
 <script src="./main.js"></script>
 </body>
 </html>

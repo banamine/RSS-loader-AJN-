@@ -1,151 +1,151 @@
-// ============ FEED SERVICE ==========
+// ============ FEED SERVICE - PLAIN OBJECT, NO IMPORTS/EXPORTS ==========
 
-class FeedService {
-    constructor() {
-        this.abortController = null;
-        this.cache = new Map();
-        this.cacheTimeout = 5 * 60 * 1000;
-    }
+const feedService = {
+    // Cache for feed data
+    cache: new Map(),
+    cacheTimeout: 5 * 60 * 1000, // 5 minutes
     
-    static get XSLT() {
-        return `<?xml version="1.0" encoding="UTF-8"?>
-        <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
-            <xsl:output method="xml" indent="yes"/>
-            <xsl:template match="/">
-                <feed>
-                    <channel>
-                        <title><xsl:value-of select="/rss/channel/title"/></title>
-                        <description><xsl:value-of select="/rss/channel/description"/></description>
-                        <link><xsl:value-of select="/rss/channel/link"/></link>
-                        <lastBuildDate><xsl:value-of select="/rss/channel/lastBuildDate"/></lastBuildDate>
-                    </channel>
-                    <items>
-                        <xsl:for-each select="/rss/channel/item">
-                            <item>
-                                <title><xsl:value-of select="title"/></title>
-                                <link><xsl:value-of select="link"/></link>
-                                <description><xsl:value-of select="description"/></description>
-                                <pubDate><xsl:value-of select="pubDate"/></pubDate>
-                                <guid><xsl:value-of select="guid"/></guid>
-                                <enclosure url="{enclosure/@url}" type="{enclosure/@type}" length="{enclosure/@length}"/>
-                            </item>
-                        </xsl:for-each>
-                    </items>
-                </feed>
-            </xsl:template>
-        </xsl:stylesheet>`;
-    }
-    
-    processEpisode(item, index) {
-        const videoUrl = this.extractVideoUrl(item);
-        const stableId = generateStableEpisodeId({
-            videoUrl: videoUrl,
-            link: item.link,
-            title: item.title,
-            pubDate: item.pubDate
-        });
-        return {
-            id: stableId,
-            originalIndex: index,
-            title: item.title || 'Untitled Episode',
-            description: item.description ? item.description.replace(/<[^>]*>/g, '') : 'No description',
-            link: item.link || '',
-            pubDate: item.pubDate || '',
-            videoUrl: videoUrl,
-            enclosure: item.enclosure
-        };
-    }
-    
-    extractVideoUrl(item) {
-        if (item.link && (item.link.includes('.m4v') || item.link.includes('.mp4'))) return item.link;
-        if (item.enclosure?.url) return item.enclosure.url;
-        if (item.guid && (item.guid.includes('.m4v') || item.guid.includes('.mp4'))) return item.guid;
-        return item.link || '';
-    }
-    
-    async fetchFeed(url, options = { forceRefresh: false }) {
+    // Fetch RSS feed using CORS proxy
+    fetchFeed: async function(url, options = {}) {
+        // Check cache
         if (!options.forceRefresh && this.cache.has(url)) {
             const cached = this.cache.get(url);
             if (Date.now() - cached.timestamp < this.cacheTimeout) {
-                console.log('Using cached feed data');
+                console.log('📦 Using cached feed data');
                 return cached.data;
             }
         }
-        if (this.abortController) this.abortController.abort();
-        this.abortController = new AbortController();
+        
         try {
-            const response = await fetch(url, {
-                signal: this.abortController.signal,
-                headers: { 'Accept': 'application/rss+xml, application/xml, text/xml' }
-            });
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            const xmlText = await response.text();
-            if (!xmlText.includes('<rss') && !xmlText.includes('<feed')) throw new Error('Invalid RSS/XML format');
-            const parser = new DOMParser();
-            const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
-            const parseError = xmlDoc.querySelector('parsererror');
-            if (parseError) throw new Error('XML parsing failed: ' + parseError.textContent);
-            const xsltDoc = parser.parseFromString(FeedService.XSLT, 'text/xml');
-            const processor = new XSLTProcessor();
-            processor.importStylesheet(xsltDoc);
-            const resultDoc = processor.transformToDocument(xmlDoc);
-            const jsonResult = this.xmlToJson(resultDoc);
-            const episodes = this.extractEpisodes(jsonResult);
-            const processedEpisodes = episodes.map((ep, idx) => this.processEpisode(ep, idx));
-            const result = { success: true, episodes: processedEpisodes, total: processedEpisodes.length, timestamp: Date.now(), url: url };
-            this.cache.set(url, { data: result, timestamp: Date.now() });
-            return result;
-        } catch (error) {
-            if (error.name === 'AbortError') return { success: false, error: 'Request cancelled', aborted: true };
-            console.error('Feed fetch failed:', error);
-            return { success: false, error: error.message };
-        }
-    }
-    
-    xmlToJson(xml) {
-        let obj = {};
-        if (xml.nodeType === 1) {
-            if (xml.attributes.length > 0) {
-                obj["@attributes"] = {};
-                for (let j = 0; j < xml.attributes.length; j++) {
-                    const attr = xml.attributes.item(j);
-                    obj["@attributes"][attr.nodeName] = attr.nodeValue;
-                }
-            }
-        } else if (xml.nodeType === 3) obj = xml.nodeValue.trim();
-        if (xml.hasChildNodes()) {
-            for (let i = 0; i < xml.childNodes.length; i++) {
-                const item = xml.childNodes.item(i);
-                const nodeName = item.nodeName;
-                if (typeof obj[nodeName] === "undefined") obj[nodeName] = this.xmlToJson(item);
-                else {
-                    if (typeof obj[nodeName].push === "undefined") {
-                        const old = obj[nodeName];
-                        obj[nodeName] = [];
-                        obj[nodeName].push(old);
+            console.log(`📡 Fetching feed: ${url}`);
+            
+            // Use multiple CORS proxies (fallback)
+            const proxies = [
+                `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
+                `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+                `https://cors-anywhere.herokuapp.com/${url}`
+            ];
+            
+            let data = null;
+            let lastError = null;
+            
+            // Try each proxy until one works
+            for (const proxyUrl of proxies) {
+                try {
+                    console.log(`  Trying proxy: ${proxyUrl.substring(0, 50)}...`);
+                    const response = await fetch(proxyUrl);
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
                     }
-                    obj[nodeName].push(this.xmlToJson(item));
+                    
+                    const result = await response.json();
+                    
+                    // Handle different proxy response formats
+                    if (result.contents) {
+                        // api.allorigins.win format
+                        data = result.contents;
+                    } else if (result.status === 'success' && result.data) {
+                        // api.codetabs.com format
+                        data = result.data;
+                    } else if (typeof result === 'string') {
+                        // Direct response
+                        data = result;
+                    } else if (result.responseText) {
+                        data = result.responseText;
+                    }
+                    
+                    if (data && (data.includes('<rss') || data.includes('<?xml'))) {
+                        console.log('  ✅ Proxy successful!');
+                        break;
+                    }
+                } catch (err) {
+                    console.warn(`  ❌ Proxy failed: ${err.message}`);
+                    lastError = err;
+                    continue;
                 }
             }
-        }
-        return obj;
-    }
-    
-    extractEpisodes(jsonResult) {
-        try {
-            if (jsonResult && jsonResult.feed && jsonResult.feed.items && jsonResult.feed.items.item) {
-                const items = jsonResult.feed.items.item;
-                return Array.isArray(items) ? items : [items];
+            
+            if (!data) {
+                throw new Error(lastError?.message || 'All proxies failed');
             }
-            return [];
+            
+            // Parse XML
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(data, 'text/xml');
+            
+            // Check for parse errors
+            const parseError = xmlDoc.querySelector('parsererror');
+            if (parseError) {
+                throw new Error('XML parsing failed: ' + parseError.textContent);
+            }
+            
+            // Cache the result
+            const result = {
+                success: true,
+                xmlDoc: xmlDoc,
+                timestamp: Date.now(),
+                url: url
+            };
+            
+            this.cache.set(url, { data: result, timestamp: Date.now() });
+            
+            console.log(`✅ Feed fetched successfully`);
+            return result;
+            
         } catch (error) {
-            console.error('Failed to extract episodes:', error);
-            return [];
+            console.error('❌ Feed fetch failed:', error);
+            return {
+                success: false,
+                error: error.message,
+                url: url
+            };
         }
-    }
+    },
     
-    abort() { if (this.abortController) { this.abortController.abort(); this.abortController = null; } }
-    clearCache() { this.cache.clear(); }
-}
+    // Extract episodes from XML document
+    extractEpisodes: function(xmlDoc) {
+        if (!xmlDoc) return [];
+        
+        const items = xmlDoc.querySelectorAll('item');
+        const episodes = [];
+        
+        items.forEach((item, index) => {
+            const title = item.querySelector('title')?.textContent || '';
+            const link = item.querySelector('link')?.textContent || '';
+            const description = item.querySelector('description')?.textContent || '';
+            const pubDate = item.querySelector('pubDate')?.textContent || '';
+            const enclosure = item.querySelector('enclosure');
+            
+            let videoUrl = link;
+            if (enclosure && enclosure.getAttribute('url')) {
+                videoUrl = enclosure.getAttribute('url');
+            }
+            
+            episodes.push({
+                id: `ep_${index}_${Date.now()}`,
+                title: title,
+                description: description,
+                link: link,
+                pubDate: pubDate,
+                videoUrl: videoUrl,
+                enclosure: enclosure ? {
+                    url: enclosure.getAttribute('url'),
+                    type: enclosure.getAttribute('type'),
+                    length: enclosure.getAttribute('length')
+                } : null
+            });
+        });
+        
+        return episodes;
+    },
+    
+    // Clear cache
+    clearCache: function() {
+        this.cache.clear();
+        console.log('Cache cleared');
+    }
+};
 
-const feedService = new FeedService();
+// Make available globally
+window.feedService = feedService;
