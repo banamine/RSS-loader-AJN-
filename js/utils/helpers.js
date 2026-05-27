@@ -1,15 +1,14 @@
-// ============ HELPER FUNCTIONS ==========
-// Defensive coding, DOM helpers, and utilities
+// ============ HELPER FUNCTIONS - WITH STABLE IDS ==========
 
+// Export the ID generator functions
+export { generateStableEpisodeId, isValidEpisodeId, migrateEpisodeId } from './idGenerator.js';
+
+// ... existing helper functions remain ...
 export function escapeHtml(str) {
     if (!str) return '';
     const div = document.createElement('div');
     div.textContent = str;
     return div.innerHTML;
-}
-
-export function escapeAttr(str) {
-    return String(str || '').replace(/"/g, '&quot;');
 }
 
 export function formatTime(seconds) {
