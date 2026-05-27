@@ -7,14 +7,14 @@
 <meta name="description" content="AJN Hourly Archive - Browse and play episodes from the Alex Jones Network. Search, filter, and queue your favorite shows with dark mode support.">
 <meta name="theme-color" content="#d32f2f">
 
-<!-- CSS - Files are at root level as shown in your file list -->
+<!-- CSS Files -->
 <link rel="stylesheet" href="main.css">
 <link rel="stylesheet" href="styles.css">
 <link rel="stylesheet" href="virtual-list.css">
 </head>
 <body>
 
-<div class="app-container">
+<div id="app">
     <!-- STICKY HEADER -->
     <header class="sticky-header">
         <div class="header-content">
@@ -50,10 +50,15 @@
         </div>
     </header>
 
-    <!-- MAIN CONTAINER -->
-    <main class="container">
-        <div class="main-grid">
+    <!-- MAIN CONTENT AREA - FIXED GRID LAYOUT -->
+    <div class="app-content">
+        <!-- LEFT COLUMN - VIDEO PLAYER (65%) -->
+        <div class="col-left">
             <div id="nowPlayingSection" class="video-section"></div>
+        </div>
+        
+        <!-- RIGHT COLUMN - PLAYLIST (35%) -->
+        <div class="col-right">
             <div class="playlist-section">
                 <div class="playlist-header">
                     <div>
@@ -61,16 +66,15 @@
                         <div class="playlist-stats" id="playlistStats" aria-live="polite">Loading episodes...</div>
                     </div>
                 </div>
-                <div class="playlist-container" id="playlistContainer">
+                <div id="playlistContainer">
                     <div id="scrollSpacer" style="height: 0px; position: relative;"></div>
                     <div id="virtualList" style="position: absolute; top: 0; left: 0; width: 100%;"></div>
                 </div>
             </div>
         </div>
-    </main>
+    </div>
 </div>
 
-<!-- JavaScript - File is at root level as shown in your file list -->
 <script src="main.js"></script>
 </body>
 </html>
