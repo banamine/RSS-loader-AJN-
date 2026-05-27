@@ -15,7 +15,6 @@ export class VideoControls {
     }
     
     init(options) {
-        // Find elements only when they exist in DOM
         this.video = document.getElementById(options.videoId || 'mainVideo');
         this.progressBar = document.getElementById(options.progressId || 'progressBar');
         this.playPauseBtn = document.getElementById(options.playPauseId || 'playPauseBtn');
@@ -23,7 +22,7 @@ export class VideoControls {
         this.durationDisplay = document.getElementById(options.durationId || 'duration');
         
         if (!this.video) {
-            console.warn('Video element not found, controls will be bound later');
+            console.warn('Video element not found');
             return false;
         }
         
@@ -74,8 +73,7 @@ export class VideoControls {
     
     updateProgress() {
         if (this.progressBar && this.video.duration) {
-            const percent = (this.video.currentTime / this.video.duration) * 100;
-            this.progressBar.value = percent;
+            this.progressBar.value = (this.video.currentTime / this.video.duration) * 100;
         }
     }
     
@@ -113,7 +111,6 @@ export class VideoControls {
         if (this.video.paused) {
             this.video.play().catch(e => {
                 console.log('Play prevented:', e);
-                this.showToast('Click play to start');
             });
         } else {
             this.video.pause();
@@ -123,7 +120,6 @@ export class VideoControls {
     skip(seconds) {
         if (!this.video) return;
         this.video.currentTime = Math.min(Math.max(this.video.currentTime + seconds, 0), this.video.duration);
-        this.showToast(`${seconds > 0 ? 'Forward' : 'Back'} ${Math.abs(seconds)}s`);
     }
     
     loadEpisode(videoUrl, autoPlay = false) {
@@ -139,17 +135,6 @@ export class VideoControls {
     
     setOnEnd(callback) {
         this.onEndCallback = callback;
-    }
-    
-    showToast(message) {
-        const existing = document.querySelector('.toast');
-        if (existing) existing.remove();
-        
-        const toast = document.createElement('div');
-        toast.className = 'toast';
-        toast.textContent = message;
-        document.body.appendChild(toast);
-        setTimeout(() => toast.remove(), 3000);
     }
     
     destroy() {
