@@ -1,4 +1,4 @@
-// ============ VIDEO CONTROLS MODULE ==========
+// ============ VIDEO CONTROLS COMPONENT ==========
 // Handles video playback with defensive coding
 
 export class VideoControls {
@@ -34,7 +34,6 @@ export class VideoControls {
     bindEvents() {
         if (!this.video) return;
         
-        // Time update
         this.video.addEventListener('timeupdate', () => {
             if (!this.isSeeking && this.video.duration) {
                 this.updateProgress();
@@ -42,12 +41,10 @@ export class VideoControls {
             }
         });
         
-        // Metadata loaded
         this.video.addEventListener('loadedmetadata', () => {
             this.updateDuration();
         });
         
-        // Progress bar seeking
         if (this.progressBar) {
             this.progressBar.addEventListener('input', (e) => {
                 this.isSeeking = true;
@@ -64,12 +61,10 @@ export class VideoControls {
             });
         }
         
-        // Play/Pause button
         if (this.playPauseBtn) {
             this.playPauseBtn.addEventListener('click', () => this.togglePlay());
         }
         
-        // Video events
         this.video.addEventListener('play', () => this.updatePlayButton(true));
         this.video.addEventListener('pause', () => this.updatePlayButton(false));
         this.video.addEventListener('ended', () => {

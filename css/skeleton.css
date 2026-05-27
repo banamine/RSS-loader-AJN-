@@ -1,0 +1,54 @@
+/* ============ SKELETON LOADER STYLES ========== */
+/* Pure CSS shimmer effect for loading states */
+
+.skeleton-container {
+    padding: 8px;
+}
+
+.skeleton-row {
+    height: 80px;
+    margin-bottom: 8px;
+    background: linear-gradient(
+        90deg,
+        var(--border, #e0e0e0) 0%,
+        var(--bg-surface-hover, #f5f5f5) 50%,
+        var(--border, #e0e0e0) 100%
+    );
+    background-size: 200% 100%;
+    border-radius: 8px;
+    animation: shimmer 1.5s ease-in-out infinite;
+}
+
+/* Dark mode skeleton */
+.dark .skeleton-row {
+    background: linear-gradient(
+        90deg,
+        #2a2a2a 0%,
+        #3a3a3a 50%,
+        #2a2a2a 100%
+    );
+    background-size: 200% 100%;
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+/* Pulse animation for simpler loading state */
+.skeleton-pulse {
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 0.6;
+    }
+    50% {
+        opacity: 1;
+    }
+}
