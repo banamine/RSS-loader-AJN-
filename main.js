@@ -1,8 +1,8 @@
-// ============ MAIN APPLICATION - CORRECTED IMPORTS FOR ROOT-LEVEL FILES ==========
-// All files are at the root level (same directory as index.html)
-// Import using the exact filenames as they appear in your directory
+// ============ MAIN APPLICATION - ROOT-LEVEL IMPORTS ==========
+// All files are in the root directory (same as index.html)
+// Using ./ prefix for same-directory imports
 
-// Core imports - these files exist at root level
+// Import from root-level files that actually exist
 import { VideoControls } from './videoControls.js';
 import { 
     showToast, 
@@ -13,12 +13,22 @@ import {
     toCentralTime, 
     transformVideoUrl, 
     parseEpisodeDetails, 
-    formatDateKey 
+    formatDateKey,
+    trapFocus,
+    debounce
 } from './helpers.js';
+
+// Note: The following files exist but are NOT imported because they're not needed for basic functionality:
+// - xsltWorkerManager.js (advanced feature)
+// - idGenerator.js (advanced feature)
+// - stateManager.js (advanced feature)
+// - feedService.js (advanced feature)
+// - VirtualPlaylist.js (advanced feature - using simple rendering instead)
 
 // Wait for DOM to be ready
 document.addEventListener('DOMContentLoaded', () => {
     console.log("Initializing AJN Hourly Archive...");
+    console.log("Files detected at root level - using simple renderer");
     
     // DOM Elements
     const videoPlayer = document.getElementById('videoPlayer');
@@ -46,6 +56,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const downloadBtn = document.getElementById('downloadBtn');
     const shareBtn = document.getElementById('shareBtn');
     const autoplayToggle = document.getElementById('autoplayToggle');
+    const queueHeader = document.getElementById('queueHeader');
+    const queueContainer = document.getElementById('queueContainer');
+    const clearQueueBtn = document.getElementById('clearQueueBtn');
+    const queueStats = document.getElementById('queueStats');
     
     // State
     let allEpisodes = [];
@@ -53,6 +67,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentIndex = 0;
     let videoControls = null;
     let currentCalendarDate = new Date();
+    let userQueue = [];
     
     // Constants
     const API_URL = 'https://api.rss2json.com/v1/api.json?rss_url=https://rss.alexjones.media/AJNHourlyVideo.xml';
@@ -65,8 +80,90 @@ document.addEventListener('DOMContentLoaded', () => {
         );
         console.log("VideoControls initialized");
     } else {
-        console.warn("VideoControls elements not found");
+        console.warn("VideoControls elements not found", {
+            videoPlayer: !!videoPlayer,
+            progressBar: !!progressBar,
+            playPauseBtn: !!playPauseBtn,
+            currentTimeDisplay: !!currentTimeDisplay,
+            durationDisplay: !!durationDisplay
+        });
     }
+    
+    // Queue functions
+    function loadQueue() {
+        try {
+            const saved = localStorage.getItem('userQueue');
+            if (saved) {
+                userQueue = JSON.parse(saved);
+                console.log(`Loaded ${userQueue.length} items from queue`);
+            }
+        } catch (error) {
+            console.error('Failed to load queue:', error);
+            userQueue = [];
+        }
+        renderQueue();
+    }
+    
+    function saveQueue() {
+        localStorage.setItem('userQueue', JSON.stringify(userQueue));
+        if (queueStats) queueStats.textContent = `${userQueue.length} item${userQueue.length !== 1 ? 's' : ''}`;
+    }
+    
+    function renderQueue() {
+        if (!queueContainer) return;
+        
+        if (userQueue.length === 0) {
+            queueContainer.innerHTML = '<div class="empty-queue" style="padding: 16px; text-align: center; color: var(--text-secondary);">Queue is empty</div>';
+            return;
+        }
+        
+        queueContainer.innerHTML = userQueue.map((item, idx) => `
+            <div class="queue-item" data-index="${idx}">
+                <span class="drag-handle">⠿</span>
+                <div class="queue-info" onclick="window.playFromQueue(${idx})" style="flex:1; cursor:pointer;">
+                    <div class="queue-title">${escapeHtml(item.title)}</div>
+                    <div class="queue-date">${escapeHtml(item.show)} ${escapeHtml(item.hour)}</div>
+                </div>
+                <button onclick="window.removeFromQueue(${idx})" style="background:none; border:none; cursor:pointer;">×</button>
+            </div>
+        `).join('');
+    }
+    
+    function addToQueue(episode) {
+        const queueItem = {
+            id: episode.id,
+            title: episode.title,
+            show: episode.show,
+            hour: episode.hour,
+            videoUrl: episode.videoUrl,
+            centralDate: episode.centralDate
+        };
+        userQueue.push(queueItem);
+        saveQueue();
+        renderQueue();
+        showToast(`Added "${episode.title.substring(0, 40)}..." to queue`);
+    }
+    
+    function playFromQueue(index) {
+        const item = userQueue[index];
+        if (item && videoControls) {
+            currentTitle.textContent = item.title;
+            videoControls.loadEpisode(item.videoUrl, true);
+            showToast(`Now playing from queue: ${item.title.substring(0, 40)}...`);
+        }
+    }
+    
+    function removeFromQueue(index) {
+        userQueue.splice(index, 1);
+        saveQueue();
+        renderQueue();
+        showToast('Removed from queue');
+    }
+    
+    // Make queue functions global for onclick handlers
+    window.playFromQueue = playFromQueue;
+    window.removeFromQueue = removeFromQueue;
+    window.addToQueueGlobal = addToQueue;
     
     // Play episode function
     function playEpisode(index) {
@@ -91,7 +188,15 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Next episode
     function nextEpisode() {
-        if (currentIndex + 1 < currentPlaylist.length) {
+        if (userQueue.length > 0) {
+            const nextItem = userQueue[0];
+            userQueue.splice(0, 1);
+            saveQueue();
+            renderQueue();
+            if (currentTitle) currentTitle.textContent = nextItem.title;
+            if (videoControls) videoControls.loadEpisode(nextItem.videoUrl, true);
+            showToast('Playing next from queue');
+        } else if (currentIndex + 1 < currentPlaylist.length) {
             playEpisode(currentIndex + 1);
             showToast('Playing next episode...');
         } else {
@@ -177,7 +282,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
-    // Render playlist
+    // Render playlist (simple version - no virtual scrolling)
     function renderPlaylist() {
         const playlistContainer = document.getElementById('playlistContainer');
         if (!playlistContainer) return;
@@ -192,20 +297,22 @@ document.addEventListener('DOMContentLoaded', () => {
             const flyoutId = `flyout-${idx}`;
             
             return `
-                <div class="playlist-item list-item ${isActive ? 'active' : ''}" data-index="${idx}">
-                    <div class="menu-trigger" data-flyout="${flyoutId}">⋮</div>
-                    <div class="flyout-menu" id="${flyoutId}">
-                        <div class="flyout-menu-item" data-action="download" data-index="${idx}">⬇️ Download</div>
-                        <div class="flyout-menu-item" data-action="share" data-index="${idx}">📤 Share</div>
-                        <div class="flyout-menu-divider"></div>
-                        <div class="flyout-menu-item" data-action="details" data-index="${idx}">📄 Details</div>
+                <div class="playlist-item list-item ${isActive ? 'active' : ''}" data-index="${idx}" style="position: relative; display: flex; align-items: center; gap: 16px; padding: 16px; border-bottom: 1px solid var(--border); cursor: pointer;">
+                    <div class="menu-trigger" data-flyout="${flyoutId}" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); opacity: 0; transition: opacity 0.2s; cursor: pointer;">⋮</div>
+                    <div class="flyout-menu" id="${flyoutId}" style="position: absolute; right: 12px; top: 50px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: 8px; z-index: 100; display: none; min-width: 140px;">
+                        <div class="flyout-menu-item" data-action="download" data-index="${idx}" style="padding: 8px 12px; cursor: pointer;">⬇️ Download</div>
+                        <div class="flyout-menu-item" data-action="share" data-index="${idx}" style="padding: 8px 12px; cursor: pointer;">📤 Share</div>
+                        <div class="flyout-menu-divider" style="height: 1px; background: var(--border); margin: 4px 0;"></div>
+                        <div class="flyout-menu-item" data-action="queue" data-index="${idx}" style="padding: 8px 12px; cursor: pointer;">📋 Add to Queue</div>
+                        <div class="flyout-menu-item" data-action="details" data-index="${idx}" style="padding: 8px 12px; cursor: pointer;">📄 Details</div>
                     </div>
-                    <div class="playlist-thumbnail">🎬</div>
-                    <div class="playlist-info">
-                        <div class="playlist-title">${escapeHtml(ep.title)}</div>
-                        <div class="playlist-date">📅 ${ep.formattedDate}</div>
-                        <div class="playlist-duration">🎬 ${ep.show} ${ep.hour}</div>
+                    <div class="playlist-thumbnail" style="width: 48px; height: 48px; background: linear-gradient(135deg, var(--primary-light), var(--border)); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">🎬</div>
+                    <div class="playlist-info" style="flex: 1; min-width: 0;">
+                        <div class="playlist-title" style="font-weight: 500; font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(ep.title)}</div>
+                        <div class="playlist-date" style="font-size: 0.7rem; color: var(--text-secondary);">📅 ${ep.formattedDate}</div>
+                        <div class="playlist-duration" style="font-size: 0.65rem; color: var(--text-tertiary);">🎬 ${ep.show} ${ep.hour}</div>
                     </div>
+                    <button class="add-to-queue-btn" data-action="queue" data-index="${idx}" style="padding: 4px 8px; font-size: 0.65rem; background: var(--bg-surface); border: 1px solid var(--border); border-radius: 4px; cursor: pointer;">📋 Add</button>
                 </div>
             `;
         }).join('');
@@ -213,7 +320,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Add event listeners
         document.querySelectorAll('.playlist-item.list-item').forEach(item => {
             item.addEventListener('click', (e) => {
-                if (!e.target.closest('.menu-trigger') && !e.target.closest('.flyout-menu')) {
+                if (!e.target.closest('.menu-trigger') && !e.target.closest('.flyout-menu') && !e.target.closest('.add-to-queue-btn')) {
                     const index = parseInt(item.dataset.index);
                     if (!isNaN(index)) playEpisode(index);
                 }
@@ -228,15 +335,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 const menu = document.getElementById(flyoutId);
                 if (menu) {
                     document.querySelectorAll('.flyout-menu').forEach(m => {
-                        if (m.id !== flyoutId) m.classList.remove('active');
+                        if (m.id !== flyoutId) m.style.display = 'none';
                     });
-                    menu.classList.toggle('active');
+                    menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
                 }
             });
         });
         
         // Action handlers
-        document.querySelectorAll('.flyout-menu-item').forEach(item => {
+        document.querySelectorAll('.flyout-menu-item, .add-to-queue-btn').forEach(item => {
             item.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const action = item.getAttribute('data-action');
@@ -259,6 +366,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         navigator.clipboard.writeText(episode.videoUrl);
                         showToast('Link copied');
                     }
+                } else if (action === 'queue') {
+                    const episode = currentPlaylist[index];
+                    if (episode) addToQueue(episode);
                 } else if (action === 'details') {
                     const episode = currentPlaylist[index];
                     if (episode) {
@@ -266,7 +376,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
                 
-                item.closest('.flyout-menu').classList.remove('active');
+                // Close flyout if it was a flyout item
+                const flyout = item.closest('.flyout-menu');
+                if (flyout) flyout.style.display = 'none';
             });
         });
         
@@ -274,7 +386,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.addEventListener('click', (e) => {
             if (!e.target.closest('.menu-trigger')) {
                 document.querySelectorAll('.flyout-menu').forEach(menu => {
-                    menu.classList.remove('active');
+                    menu.style.display = 'none';
                 });
             }
         });
@@ -342,7 +454,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         let weekdaysHtml = '';
-        WEEKDAYS.forEach(day => { weekdaysHtml += `<div class="calendar-weekday">${day}</div>`; });
+        WEEKDAYS.forEach(day => { weekdaysHtml += `<div class="calendar-weekday" style="text-align: center; padding: 8px; font-weight: 600;">${day}</div>`; });
         const calendarWeekdays = document.querySelector('.calendar-weekdays');
         if (calendarWeekdays) calendarWeekdays.innerHTML = weekdaysHtml;
         
@@ -350,7 +462,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let dayCounter = 1;
         
         for (let i = 0; i < startDay; i++) {
-            html += '<div class="calendar-day other-month"></div>';
+            html += '<div class="calendar-day other-month" style="min-height: 80px; padding: 8px; border: 1px solid var(--border); border-radius: 8px; opacity: 0.4;"></div>';
         }
         
         for (let day = 1; day <= daysInMonth; day++) {
@@ -361,10 +473,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const hasEpisodes = dayEpisodes.length > 0;
             
             html += `
-                <div class="calendar-day ${hasEpisodes ? 'has-episode' : ''} ${isToday ? 'today' : ''}"
-                     data-date="${dateKey}">
-                    <div class="calendar-day-number">${day}</div>
-                    ${hasEpisodes ? '<div class="dot-indicator"></div>' : ''}
+                <div class="calendar-day ${hasEpisodes ? 'has-episode' : ''} ${isToday ? 'today' : ''}" 
+                     data-date="${dateKey}"
+                     style="min-height: 80px; padding: 8px; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; position: relative;">
+                    <div class="calendar-day-number" style="font-weight: 600;">${day}</div>
+                    ${hasEpisodes ? '<div class="dot-indicator" style="width: 6px; height: 6px; background: var(--primary); border-radius: 50%; margin-top: 4px;"></div>' : ''}
                 </div>
             `;
         }
@@ -472,8 +585,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     // Queue toggle
-    const queueHeader = document.getElementById('queueHeader');
-    const queueContainer = document.getElementById('queueContainer');
     if (queueHeader && queueContainer) {
         queueHeader.addEventListener('click', () => {
             queueContainer.classList.toggle('expanded');
@@ -481,16 +592,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     // Clear queue button
-    const clearQueueBtn = document.getElementById('clearQueueBtn');
     if (clearQueueBtn) {
         clearQueueBtn.addEventListener('click', () => {
-            const queueContainer = document.getElementById('queueContainer');
-            if (queueContainer) {
-                queueContainer.innerHTML = '';
-                const queueStats = document.getElementById('queueStats');
-                if (queueStats) queueStats.textContent = '0 items';
-                showToast('Queue cleared');
-            }
+            userQueue = [];
+            saveQueue();
+            renderQueue();
+            showToast('Queue cleared');
         });
     }
     
@@ -498,7 +605,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function loadEpisodes() {
         const playlistContainer = document.getElementById('playlistContainer');
         if (playlistContainer) {
-            playlistContainer.innerHTML = '<div class="loading-state"><div class="loader"></div><div>Loading episodes...</div></div>';
+            playlistContainer.innerHTML = '<div class="loading-state" style="text-align: center; padding: 40px;"><div class="loader" style="display: inline-block; width: 30px; height: 30px; border: 3px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.6s linear infinite;"></div><div style="margin-top: 12px;">Loading episodes...</div></div>';
         }
         
         try {
@@ -530,13 +637,13 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             showToast(`Loaded ${allEpisodes.length} episodes`);
-            console.log('Application ready - All imports resolved');
+            console.log('Application ready - All root-level imports resolved');
             
         } catch (error) {
             console.error('Error loading episodes:', error);
             const playlistContainer = document.getElementById('playlistContainer');
             if (playlistContainer) {
-                playlistContainer.innerHTML = `<div class="error-state">❌ Failed to load episodes: ${error.message}</div>`;
+                playlistContainer.innerHTML = `<div class="error-state" style="text-align: center; padding: 40px; color: var(--primary);">❌ Failed to load episodes: ${error.message}</div>`;
             }
             showToast('Failed to load episodes');
         }
@@ -544,7 +651,8 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Initialize
     initDarkMode();
+    loadQueue();
     loadEpisodes();
     
-    console.log("Main.js loaded - Using root-level imports");
+    console.log("Main.js loaded - Using root-level imports only");
 });
