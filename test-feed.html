@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head><title>Test feedService</title></head>
+<body>
+    <h1>Testing feedService</h1>
+    <pre id="output">Loading...</pre>
+    
+    <!-- Load feedService first -->
+    <script src="./js/services/feedService.js"></script>
+    
+    <script>
+        (async function test() {
+            const output = document.getElementById('output');
+            output.textContent = "Testing feedService...\n";
+            
+            // Check if feedService exists
+            if (typeof feedService === 'undefined') {
+                output.textContent += "❌ ERROR: feedService is not defined!\n";
+                output.textContent += "Check that feedService.js loaded correctly.";
+                return;
+            }
+            
+            output.textContent += "✅ feedService is defined\n";
+            output.textContent += `Methods: ${Object.keys(feedService).join(', ')}\n\n`;
+            
+            // Test fetch
+            const url = 'https://rss.alexjones.media/AJNHourlyVideo.xml';
+            output.textContent += `Fetching: ${url}\n`;
+            
+            const result = await feedService.fetchFeed(url);
+            
+            if (result.success) {
+                output.textContent += `✅ Fetch successful!\n`;
+                const episodes = feedService.extractEpisodes(result.xmlDoc);
+                output.textContent += `📊 Found ${episodes.length} episodes\n`;
+                if (episodes.length > 0) {
+                    output.textContent += `\nFirst episode:\n`;
+                    output.textContent += `  Title: ${episodes[0].title}\n`;
+                    output.textContent += `  Date: ${episodes[0].pubDate}\n`;
+                }
+            } else {
+                output.textContent += `❌ Fetch failed: ${result.error}\n`;
+            }
+        })();
+    </script>
+</body>
+</html>
