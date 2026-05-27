@@ -1,34 +1,43 @@
-// ============ STATE MANAGER - SINGLE SOURCE OF TRUTH ==========
-// Implements deduplication pipeline for stable episode IDs
+// ============ STATE MANAGER - WITH PERSISTENCE ==========
+// Now persists searchTerm, filterDate, and viewMode
+
+let instance = null;
+let scheduledRender = false;
 
 class StateManager {
-    constructor(initialState = {}) {
+    constructor() {
+        if (instance) return instance;
+        
+        // Load all persisted state from localStorage
         this.state = {
-            episodes: [],
-            filteredEpisodes: [],
-            currentIndex: 0,
-            currentPlayingId: null,
-            playbackPositions: {},
-            searchTerm: '',
-            selectedDate: null,
-            viewMode: 'list',
-            darkMode: false,
-            queue: [],
             loading: true,
             error: null,
-            ...initialState
+            episodes: [],
+            filteredEpisodes: [],
+            nowPlayingId: null,
+            searchTerm: localStorage.getItem('searchTerm') || '',
+            filterDate: localStorage.getItem('filterDate') || null,
+            viewMode: localStorage.getItem('viewMode') || 'list',
+            darkMode: localStorage.getItem('darkMode') === 'true',
+            queue: [],
+            calendarVisible: false,
+            currentCalendarDate: new Date(),
+            processedCount: 0
         };
         
         this.listeners = [];
-        this.episodeMap = new Map(); // For O(1) lookup by ID
+        this.renderCallback = null;
+        instance = this;
     }
     
-    // Get current state
     getState() {
         return { ...this.state };
     }
     
-    // Subscribe to state changes
+    setRenderCallback(callback) {
+        this.renderCallback = callback;
+    }
+    
     subscribe(listener) {
         this.listeners.push(listener);
         return () => {
@@ -36,165 +45,142 @@ class StateManager {
         };
     }
     
-    // Notify all listeners of state change
     notify() {
         this.listeners.forEach(listener => listener(this.getState()));
     }
     
-    // Update state with deduplication for episodes
-    setState(updates) {
-        const newState = { ...this.state, ...updates };
+    setState(patch) {
+        const newState = { ...this.state, ...patch };
         
-        // Handle episode updates with deduplication
-        if (updates.episodes) {
-            const uniqueEpisodes = [];
-            const seenIds = new Set();
-            
-            for (const episode of updates.episodes) {
-                if (!seenIds.has(episode.id)) {
-                    seenIds.add(episode.id);
-                    uniqueEpisodes.push(episode);
-                    this.episodeMap.set(episode.id, episode);
-                }
-            }
-            
-            // Preserve existing episodes that aren't in the new set
-            const existingEpisodes = this.state.episodes.filter(ep => !seenIds.has(ep.id));
-            newState.episodes = [...existingEpisodes, ...uniqueEpisodes];
-            
-            // Sort by date (newest first)
-            newState.episodes.sort((a, b) => b.centralDate - a.centralDate);
-        }
-        
-        // Update filtered episodes based on search and date filters
-        if (updates.episodes !== undefined || 
-            updates.searchTerm !== undefined || 
-            updates.selectedDate !== undefined) {
+        // Handle filtered episodes
+        if (patch.episodes !== undefined || 
+            patch.searchTerm !== undefined || 
+            patch.filterDate !== undefined) {
             
             let filtered = [...newState.episodes];
             
             if (newState.searchTerm) {
                 const term = newState.searchTerm.toLowerCase();
                 filtered = filtered.filter(ep => 
-                    ep.title.toLowerCase().includes(term) || 
-                    ep.description.toLowerCase().includes(term)
+                    (ep.title || '').toLowerCase().includes(term) || 
+                    (ep.description || '').toLowerCase().includes(term)
                 );
             }
             
-            if (newState.selectedDate) {
-                filtered = filtered.filter(ep => ep.dateKey === newState.selectedDate);
+            if (newState.filterDate) {
+                filtered = filtered.filter(ep => ep.dateKey === newState.filterDate);
             }
             
             newState.filteredEpisodes = filtered;
         }
         
         this.state = newState;
-        this.notify();
         
-        return this.state;
-    }
-    
-    // Add episodes with automatic deduplication (for chunked loading)
-    addEpisodes(newEpisodes) {
-        const currentIds = new Set(this.state.episodes.map(ep => ep.id));
-        const uniqueNewEpisodes = newEpisodes.filter(ep => !currentIds.has(ep.id));
+        // Persist specific state to localStorage
+        this.persistState();
         
-        if (uniqueNewEpisodes.length > 0) {
-            const allEpisodes = [...this.state.episodes, ...uniqueNewEpisodes];
-            allEpisodes.sort((a, b) => b.centralDate - a.centralDate);
-            
-            this.setState({ episodes: allEpisodes, loading: false });
+        // Schedule render
+        if (!scheduledRender && this.renderCallback) {
+            scheduledRender = true;
+            requestAnimationFrame(() => {
+                scheduledRender = false;
+                this.renderCallback(this.getState());
+                this.notify();
+            });
         }
-        
-        return uniqueNewEpisodes.length;
     }
     
-    // Get episode by stable ID
-    getEpisodeById(id) {
-        return this.episodeMap.get(id) || this.state.episodes.find(ep => ep.id === id);
+    persistState() {
+        // Save user preferences to localStorage
+        localStorage.setItem('searchTerm', this.state.searchTerm);
+        localStorage.setItem('filterDate', this.state.filterDate || '');
+        localStorage.setItem('viewMode', this.state.viewMode);
+        localStorage.setItem('darkMode', this.state.darkMode);
+        // Note: queue is saved separately via saveQueueToStorage
     }
     
-    // Update playback position for an episode
-    updatePlaybackPosition(episodeId, position, duration) {
-        const positions = { ...this.state.playbackPositions };
-        
-        if (duration && position >= duration - 2) {
-            delete positions[episodeId];
+    // Search and filter methods
+    setSearchTerm(term) {
+        this.setState({ searchTerm: term });
+    }
+    
+    setFilterDate(date) {
+        this.setState({ filterDate: date });
+        if (date) {
+            localStorage.setItem('filterDate', date);
         } else {
-            positions[episodeId] = {
-                position: Math.floor(position),
-                timestamp: Date.now(),
-                duration: duration || 0
-            };
+            localStorage.removeItem('filterDate');
         }
-        
-        this.setState({ playbackPositions: positions });
     }
     
-    // Get playback position for an episode
-    getPlaybackPosition(episodeId) {
-        const saved = this.state.playbackPositions[episodeId];
-        return saved && saved.position ? saved.position : 0;
+    clearFilters() {
+        this.setState({ searchTerm: '', filterDate: null });
+        localStorage.removeItem('searchTerm');
+        localStorage.removeItem('filterDate');
     }
     
     // Queue management
     addToQueue(episode) {
-        const queue = [...this.state.queue];
-        const exists = queue.some(item => item.id === episode.id);
-        
-        if (!exists) {
-            queue.push(episode);
-            this.setState({ queue });
+        if (!episode || this.state.queue.some(q => q.id === episode.id)) {
+            return false;
         }
-        
-        return !exists;
+        const queue = [...this.state.queue, episode];
+        this.setState({ queue });
+        this.saveQueueToStorage();
+        return true;
     }
     
     removeFromQueue(index) {
         const queue = [...this.state.queue];
         queue.splice(index, 1);
         this.setState({ queue });
+        this.saveQueueToStorage();
     }
     
     clearQueue() {
         this.setState({ queue: [] });
+        this.saveQueueToStorage();
     }
     
-    // Current episode management
-    setCurrentEpisode(index) {
-        const episode = this.state.filteredEpisodes[index];
-        if (episode) {
-            this.setState({ 
-                currentIndex: index, 
-                currentPlayingId: episode.id 
-            });
+    saveQueueToStorage() {
+        try {
+            localStorage.setItem('userQueue', JSON.stringify(this.state.queue));
+        } catch (e) {
+            console.error('Failed to save queue:', e);
         }
     }
     
-    // Filter management
-    setSearchTerm(term) {
-        this.setState({ searchTerm: term, currentIndex: 0 });
-    }
-    
-    setSelectedDate(date) {
-        this.setState({ selectedDate: date, currentIndex: 0 });
-    }
-    
-    clearFilters() {
-        this.setState({ searchTerm: '', selectedDate: null, currentIndex: 0 });
+    loadQueueFromStorage() {
+        try {
+            const saved = localStorage.getItem('userQueue');
+            if (saved) {
+                const queue = JSON.parse(saved);
+                this.setState({ queue });
+            }
+        } catch (e) {
+            console.error('Failed to load queue:', e);
+        }
     }
     
     // View mode
     setViewMode(mode) {
-        this.setState({ viewMode: mode });
+        if (mode === 'list' || mode === 'grid') {
+            this.setState({ viewMode: mode });
+        }
     }
     
     // Dark mode
-    setDarkMode(enabled) {
-        this.setState({ darkMode: enabled });
+    toggleDarkMode() {
+        this.setState({ darkMode: !this.state.darkMode });
+        document.body.classList.toggle('dark', this.state.darkMode);
     }
     
-    // Loading/Error states
+    // Now playing
+    setNowPlaying(episodeId) {
+        this.setState({ nowPlayingId: episodeId });
+    }
+    
+    // Loading state
     setLoading(loading) {
         this.setState({ loading });
     }
@@ -202,14 +188,10 @@ class StateManager {
     setError(error) {
         this.setState({ error, loading: false });
     }
-}
-
-// Singleton instance
-let stateManagerInstance = null;
-
-export function getStateManager() {
-    if (!stateManagerInstance) {
-        stateManagerInstance = new StateManager();
+    
+    setEpisodes(episodes) {
+        this.setState({ episodes, loading: false });
     }
-    return stateManagerInstance;
 }
+
+export const stateManager = new StateManager();

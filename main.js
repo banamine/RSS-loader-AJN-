@@ -1,9 +1,11 @@
-// ============ MAIN.JS - FINAL VERIFIED VERSION ==========
+// ============ MAIN.JS - WITH SKELETON & KEYBOARD NAVIGATION ==========
 import { feedService } from './js/services/feedService.js';
 import { stateManager } from './js/state/stateManager.js';
 import { VideoControls } from './js/components/VideoControls.js';
 import { VirtualList } from './js/components/VirtualList.js';
 import { CalendarView } from './js/components/CalendarView.js';
+import { SkeletonLoader } from './js/components/SkeletonLoader.js';
+import { KeyboardNavigation } from './js/utils/keyboardNavigation.js';
 import { 
     escapeHtml, 
     formatCentralTime, 
@@ -22,6 +24,8 @@ const RSS_URL = 'https://api.rss2json.com/v1/api.json?rss_url=https://rss.alexjo
 let videoControls = null;
 let virtualList = null;
 let calendarView = null;
+let skeletonLoader = null;
+let keyboardNav = null;
 let allEpisodes = [];
 
 // Process raw episodes
@@ -54,17 +58,20 @@ function renderPlaylistItem(episode, index) {
     div.className = 'playlist-item';
     div.dataset.id = episode.id;
     div.dataset.index = index;
+    div.setAttribute('role', 'option');
+    div.setAttribute('aria-selected', 'false');
+    div.setAttribute('tabindex', '-1');
     
     div.innerHTML = `
-        <div class="menu-trigger" data-flyout="${flyoutId}">⋮</div>
-        <div class="flyout-menu" id="${flyoutId}">
-            <div class="flyout-menu-item" data-action="download">⬇️ Download</div>
-            <div class="flyout-menu-item" data-action="share">📤 Share</div>
-            <div class="flyout-menu-item" data-action="queue">📋 Add to Queue</div>
+        <div class="menu-trigger" data-flyout="${flyoutId}" aria-label="More options">⋮</div>
+        <div class="flyout-menu" id="${flyoutId}" role="menu">
+            <div class="flyout-menu-item" data-action="download" role="menuitem">⬇️ Download</div>
+            <div class="flyout-menu-item" data-action="share" role="menuitem">📤 Share</div>
+            <div class="flyout-menu-item" data-action="queue" role="menuitem">📋 Add to Queue</div>
             <div class="flyout-menu-divider"></div>
-            <div class="flyout-menu-item" data-action="details">📄 Details</div>
+            <div class="flyout-menu-item" data-action="details" role="menuitem">📄 Details</div>
         </div>
-        <div class="playlist-thumbnail">🎬</div>
+        <div class="playlist-thumbnail" aria-hidden="true">🎬</div>
         <div class="playlist-info">
             <div class="playlist-title">${escapeHtml(episode.title)}</div>
             <div class="playlist-date">📅 ${episode.formattedDate}</div>
@@ -84,6 +91,37 @@ function updateNowPlayingDisplay(episode) {
     if (metaEl) metaEl.textContent = episode ? `${episode.show} ${episode.hour} • ${episode.formattedDate}` : '';
 }
 
+// Apply filters from state
+function applyFilters() {
+    const state = stateManager.getState();
+    let filtered = [...allEpisodes];
+    
+    if (state.searchTerm) {
+        const term = state.searchTerm.toLowerCase();
+        filtered = filtered.filter(ep => 
+            ep.title.toLowerCase().includes(term) || 
+            ep.description.toLowerCase().includes(term)
+        );
+    }
+    
+    if (state.filterDate) {
+        filtered = filtered.filter(ep => ep.dateKey === state.filterDate);
+    }
+    
+    if (virtualList) {
+        virtualList.setItems(filtered);
+        if (keyboardNav) keyboardNav.updateItems();
+    }
+    
+    // Update search input
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput && searchInput.value !== state.searchTerm) {
+        searchInput.value = state.searchTerm;
+    }
+    
+    return filtered;
+}
+
 // Initialize virtual list
 function initVirtualList() {
     virtualList = new VirtualList('playlistContainer', {
@@ -95,18 +133,43 @@ function initVirtualList() {
             if (episode && videoControls) {
                 videoControls.loadEpisode(episode.videoUrl, true);
                 updateNowPlayingDisplay(episode);
+                stateManager.setNowPlaying(episode.id);
             }
         }
     });
     console.log('VirtualList component created');
 }
 
+// Initialize skeleton loader
+function initSkeletonLoader() {
+    skeletonLoader = new SkeletonLoader('playlistContainer', {
+        rowCount: 8,
+        rowHeight: 80
+    });
+}
+
+// Initialize keyboard navigation
+function initKeyboardNavigation() {
+    if (virtualList) {
+        keyboardNav = new KeyboardNavigation(virtualList, {
+            onSelect: (index) => {
+                const episode = virtualList?.getCurrentItems()?.[index];
+                if (episode && videoControls) {
+                    videoControls.loadEpisode(episode.videoUrl, true);
+                    updateNowPlayingDisplay(episode);
+                    stateManager.setNowPlaying(episode.id);
+                }
+            }
+        });
+        keyboardNav.enable();
+        console.log('Keyboard navigation enabled');
+    }
+}
+
 // Load episodes
 async function loadAndInitialize() {
-    const playlistContainer = document.getElementById('playlistContainer');
-    if (playlistContainer) {
-        playlistContainer.innerHTML = '<div class="loading-state"><div class="loader"></div><div>Loading episodes...</div></div>';
-    }
+    // Show skeleton loader
+    if (skeletonLoader) skeletonLoader.show();
     
     try {
         console.log('Fetching RSS feed...');
@@ -118,12 +181,23 @@ async function loadAndInitialize() {
             
             console.log(`Loaded ${allEpisodes.length} episodes`);
             
-            if (virtualList) virtualList.setItems(allEpisodes);
+            // Set episodes in state manager
+            stateManager.setEpisodes(allEpisodes);
+            
+            // Apply any persisted filters
+            const filtered = applyFilters();
+            
+            // Update calendar
             if (calendarView) calendarView.setEpisodes(allEpisodes);
             
-            if (allEpisodes.length > 0) {
-                updateNowPlayingDisplay(allEpisodes[0]);
-                if (videoControls) videoControls.loadEpisode(allEpisodes[0].videoUrl, false);
+            // Set first episode as now playing if none selected
+            const state = stateManager.getState();
+            if (!state.nowPlayingId && filtered.length > 0) {
+                updateNowPlayingDisplay(filtered[0]);
+                if (videoControls) {
+                    videoControls.loadEpisode(filtered[0].videoUrl, false);
+                }
+                stateManager.setNowPlaying(filtered[0].id);
             }
             
             showToast(`Loaded ${allEpisodes.length} episodes`);
@@ -132,10 +206,10 @@ async function loadAndInitialize() {
         }
     } catch (error) {
         console.error('Failed to load episodes:', error);
-        if (playlistContainer) {
-            playlistContainer.innerHTML = `<div class="error-state">❌ Failed to load: ${error.message}</div>`;
-        }
         showToast(`Failed to load: ${error.message}`);
+    } finally {
+        // Hide skeleton loader
+        if (skeletonLoader) skeletonLoader.hide();
     }
 }
 
@@ -148,16 +222,16 @@ function renderQueue() {
     if (!queueContainer) return;
     
     if (!state.queue || state.queue.length === 0) {
-        queueContainer.innerHTML = '<div class="empty-queue">Queue is empty</div>';
+        queueContainer.innerHTML = '<div class="empty-queue">Queue is empty. Use "Add to Queue" on episodes.</div>';
     } else {
         queueContainer.innerHTML = state.queue.map((item, idx) => `
             <div class="queue-item" data-index="${idx}">
-                <span class="drag-handle">⠿</span>
-                <div class="queue-info" data-action="play-queue" data-index="${idx}">
+                <span class="drag-handle" aria-label="Drag to reorder">⠿</span>
+                <div class="queue-info" data-action="play-queue" data-index="${idx}" role="button" tabindex="0">
                     <div class="queue-title">${escapeHtml(item.title)}</div>
                     <div class="queue-date">${item.show} ${item.hour}</div>
                 </div>
-                <button class="remove-queue-item" data-action="remove-queue" data-index="${idx}">×</button>
+                <button class="remove-queue-item" data-action="remove-queue" data-index="${idx}" aria-label="Remove from queue">×</button>
             </div>
         `).join('');
     }
@@ -187,17 +261,17 @@ function setupVideoControls() {
     
     if (nextBtn) {
         nextBtn.addEventListener('click', () => {
-            if (virtualList && allEpisodes.length) {
-                const currentVideo = videoControls?.video;
-                if (currentVideo) {
-                    const currentSrc = currentVideo.src;
-                    const currentIndex = allEpisodes.findIndex(ep => ep.videoUrl === currentSrc);
-                    if (currentIndex !== -1 && currentIndex + 1 < allEpisodes.length) {
-                        const nextEpisode = allEpisodes[currentIndex + 1];
-                        videoControls.loadEpisode(nextEpisode.videoUrl, true);
-                        updateNowPlayingDisplay(nextEpisode);
-                        virtualList.scrollToIndex(currentIndex + 1);
-                    }
+            const currentItems = virtualList?.getCurrentItems() || [];
+            if (currentItems.length) {
+                const currentSrc = videoControls?.video?.src;
+                const currentIndex = currentItems.findIndex(ep => ep.videoUrl === currentSrc);
+                if (currentIndex !== -1 && currentIndex + 1 < currentItems.length) {
+                    const nextEpisode = currentItems[currentIndex + 1];
+                    videoControls.loadEpisode(nextEpisode.videoUrl, true);
+                    updateNowPlayingDisplay(nextEpisode);
+                    stateManager.setNowPlaying(nextEpisode.id);
+                    virtualList.scrollToIndex(currentIndex + 1);
+                    if (keyboardNav) keyboardNav.setFocus(currentIndex + 1);
                 }
             }
         });
@@ -237,30 +311,55 @@ function setupVideoControls() {
     }
 }
 
-// Setup search
+// Setup search (with persistence)
 function setupSearch() {
     const searchInput = document.getElementById('searchInput');
     if (searchInput) {
+        // Set initial value from persisted state
+        const initialState = stateManager.getState();
+        searchInput.value = initialState.searchTerm;
+        
         const debouncedSearch = debounce((e) => {
-            const term = e.target.value.toLowerCase();
-            const filtered = term ? allEpisodes.filter(ep => 
-                ep.title.toLowerCase().includes(term) || 
-                ep.description.toLowerCase().includes(term)
-            ) : allEpisodes;
-            if (virtualList) virtualList.setItems(filtered);
+            stateManager.setSearchTerm(e.target.value);
+            applyFilters();
         }, 300);
         searchInput.addEventListener('input', debouncedSearch);
+        
+        // Clear search button
+        const clearSearchBtn = document.getElementById('clearSearchBtn');
+        if (clearSearchBtn) {
+            clearSearchBtn.addEventListener('click', () => {
+                stateManager.clearFilters();
+                searchInput.value = '';
+                applyFilters();
+                showToast('Filters cleared');
+            });
+        }
     }
 }
 
-// Setup view mode
+// Setup view mode (with persistence)
 function setupViewMode() {
     const listBtn = document.getElementById('listViewBtn');
     const gridBtn = document.getElementById('gridViewBtn');
     const playlistContainer = document.getElementById('playlistContainer');
     
+    const initialState = stateManager.getState();
+    
+    // Apply saved view mode
+    if (initialState.viewMode === 'grid') {
+        gridBtn?.classList.add('active');
+        listBtn?.classList.remove('active');
+        playlistContainer?.classList.add('grid-view');
+    } else {
+        listBtn?.classList.add('active');
+        gridBtn?.classList.remove('active');
+        playlistContainer?.classList.remove('grid-view');
+    }
+    
     if (listBtn) {
         listBtn.addEventListener('click', () => {
+            stateManager.setViewMode('list');
             listBtn.classList.add('active');
             gridBtn.classList.remove('active');
             if (playlistContainer) playlistContainer.classList.remove('grid-view');
@@ -270,6 +369,7 @@ function setupViewMode() {
     
     if (gridBtn) {
         gridBtn.addEventListener('click', () => {
+            stateManager.setViewMode('grid');
             gridBtn.classList.add('active');
             listBtn.classList.remove('active');
             if (playlistContainer) playlistContainer.classList.add('grid-view');
@@ -278,22 +378,21 @@ function setupViewMode() {
     }
 }
 
-// Setup dark mode
+// Setup dark mode (with persistence)
 function setupDarkMode() {
     const darkBtn = document.getElementById('darkModeToggle');
-    const isDark = localStorage.getItem('darkMode') === 'true';
+    const initialState = stateManager.getState();
     
-    if (isDark) {
+    if (initialState.darkMode) {
         document.body.classList.add('dark');
         if (darkBtn) darkBtn.textContent = '☀️ Light';
     }
     
     if (darkBtn) {
         darkBtn.addEventListener('click', () => {
-            document.body.classList.toggle('dark');
-            const dark = document.body.classList.contains('dark');
-            localStorage.setItem('darkMode', dark);
-            darkBtn.textContent = dark ? '☀️ Light' : '🌙 Dark';
+            stateManager.toggleDarkMode();
+            const isDark = stateManager.getState().darkMode;
+            darkBtn.textContent = isDark ? '☀️ Light' : '🌙 Dark';
         });
     }
 }
@@ -306,8 +405,8 @@ function setupCalendar() {
     if (calendarContainer) {
         calendarView = new CalendarView(calendarContainer, {
             onDateSelect: (date) => {
-                const filtered = allEpisodes.filter(ep => ep.dateKey === date);
-                if (virtualList) virtualList.setItems(filtered);
+                stateManager.setFilterDate(date);
+                applyFilters();
                 showToast(`Filtered to ${date}`);
                 calendarView.hide();
             }
@@ -319,11 +418,23 @@ function setupCalendar() {
             if (calendarView) calendarView.toggle();
         });
     }
+    
+    // Clear filter button
+    const clearFilterBtn = document.getElementById('clearFilterBtn');
+    if (clearFilterBtn) {
+        clearFilterBtn.addEventListener('click', () => {
+            stateManager.clearFilters();
+            applyFilters();
+            if (calendarView) calendarView.renderCalendar();
+            showToast('Filters cleared');
+        });
+    }
 }
 
 // Setup playlist actions
 function setupPlaylistActions() {
     document.addEventListener('click', (e) => {
+        // Flyout triggers
         const trigger = e.target.closest('.menu-trigger');
         if (trigger) {
             e.stopPropagation();
@@ -337,6 +448,7 @@ function setupPlaylistActions() {
             }
         }
         
+        // Flyout actions
         const actionBtn = e.target.closest('.flyout-menu-item');
         if (actionBtn) {
             e.stopPropagation();
@@ -370,6 +482,7 @@ function setupPlaylistActions() {
             if (flyout) flyout.style.display = 'none';
         }
         
+        // Close flyouts
         if (!e.target.closest('.menu-trigger') && !e.target.closest('.flyout-menu')) {
             document.querySelectorAll('.flyout-menu').forEach(f => f.style.display = 'none');
         }
@@ -386,6 +499,7 @@ function setupQueueActions() {
             if (episode && videoControls) {
                 videoControls.loadEpisode(episode.videoUrl, true);
                 updateNowPlayingDisplay(episode);
+                stateManager.setNowPlaying(episode.id);
             }
         }
         
@@ -400,16 +514,20 @@ function setupQueueActions() {
     const clearQueueBtn = document.getElementById('clearQueueBtn');
     if (clearQueueBtn) {
         clearQueueBtn.addEventListener('click', () => {
-            stateManager.clearQueue();
-            renderQueue();
+            if (confirm('Clear all items from queue?')) {
+                stateManager.clearQueue();
+                renderQueue();
+                showToast('Queue cleared');
+            }
         });
     }
 }
 
 // Initialize app
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('Initializing AJN Hourly Archive...');
+    console.log('Initializing AJN Hourly Archive with persistence and keyboard navigation...');
     
+    // Initialize components
     setupDarkMode();
     setupVideoControls();
     setupSearch();
@@ -418,11 +536,17 @@ document.addEventListener('DOMContentLoaded', () => {
     setupPlaylistActions();
     setupQueueActions();
     
+    // Load queue from storage
     stateManager.loadQueueFromStorage();
     renderQueue();
     
+    // Initialize skeleton loader and virtual list
+    initSkeletonLoader();
     initVirtualList();
+    initKeyboardNavigation();
+    
+    // Load episodes
     loadAndInitialize();
     
-    console.log('Application ready');
+    console.log('Application ready - Persistence active, keyboard navigation enabled');
 });
