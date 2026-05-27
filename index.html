@@ -6,6 +6,21 @@
 <title>AJN Hourly Archive</title>
 <meta name="description" content="AJN Hourly Archive - Browse and play episodes from the Alex Jones Network">
 <meta name="theme-color" content="#d32f2f">
+<!-- Updated Content Security Policy - Remove unsafe-eval -->
+<meta http-equiv="Content-Security-Policy" content="
+    default-src 'self';
+    script-src 'self' 'unsafe-inline';
+    style-src 'self' 'unsafe-inline';
+    img-src 'self' data: https:;
+    media-src 'self' https:;
+    connect-src 'self' https://api.rss2json.com https://rss.alexjones.media https://ajn.archives.pub;
+    font-src 'self';
+    frame-src 'none';
+    object-src 'none';
+    base-uri 'self';
+    form-action 'self';
+">
+<!-- Note: 'unsafe-eval' has been removed -->
 <link rel="stylesheet" href="css/skeleton.css">
 
 <!-- Content Security Policy - Mitigates XSS risks -->
