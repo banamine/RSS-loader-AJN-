@@ -1,14 +1,11 @@
-// ============ FEED SERVICE - WITH STABLE IDS ==========
-import { generateStableEpisodeId } from '../utils/idGenerator.js';
+// ============ FEED SERVICE ==========
 
-export class FeedService {
+class FeedService {
     constructor() {
         this.abortController = null;
         this.cache = new Map();
         this.cacheTimeout = 5 * 60 * 1000;
     }
-    
-    // ... XSLT property remains the same ...
     
     static get XSLT() {
         return `<?xml version="1.0" encoding="UTF-8"?>
@@ -39,7 +36,6 @@ export class FeedService {
         </xsl:stylesheet>`;
     }
     
-    // Process raw episode with stable ID
     processEpisode(item, index) {
         const videoUrl = this.extractVideoUrl(item);
         const stableId = generateStableEpisodeId({
@@ -48,7 +44,6 @@ export class FeedService {
             title: item.title,
             pubDate: item.pubDate
         });
-        
         return {
             id: stableId,
             originalIndex: index,
@@ -62,22 +57,13 @@ export class FeedService {
     }
     
     extractVideoUrl(item) {
-        // Try to get video URL from various possible locations
-        if (item.link && (item.link.includes('.m4v') || item.link.includes('.mp4'))) {
-            return item.link;
-        }
-        if (item.enclosure?.url) {
-            return item.enclosure.url;
-        }
-        if (item.guid && (item.guid.includes('.m4v') || item.guid.includes('.mp4'))) {
-            return item.guid;
-        }
+        if (item.link && (item.link.includes('.m4v') || item.link.includes('.mp4'))) return item.link;
+        if (item.enclosure?.url) return item.enclosure.url;
+        if (item.guid && (item.guid.includes('.m4v') || item.guid.includes('.mp4'))) return item.guid;
         return item.link || '';
     }
     
-    // Rest of feedService methods remain the same...
     async fetchFeed(url, options = { forceRefresh: false }) {
-        // Check cache
         if (!options.forceRefresh && this.cache.has(url)) {
             const cached = this.cache.get(url);
             if (Date.now() - cached.timestamp < this.cacheTimeout) {
@@ -85,76 +71,39 @@ export class FeedService {
                 return cached.data;
             }
         }
-        
-        if (this.abortController) {
-            this.abortController.abort();
-        }
-        
+        if (this.abortController) this.abortController.abort();
         this.abortController = new AbortController();
-        
         try {
             const response = await fetch(url, {
                 signal: this.abortController.signal,
                 headers: { 'Accept': 'application/rss+xml, application/xml, text/xml' }
             });
-            
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-            
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
             const xmlText = await response.text();
-            
-            if (!xmlText.includes('<rss') && !xmlText.includes('<feed')) {
-                throw new Error('Invalid RSS/XML format');
-            }
-            
+            if (!xmlText.includes('<rss') && !xmlText.includes('<feed')) throw new Error('Invalid RSS/XML format');
             const parser = new DOMParser();
             const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
-            
             const parseError = xmlDoc.querySelector('parsererror');
-            if (parseError) {
-                throw new Error('XML parsing failed: ' + parseError.textContent);
-            }
-            
+            if (parseError) throw new Error('XML parsing failed: ' + parseError.textContent);
             const xsltDoc = parser.parseFromString(FeedService.XSLT, 'text/xml');
             const processor = new XSLTProcessor();
             processor.importStylesheet(xsltDoc);
             const resultDoc = processor.transformToDocument(xmlDoc);
-            
             const jsonResult = this.xmlToJson(resultDoc);
             const episodes = this.extractEpisodes(jsonResult);
-            
-            // Process episodes with stable IDs
             const processedEpisodes = episodes.map((ep, idx) => this.processEpisode(ep, idx));
-            
-            const result = {
-                success: true,
-                episodes: processedEpisodes,
-                total: processedEpisodes.length,
-                timestamp: Date.now(),
-                url: url
-            };
-            
+            const result = { success: true, episodes: processedEpisodes, total: processedEpisodes.length, timestamp: Date.now(), url: url };
             this.cache.set(url, { data: result, timestamp: Date.now() });
-            
             return result;
-            
         } catch (error) {
-            if (error.name === 'AbortError') {
-                console.log('Feed fetch aborted');
-                return { success: false, error: 'Request cancelled', aborted: true };
-            }
-            
+            if (error.name === 'AbortError') return { success: false, error: 'Request cancelled', aborted: true };
             console.error('Feed fetch failed:', error);
             return { success: false, error: error.message };
         }
     }
     
-    // ... xmlToJson, extractEpisodes, abort, clearCache methods remain ...
-    
     xmlToJson(xml) {
         let obj = {};
-        
         if (xml.nodeType === 1) {
             if (xml.attributes.length > 0) {
                 obj["@attributes"] = {};
@@ -163,18 +112,13 @@ export class FeedService {
                     obj["@attributes"][attr.nodeName] = attr.nodeValue;
                 }
             }
-        } else if (xml.nodeType === 3) {
-            obj = xml.nodeValue.trim();
-        }
-        
+        } else if (xml.nodeType === 3) obj = xml.nodeValue.trim();
         if (xml.hasChildNodes()) {
             for (let i = 0; i < xml.childNodes.length; i++) {
                 const item = xml.childNodes.item(i);
                 const nodeName = item.nodeName;
-                
-                if (typeof obj[nodeName] === "undefined") {
-                    obj[nodeName] = this.xmlToJson(item);
-                } else {
+                if (typeof obj[nodeName] === "undefined") obj[nodeName] = this.xmlToJson(item);
+                else {
                     if (typeof obj[nodeName].push === "undefined") {
                         const old = obj[nodeName];
                         obj[nodeName] = [];
@@ -184,7 +128,6 @@ export class FeedService {
                 }
             }
         }
-        
         return obj;
     }
     
@@ -201,16 +144,8 @@ export class FeedService {
         }
     }
     
-    abort() {
-        if (this.abortController) {
-            this.abortController.abort();
-            this.abortController = null;
-        }
-    }
-    
-    clearCache() {
-        this.cache.clear();
-    }
+    abort() { if (this.abortController) { this.abortController.abort(); this.abortController = null; } }
+    clearCache() { this.cache.clear(); }
 }
 
-export const feedService = new FeedService();
+const feedService = new FeedService();

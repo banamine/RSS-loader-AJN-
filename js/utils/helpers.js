@@ -1,32 +1,28 @@
-// ============ HELPER FUNCTIONS - WITH STABLE IDS ==========
+// ============ HELPER FUNCTIONS - GLOBAL SCOPE ==========
 
-// Export the ID generator functions
-export { generateStableEpisodeId, isValidEpisodeId, migrateEpisodeId } from './idGenerator.js';
-
-// ... existing helper functions remain ...
-export function escapeHtml(str) {
+function escapeHtml(str) {
     if (!str) return '';
     const div = document.createElement('div');
     div.textContent = str;
     return div.innerHTML;
 }
 
-export function formatTime(seconds) {
+function formatTime(seconds) {
     if (isNaN(seconds) || !isFinite(seconds)) return '0:00';
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
-export function formatDateKey(date) {
+function formatDateKey(date) {
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
 
-export function toCentralTime(date) {
+function toCentralTime(date) {
     return new Date(date.toLocaleString('en-US', { timeZone: 'America/Chicago' }));
 }
 
-export function formatCentralTime(date) {
+function formatCentralTime(date) {
     if (!date) return 'Date unknown';
     return date.toLocaleString('en-US', {
         timeZone: 'America/Chicago',
@@ -38,7 +34,16 @@ export function formatCentralTime(date) {
     });
 }
 
-export function transformVideoUrl(originalUrl) {
+function formatShortDate(date) {
+    if (!date) return 'Unknown';
+    return date.toLocaleDateString('en-US', {
+        timeZone: 'America/Chicago',
+        month: 'short',
+        day: 'numeric'
+    });
+}
+
+function transformVideoUrl(originalUrl) {
     if (!originalUrl) return '#';
     const filename = originalUrl.substring(originalUrl.lastIndexOf('/') + 1);
     if (filename.endsWith('.m4v') || filename.endsWith('.mp4')) {
@@ -47,7 +52,7 @@ export function transformVideoUrl(originalUrl) {
     return originalUrl;
 }
 
-export function parseEpisodeDetails(title) {
+function parseEpisodeDetails(title) {
     const warRoomMatch = title.match(/WarRoom[- ]Hr(\d+)/i);
     const alexMatch = title.match(/Alex[- ]Jones[- ]Show[- ]Hr(\d+)/i);
     if (warRoomMatch) return { show: 'War Room', hour: `Hour ${warRoomMatch[1]}` };
@@ -55,7 +60,7 @@ export function parseEpisodeDetails(title) {
     return { show: 'Episode', hour: '' };
 }
 
-export function debounce(func, delay) {
+function debounce(func, delay) {
     let timeoutId;
     return function(...args) {
         clearTimeout(timeoutId);
@@ -63,7 +68,7 @@ export function debounce(func, delay) {
     };
 }
 
-export function showToast(message, duration = 3000) {
+function showToast(message, duration = 3000) {
     const existing = document.querySelector('.toast');
     if (existing) existing.remove();
     

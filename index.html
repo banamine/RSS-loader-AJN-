@@ -7,7 +7,7 @@
 <meta name="description" content="AJN Hourly Archive - Browse and play episodes from the Alex Jones Network">
 <meta name="theme-color" content="#d32f2f">
 
-<!-- Content Security Policy - No unsafe-eval -->
+<!-- Content Security Policy -->
 <meta http-equiv="Content-Security-Policy" content="
     default-src 'self';
     script-src 'self' 'unsafe-inline';
@@ -96,9 +96,11 @@
     </div>
 </div>
 
-<!-- ============ ALL SCRIPTS - LOAD IN ORDER, NO type="module" ============ -->
-<!-- Utilities first (no dependencies) -->
+<!-- ============ SCRIPTS LOADED IN ORDER (NO type="module") ============ -->
+<!-- Config first -->
 <script src="./js/config.js"></script>
+
+<!-- Utilities (no dependencies) -->
 <script src="./js/utils/helpers.js"></script>
 <script src="./js/utils/idGenerator.js"></script>
 <script src="./js/utils/urlSanitizer.js"></script>
@@ -118,7 +120,7 @@
 <script src="./js/components/VirtualList.js"></script>
 <script src="./js/components/CalendarView.js"></script>
 
-<!-- Main Application (LAST) -->
+<!-- Main Application (MUST BE LAST) -->
 <script src="./main.js"></script>
 </body>
 </html>
