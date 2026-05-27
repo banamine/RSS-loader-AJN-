@@ -1,17 +1,17 @@
+Expected Structure:
 /
-├── index.html
-├── css/
-│   ├── main.css
-│   └── components/
-│       ├── now-playing.css
-│       └── virtual-list.css
-└── js/
-    ├── main.js
-    ├── utils/
-    │   ├── helpers.js
-    │   └── videoControls.js
-    └── components/
-        ├── NowPlayingCard.js
-        ├── VirtualPlaylist.js
-        ├── QueueManager.js
-        └── CalendarView.js
+├── index.html                 ✅ Must have <div id="playlistContainer">
+├── main.js                    ✅ Imports all modules correctly
+├── main.css                   ✅ Root level
+├── virtual-list.css           ✅ Root level
+├── js/
+│   ├── services/
+│   │   └── feedService.js     ✅ Exports feedService
+│   ├── state/
+│   │   └── stateManager.js    ✅ Exports stateManager
+│   ├── components/
+│   │   ├── VideoControls.js   ✅ Exports VideoControls
+│   │   ├── VirtualList.js     ✅ Exports VirtualList with retry guard
+│   │   └── CalendarView.js    ✅ Exports CalendarView
+│   └── utils/
+│       └── helpers.js         ✅ Exports all helper functions
