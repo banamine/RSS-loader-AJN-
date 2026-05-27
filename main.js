@@ -165,7 +165,55 @@ function initKeyboardNavigation() {
         console.log('Keyboard navigation enabled');
     }
 }
+// Add to main.js - Keyboard navigation setup
+function setupKeyboardNavigation() {
+    // Global keyboard shortcuts for playlist
+    document.addEventListener('keydown', (e) => {
+        // Don't interfere with input fields
+        const activeElement = document.activeElement;
+        if (activeElement?.tagName === 'INPUT' || activeElement?.tagName === 'TEXTAREA') {
+            return;
+        }
+        
+        // Check if virtual list is ready
+        if (!virtualList || !virtualList.isReady()) return;
+        
+        const items = virtualList.getCurrentItems();
+        if (!items.length) return;
+        
+        switch (e.key) {
+            case 'ArrowDown':
+                e.preventDefault();
+                virtualList.moveFocus(1);
+                break;
+            case 'ArrowUp':
+                e.preventDefault();
+                virtualList.moveFocus(-1);
+                break;
+            case 'Home':
+                e.preventDefault();
+                virtualList.moveFocusToStart();
+                break;
+            case 'End':
+                e.preventDefault();
+                virtualList.moveFocusToEnd();
+                break;
+            case 'Enter':
+                e.preventDefault();
+                virtualList.playActive();
+                break;
+            case 'Escape':
+                e.preventDefault();
+                virtualList.setFocusedIndex(-1);
+                break;
+        }
+    });
+    
+    console.log('Keyboard navigation setup complete');
+}
 
+// Call this in DOMContentLoaded after virtualList is created
+// setupKeyboardNavigation();
 // Load episodes
 async function loadAndInitialize() {
     // Show skeleton loader
