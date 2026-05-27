@@ -1,6 +1,8 @@
-// ============ MAIN APPLICATION - CORRECTED IMPORTS ==========
-// All imports use named exports (curly braces) to match helpers.js
+// ============ MAIN APPLICATION - CORRECTED IMPORTS FOR ROOT-LEVEL FILES ==========
+// All files are at the root level (same directory as index.html)
+// Import using the exact filenames as they appear in your directory
 
+// Core imports - these files exist at root level
 import { VideoControls } from './videoControls.js';
 import { 
     showToast, 
@@ -61,6 +63,9 @@ document.addEventListener('DOMContentLoaded', () => {
         videoControls = new VideoControls(
             videoPlayer, progressBar, playPauseBtn, currentTimeDisplay, durationDisplay
         );
+        console.log("VideoControls initialized");
+    } else {
+        console.warn("VideoControls elements not found");
     }
     
     // Play episode function
@@ -68,7 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (index < 0 || index >= currentPlaylist.length) return;
         currentIndex = index;
         const episode = currentPlaylist[currentIndex];
-        currentTitle.textContent = episode.title;
+        if (currentTitle) currentTitle.textContent = episode.title;
         
         if (videoControls) {
             videoControls.loadEpisode(episode.videoUrl, true);
@@ -293,11 +298,13 @@ document.addEventListener('DOMContentLoaded', () => {
         renderPlaylist();
         
         const uniqueDates = new Set(currentPlaylist.map(e => e.dateKey));
-        playlistStats.innerHTML = `${currentPlaylist.length} episodes • ${uniqueDates.size} days`;
+        if (playlistStats) {
+            playlistStats.innerHTML = `${currentPlaylist.length} episodes • ${uniqueDates.size} days`;
+        }
         
         if (currentPlaylist.length > 0 && videoControls) {
             const episode = currentPlaylist[0];
-            currentTitle.textContent = episode.title;
+            if (currentTitle) currentTitle.textContent = episode.title;
             videoControls.loadEpisode(episode.videoUrl, false);
         }
     }
@@ -314,7 +321,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     if (clearSearchBtn) {
         clearSearchBtn.addEventListener('click', () => {
-            searchInput.value = '';
+            if (searchInput) searchInput.value = '';
             clearSearchBtn.classList.remove('visible');
             applyFilters();
         });
@@ -330,7 +337,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const today = new Date();
         const todayKey = formatDateKey(today);
         
-        calendarMonthTitle.textContent = firstDay.toLocaleString('default', { month: 'long', year: 'numeric' });
+        if (calendarMonthTitle) {
+            calendarMonthTitle.textContent = firstDay.toLocaleString('default', { month: 'long', year: 'numeric' });
+        }
         
         let weekdaysHtml = '';
         WEEKDAYS.forEach(day => { weekdaysHtml += `<div class="calendar-weekday">${day}</div>`; });
@@ -375,11 +384,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 renderPlaylist();
                 
                 const formattedDate = new Date(dateKey).toLocaleDateString();
-                playlistStats.innerHTML = `${currentPlaylist.length} episodes • Filtered to ${formattedDate}`;
+                if (playlistStats) {
+                    playlistStats.innerHTML = `${currentPlaylist.length} episodes • Filtered to ${formattedDate}`;
+                }
                 
                 if (currentPlaylist.length > 0 && videoControls) {
                     const episode = currentPlaylist[0];
-                    currentTitle.textContent = episode.title;
+                    if (currentTitle) currentTitle.textContent = episode.title;
                     videoControls.loadEpisode(episode.videoUrl, false);
                 }
                 
@@ -508,11 +519,13 @@ document.addEventListener('DOMContentLoaded', () => {
             renderPlaylist();
             
             const uniqueDates = new Set(currentPlaylist.map(e => e.dateKey));
-            playlistStats.innerHTML = `${currentPlaylist.length} episodes • ${uniqueDates.size} days`;
+            if (playlistStats) {
+                playlistStats.innerHTML = `${currentPlaylist.length} episodes • ${uniqueDates.size} days`;
+            }
             
             if (currentPlaylist.length > 0 && videoControls) {
                 const episode = currentPlaylist[0];
-                currentTitle.textContent = episode.title;
+                if (currentTitle) currentTitle.textContent = episode.title;
                 videoControls.loadEpisode(episode.videoUrl, false);
             }
             
@@ -533,5 +546,5 @@ document.addEventListener('DOMContentLoaded', () => {
     initDarkMode();
     loadEpisodes();
     
-    console.log("Main.js loaded - Using named exports with curly braces");
+    console.log("Main.js loaded - Using root-level imports");
 });
