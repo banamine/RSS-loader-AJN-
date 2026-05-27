@@ -1,13 +1,13 @@
-/* ============ CRITICAL RESET - FIXES BOX SIZING ============ */
-*,
-*::before,
-*::after {
-    box-sizing: border-box;
+/* ============ COMPLETE main.css - MERGED FILE ============ */
+/* This combines base styles from styles.css + new additions */
+
+/* ============ CSS RESET & VARIABLES ============ */
+* {
     margin: 0;
     padding: 0;
+    box-sizing: border-box;
 }
 
-/* ============ CSS VARIABLES ============ */
 :root {
     --primary: #d32f2f;
     --primary-dark: #b71c1c;
@@ -60,12 +60,11 @@
     --shadow-xl: 0 8px 24px rgba(0,0,0,0.45);
 }
 
-/* ============ FIXED-HEADER GRID LAYOUT ============ */
+/* ============ BASE LAYOUT ============ */
 html, body {
     height: 100%;
     margin: 0;
     padding: 0;
-    overflow: hidden;
 }
 
 body {
@@ -75,7 +74,6 @@ body {
     line-height: 1.5;
     transition: background-color 200ms cubic-bezier(0.4, 0, 0.2, 1), color 200ms cubic-bezier(0.4, 0, 0.2, 1);
     height: 100%;
-    width: 100%;
     overflow: hidden;
 }
 
@@ -83,25 +81,33 @@ body.preload * {
     transition: none !important;
 }
 
-/* Main App Container - Grid Layout with Fixed Header */
-#app {
-    display: grid;
-    grid-template-rows: auto 1fr;
+.app-container {
+    display: flex;
+    flex-direction: column;
     height: 100vh;
-    width: 100vw;
-    max-width: 100%;
+    max-height: 100vh;
     overflow: hidden;
     position: relative;
 }
 
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 var(--spacing-md);
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+}
+
 /* ============ STICKY HEADER ============ */
 .sticky-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
     background: var(--bg-surface);
     border-bottom: 1px solid var(--border);
     box-shadow: var(--shadow-sm);
-    z-index: 100;
-    width: 100%;
-    overflow-x: hidden;
+    flex-shrink: 0;
 }
 
 .header-content {
@@ -120,7 +126,6 @@ body.preload * {
     display: flex;
     align-items: center;
     gap: var(--spacing-sm);
-    flex-shrink: 0;
 }
 
 .logo h1 {
@@ -727,22 +732,12 @@ body.preload * {
     color: var(--primary-dark);
 }
 
-/* ============ MAIN CONTENT AREA ============ */
-.app-content {
+/* ============ MAIN GRID LAYOUT ============ */
+.main-grid {
     display: grid;
     grid-template-columns: 65% 35%;
     gap: 20px;
-    overflow: hidden;
-    padding: var(--spacing-md);
-    max-width: 1400px;
-    margin: 0 auto;
-    width: 100%;
-    height: 100%;
-}
-
-.col-left, .col-right {
-    overflow-y: auto;
-    height: 100%;
+    margin: var(--spacing-lg) 0;
 }
 
 .video-section {
@@ -759,7 +754,10 @@ body.preload * {
     box-shadow: var(--shadow-sm);
     display: flex;
     flex-direction: column;
-    height: 100%;
+    height: fit-content;
+    max-height: calc(100vh - var(--header-height) - 40px);
+    position: sticky;
+    top: calc(var(--header-height) + 20px);
 }
 
 .playlist-header {
@@ -770,7 +768,6 @@ body.preload * {
     align-items: center;
     flex-wrap: wrap;
     gap: var(--spacing-sm);
-    flex-shrink: 0;
 }
 
 .playlist-header h2 {
@@ -782,48 +779,6 @@ body.preload * {
     font-size: 0.75rem;
     color: var(--text-secondary);
     margin-top: var(--spacing-xs);
-}
-
-/* ============ VIRTUAL PLAYLIST CONTAINER ============ */
-#playlistContainer {
-    position: relative;
-    flex: 1;
-    overflow-y: auto;
-    overflow-x: hidden;
-    min-height: 0;
-    scroll-behavior: smooth;
-}
-
-#playlistContainer::-webkit-scrollbar {
-    width: 8px;
-}
-
-#playlistContainer::-webkit-scrollbar-track {
-    background: var(--border);
-    border-radius: 4px;
-}
-
-#playlistContainer::-webkit-scrollbar-thumb {
-    background: var(--primary);
-    border-radius: 4px;
-}
-
-#playlistContainer::-webkit-scrollbar-thumb:hover {
-    background: var(--primary-dark);
-}
-
-#scrollSpacer {
-    position: relative;
-    width: 100%;
-}
-
-#virtualList {
-    will-change: transform;
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    width: 100%;
 }
 
 /* ============ NOW PLAYING CARD ============ */
@@ -994,7 +949,49 @@ body.preload * {
     transform: translateY(-1px);
 }
 
-/* ============ PLAYLIST ITEM STYLES ============ */
+/* ============ VIRTUAL PLAYLIST ============ */
+.playlist-container {
+    position: relative;
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    height: 100%;
+    min-height: 400px;
+    scroll-behavior: smooth;
+}
+
+.playlist-container::-webkit-scrollbar {
+    width: 8px;
+}
+
+.playlist-container::-webkit-scrollbar-track {
+    background: var(--border);
+    border-radius: 4px;
+}
+
+.playlist-container::-webkit-scrollbar-thumb {
+    background: var(--primary);
+    border-radius: 4px;
+}
+
+.playlist-container::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-dark);
+}
+
+#virtualList {
+    will-change: transform;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+}
+
+/* List View */
+.playlist-container:not(.grid-view) #virtualList {
+    display: block;
+}
+
 .playlist-item.list-item {
     position: relative;
     display: flex;
@@ -1008,7 +1005,6 @@ body.preload * {
     height: var(--list-row-height);
     box-sizing: border-box;
     overflow: visible;
-    width: 100%;
 }
 
 .playlist-item.list-item:hover {
@@ -1179,26 +1175,6 @@ body.preload * {
     color: var(--text-tertiary);
 }
 
-.add-to-queue-btn {
-    padding: 4px 12px;
-    font-size: 0.75rem;
-    background: var(--bg-surface);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.add-to-queue-btn:hover {
-    background: var(--primary-light);
-    border-color: var(--primary);
-}
-
-.add-to-queue-btn:focus-visible {
-    outline: 2px solid var(--primary);
-    outline-offset: 2px;
-}
-
 /* Grid View */
 .playlist-container.grid-view #virtualList {
     display: grid;
@@ -1228,7 +1204,6 @@ body.preload * {
     height: auto !important;
     min-height: 200px;
     gap: var(--spacing-sm);
-    width: 100%;
 }
 
 .playlist-item.grid-item:hover {
@@ -1294,6 +1269,27 @@ body.preload * {
     color: var(--text-tertiary);
 }
 
+.add-to-queue-btn {
+    padding: 4px 12px;
+    font-size: 0.75rem;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-top: 8px;
+}
+
+.add-to-queue-btn:hover {
+    background: var(--primary-light);
+    border-color: var(--primary);
+}
+
+.add-to-queue-btn:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
 /* Loading States */
 .loading-state {
     text-align: center;
@@ -1325,6 +1321,45 @@ body.preload * {
     text-align: center;
     padding: var(--spacing-xl);
     color: var(--text-secondary);
+}
+
+.skeleton-row {
+    height: 80px;
+    margin-bottom: 8px;
+    background: linear-gradient(90deg, var(--border) 25%, var(--bg-surface-hover) 50%, var(--border) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: var(--border-radius);
+}
+
+@keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* Modal Overlay */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    backdrop-filter: blur(4px);
+}
+
+.modal-content {
+    background: var(--bg-surface);
+    border-radius: 16px;
+    max-width: 500px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    padding: 24px;
 }
 
 /* Toast Notifications */
@@ -1392,31 +1427,6 @@ body.preload * {
     }
 }
 
-/* Modal Overlay */
-.modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.8);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 2000;
-    backdrop-filter: blur(4px);
-}
-
-.modal-content {
-    background: var(--bg-surface);
-    border-radius: 16px;
-    max-width: 500px;
-    width: 90%;
-    max-height: 80vh;
-    overflow-y: auto;
-    padding: 24px;
-}
-
 /* ============ RESPONSIVE ============ */
 @media (max-width: 1024px) {
     .playlist-container.grid-view #virtualList {
@@ -1426,9 +1436,15 @@ body.preload * {
 }
 
 @media (max-width: 768px) {
-    .app-content {
+    .main-grid {
         grid-template-columns: 1fr;
         gap: var(--spacing-md);
+    }
+    
+    .playlist-section {
+        position: relative;
+        top: 0;
+        max-height: 500px;
     }
     
     .header-content {
@@ -1512,7 +1528,7 @@ body.preload * {
 }
 
 @media (max-width: 480px) {
-    .app-content {
+    .container {
         padding: 0 var(--spacing-sm);
     }
     
@@ -1599,4 +1615,136 @@ body.preload * {
     .queue-item {
         border: 2px solid currentColor;
     }
+}
+
+/* ============ NEW ADDITIONS FOR setState/render LOOP ============ */
+/* These ensure proper scrolling and containment */
+
+#playlistContainer {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    position: relative;
+    min-height: 0;
+}
+
+.playlist-virtual-list {
+    position: relative;
+    width: 100%;
+}
+
+.playlist-container.grid-view .playlist-virtual-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 12px;
+    padding: 12px;
+}
+
+.calendar-panel {
+    display: none;
+    padding: 16px;
+    border-top: 1px solid var(--border);
+}
+
+.calendar-panel.visible {
+    display: block;
+}
+
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    margin-top: 8px;
+}
+
+.calendar-day {
+    aspect-ratio: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    background: var(--bg-surface);
+    transition: all 0.2s ease;
+}
+
+.calendar-day.has-episode {
+    background: var(--primary-light);
+    border-color: var(--primary);
+}
+
+.calendar-day.today {
+    border: 2px solid var(--primary);
+    font-weight: bold;
+}
+
+.calendar-day.selected {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary-dark);
+}
+
+.calendar-filter-badge .clear-filter {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    color: var(--primary);
+    padding: 0 4px;
+}
+
+.calendar-filter-badge .clear-filter:hover {
+    color: var(--primary-dark);
+}
+
+.queue-container {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+}
+
+.queue-container.expanded {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.calendar-filter-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+    padding: 6px 12px;
+    background: var(--primary-light);
+    border-radius: 20px;
+    font-size: 0.8rem;
+    color: var(--primary);
+}
+
+.drag-handle:active {
+    cursor: grabbing;
+}
+
+.remove-queue-item:hover {
+    background: var(--primary-light);
+    color: var(--primary);
+}
+
+.flyout-menu {
+    position: absolute;
+    right: 12px;
+    top: 45px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    z-index: 1000;
+    display: none;
+    min-width: 140px;
+    box-shadow: var(--shadow-lg);
+}
+
+.flyout-menu.active {
+    display: block;
 }
