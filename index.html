@@ -1,116 +1,99 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>AJN Hourly Archive</title>
-<meta name="description" content="AJN Hourly Archive - Browse and play episodes">
-<meta name="theme-color" content="#d32f2f">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>AJN Hourly Archive</title>
+    <meta name="description" content="AJN Hourly Archive - Browse and play episodes">
+    <meta name="theme-color" content="#d32f2f">
 
-<!-- Suppress favicon 404 -->
-<link rel="icon" href="data:,">
+    <link rel="icon" href="data:,">
 
-<!-- CSS Files -->
-<link rel="stylesheet" href="./main.css">
-<link rel="stylesheet" href="./virtual-list.css">
-<link rel="stylesheet" href="./css/skeleton.css">
+    <link rel="stylesheet" href="./main.css">
+    <link rel="stylesheet" href="./virtual-list.css">
+    <link rel="stylesheet" href="./css/skeleton.css">
 </head>
 <body>
 
-<div id="app">
-    <header class="app-header">
-        <div class="logo">
-            <h1>🎙️ AJN Hourly Archive</h1>
-            <span class="logo-badge">Central Time</span>
-        </div>
-        <div class="view-toggle-container">
-            <button id="listViewBtn" class="view-toggle-btn active">📋 List</button>
-            <button id="gridViewBtn" class="view-toggle-btn">🎴 Grid</button>
-        </div>
-        <div class="header-controls">
-            <button id="darkModeToggle" class="dark-mode-toggle">🌙 Dark</button>
-        </div>
-    </header>
-
-    <div class="app-content">
-        <div class="col-left">
-            <div class="video-wrapper">
-                <video id="mainVideo" controls playsinline preload="metadata"></video>
+    <div id="app">
+        <header class="app-header">
+            <div class="logo">
+                <h1>🎙️ AJN Hourly Archive</h1>
+                <span class="logo-badge">Central Time</span>
             </div>
-            <div class="now-playing-card">
-                <div class="now-playing-label">▶ NOW PLAYING</div>
-                <div class="now-playing-title" id="currentTitle">Select an episode</div>
-                <div id="nowPlayingMeta" class="now-playing-meta"></div>
-                <div class="controls-ui">
-                    <div class="progress-container">
-                        <input type="range" id="progressBar" value="0" max="100" step="0.1">
-                        <div class="time-display">
-                            <span id="currentTime">0:00</span>
-                            <span id="duration">0:00</span>
+            <div class="view-toggle-container">
+                <button id="listViewBtn" class="view-toggle-btn active">📋 List</button>
+                <button id="gridViewBtn" class="view-toggle-btn">🎴 Grid</button>
+            </div>
+            <div class="header-controls">
+                <button id="darkModeToggle" class="dark-mode-toggle">🌙 Dark</button>
+            </div>
+        </header>
+
+        <div class="app-content">
+            <div class="col-left">
+                <div class="video-wrapper">
+                    <video id="mainVideo" controls playsinline preload="metadata"></video>
+                </div>
+                <div class="now-playing-card">
+                    <div class="now-playing-label">▶ NOW PLAYING</div>
+                    <div class="now-playing-title" id="currentTitle">Select an episode</div>
+                    <div id="nowPlayingMeta" class="now-playing-meta"></div>
+                    <div class="controls-ui">
+                        <div class="progress-container">
+                            <input type="range" id="progressBar" value="0" max="100" step="0.1">
+                            <div class="time-display">
+                                <span id="currentTime">0:00</span>
+                                <span id="duration">0:00</span>
+                            </div>
+                        </div>
+                        <div class="video-controls-row">
+                            <button id="playPauseBtn" class="btn-secondary">⏯ Play</button>
+                            <button id="skipBackBtn" class="btn-secondary">⏪ 10s</button>
+                            <button id="skipForwardBtn" class="btn-secondary">⏩ 10s</button>
+                            <label class="btn-secondary">
+                                <input type="checkbox" id="autoplayToggle" checked> Autoplay
+                            </label>
+                            <button id="downloadBtn" class="btn-secondary">⬇️</button>
+                            <button id="shareBtn" class="btn-secondary">📤</button>
+                            <button id="nextBtn" class="btn-primary">⏭️ Next</button>
                         </div>
                     </div>
-                    <div class="video-controls-row">
-                        <button id="playPauseBtn" class="btn-secondary">⏯ Play</button>
-                        <button id="skipBackBtn" class="btn-secondary">⏪ 10s</button>
-                        <button id="skipForwardBtn" class="btn-secondary">⏩ 10s</button>
-                        <label class="btn-secondary">
-                            <input type="checkbox" id="autoplayToggle" checked> Autoplay
-                        </label>
-                        <button id="downloadBtn" class="btn-secondary">⬇️</button>
-                        <button id="shareBtn" class="btn-secondary">📤</button>
-                        <button id="nextBtn" class="btn-primary">⏭️ Next</button>
+                </div>
+                <div id="playlistContainer" class="playlist-container"></div>
+            </div>
+            <div class="col-right">
+                <div class="queue-section">
+                    <div class="queue-header">
+                        <h3>📋 Play Queue <span id="queueStats" class="queue-stats">0 items</span></h3>
+                        <button id="clearQueueBtn" class="clear-queue-btn">Clear</button>
+                    </div>
+                    <div id="queueContainer" class="queue-container"></div>
+                </div>
+                <div class="search-section">
+                    <div class="search-input-wrapper">
+                        <span class="search-icon">🔍</span>
+                        <input type="text" id="searchInput" class="search-input" placeholder="Search episodes...">
                     </div>
                 </div>
+                <button id="calendarToggleBtn" class="calendar-toggle-btn">📅 Show Calendar</button>
+                <div id="calendarContainer"></div>
             </div>
-            <div id="playlistContainer" class="playlist-container"></div>
-        </div>
-        <div class="col-right">
-            <div class="queue-section">
-                <div class="queue-header">
-                    <h3>📋 Play Queue <span id="queueStats" class="queue-stats">0 items</span></h3>
-                    <button id="clearQueueBtn" class="clear-queue-btn">Clear</button>
-                </div>
-                <div id="queueContainer" class="queue-container"></div>
-            </div>
-            <div class="search-section">
-                <div class="search-input-wrapper">
-                    <span class="search-icon">🔍</span>
-                    <input type="text" id="searchInput" class="search-input" placeholder="Search episodes...">
-                </div>
-            </div>
-            <button id="calendarToggleBtn" class="calendar-toggle-btn">📅 Show Calendar</button>
-            <div id="calendarContainer"></div>
         </div>
     </div>
-</div>
 
-<!-- ============ SCRIPTS LOADED IN CORRECT ORDER ============ -->
-<!-- Config first -->
-<script src="./js/config.js"></script>
+    <script src="./js/config.js"></script>
 
-<!-- Utilities -->
-<script src="./js/services/feedService.js"></script>
+    <script src="./js/state/stateManager.js"></script>
 
-<script src="./js/config.js"></script>
+    <script src="./js/services/feedService.js"></script>
 
-<script src="./js/components/SkeletonLoader.js"></script>
-<script src="./js/components/VirtualList.js"></script>
+    <script src="./js/components/VideoControls.js"></script>
+    <script src="./js/components/SkeletonLoader.js"></script>
+    <script src="./js/components/VirtualList.js"></script>
+    <script src="./js/components/CalendarView.js"></script>
 
-<script src="./main.js"></script>
+    <script src="./main.js"></script>
 
-<!-- Services - IMPORTANT: feedService.js MUST load BEFORE main.js -->
-<script src="./js/services/feedService.js"></script>
-
-<!-- State Management -->
-<script src="./js/state/stateManager.js"></script>
-
-<!-- Components -->
-<script src="./js/components/VideoControls.js"></script>
-<script src="./js/components/SkeletonLoader.js"></script>
-<script src="./js/components/VirtualList.js"></script>
-<script src="./js/components/CalendarView.js"></script>
-
-<!-- Main Application - MUST BE LAST -->
-<script src="./main.js"></script>
 </body>
 </html>
