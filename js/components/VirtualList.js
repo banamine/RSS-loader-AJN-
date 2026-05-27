@@ -1,11 +1,11 @@
-// ============ VIRTUAL LIST COMPONENT - WITH LIFECYCLE GUARD ==========
-// This component will retry finding the container until it exists
+// ============ VIRTUAL LIST COMPONENT - WITH CONFIG ==========
+import { CONFIG, ROW_HEIGHT, BUFFER } from '../config.js';
 
 export class VirtualList {
     constructor(containerId, options = {}) {
         this.containerId = containerId;
-        this.rowHeight = options.rowHeight || 80;
-        this.buffer = options.buffer || 5;
+        this.rowHeight = options.rowHeight || ROW_HEIGHT;
+        this.buffer = options.buffer || BUFFER;
         this.items = [];
         this.renderItem = options.renderItem || null;
         this.onItemClick = options.onItemClick || null;
@@ -20,43 +20,37 @@ export class VirtualList {
         this.scrollHandler = null;
         this.resizeObserver = null;
         this.retryCount = 0;
-        this.maxRetries = 20; // 20 * 50ms = 1 second max retry
+        this.maxRetries = CONFIG.PERFORMANCE.MAX_RETRIES;
+        this.focusedIndex = -1;
         
-        // Start initialization with guard
         this.init();
     }
     
     init() {
-        // GUARD: Try to find the container
         this.container = document.getElementById(this.containerId);
         
-        // If container doesn't exist yet, retry after delay
         if (!this.container) {
             this.retryCount++;
             if (this.retryCount <= this.maxRetries) {
-                console.warn(`Container "${this.containerId}" not found (attempt ${this.retryCount}/${this.maxRetries}). Retrying in 50ms...`);
-                setTimeout(() => this.init(), 50);
+                setTimeout(() => this.init(), CONFIG.PERFORMANCE.RETRY_DELAY);
             } else {
-                console.error(`Container "${this.containerId}" not found after ${this.maxRetries} attempts. Check your HTML for a div with id="${this.containerId}".`);
+                console.error(`Container "${this.containerId}" not found after ${this.maxRetries} attempts`);
             }
             return;
         }
         
         console.log(`Container "${this.containerId}" found, initializing VirtualList...`);
         
-        // Create spacer for scrollbar
         this.spacer = document.createElement('div');
         this.spacer.style.position = 'relative';
         this.spacer.style.width = '100%';
         
-        // Create container for visible items
         this.visibleContainer = document.createElement('div');
         this.visibleContainer.style.position = 'absolute';
         this.visibleContainer.style.top = '0';
         this.visibleContainer.style.left = '0';
         this.visibleContainer.style.width = '100%';
         
-        // Clear container and add elements
         this.container.innerHTML = '';
         this.container.style.position = 'relative';
         this.container.style.overflow = 'auto';
@@ -66,22 +60,17 @@ export class VirtualList {
         this.container.appendChild(this.spacer);
         this.container.appendChild(this.visibleContainer);
         
-        // Bind scroll handler with guard
         this.scrollHandler = this.handleScroll.bind(this);
         this.container.addEventListener('scroll', this.scrollHandler);
         
-        // Observe container resize
         this.resizeObserver = new ResizeObserver(() => {
-            if (this.isInitialized) {
-                this.updateVisibleRange();
-            }
+            if (this.isInitialized) this.updateVisibleRange();
         });
         this.resizeObserver.observe(this.container);
         
         this.isInitialized = true;
         console.log('VirtualList initialized successfully');
         
-        // If items were set before initialization, render them now
         if (this.items && this.items.length > 0) {
             this.setItems(this.items);
         }
@@ -89,9 +78,10 @@ export class VirtualList {
     
     setItems(items) {
         this.items = items || [];
+        this.focusedIndex = -1;
         
         if (!this.isInitialized) {
-            console.log(`VirtualList not ready yet, storing ${this.items.length} items for later`);
+            console.log(`VirtualList not ready yet, storing ${this.items.length} items`);
             return;
         }
         
@@ -125,10 +115,7 @@ export class VirtualList {
     }
     
     renderVisibleItems() {
-        if (!this.renderItem || !this.visibleContainer) {
-            console.warn('No renderItem function provided or container missing');
-            return;
-        }
+        if (!this.renderItem || !this.visibleContainer) return;
         
         const fragment = document.createDocumentFragment();
         const visibleItems = this.items.slice(this.visibleStart, this.visibleEnd);
@@ -144,26 +131,70 @@ export class VirtualList {
                 row.style.width = '100%';
                 row.style.height = `${this.rowHeight}px`;
                 
+                if (actualIndex === this.focusedIndex) {
+                    row.style.outline = '2px solid var(--primary)';
+                    row.style.outlineOffset = '2px';
+                    row.setAttribute('aria-selected', 'true');
+                } else {
+                    row.style.outline = '';
+                    row.style.outlineOffset = '';
+                    row.setAttribute('aria-selected', 'false');
+                }
+                
                 if (this.onItemClick) {
-                    // Remove any existing click listeners to prevent duplicates
-                    const newRow = row.cloneNode(true);
-                    row.parentNode?.replaceChild(newRow, row);
-                    newRow.addEventListener('click', (e) => {
+                    row.addEventListener('click', (e) => {
                         if (!e.target.closest('.menu-trigger') && !e.target.closest('.flyout-menu')) {
+                            this.setFocusedIndex(actualIndex);
                             this.onItemClick(actualIndex);
                         }
                     });
-                    this.visibleContainer.appendChild(newRow);
-                    return;
                 }
                 
-                this.visibleContainer.appendChild(row);
+                fragment.appendChild(row);
             }
         });
         
-        // Clear old content and add new fragment
         this.visibleContainer.innerHTML = '';
         this.visibleContainer.appendChild(fragment);
+    }
+    
+    // Keyboard navigation methods
+    setFocusedIndex(index) {
+        if (index < 0 || index >= this.items.length) return;
+        this.focusedIndex = index;
+        this.renderVisibleItems();
+        this.scrollToIndex(index);
+    }
+    
+    moveFocus(delta) {
+        const newIndex = this.focusedIndex + delta;
+        if (newIndex >= 0 && newIndex < this.items.length) {
+            this.setFocusedIndex(newIndex);
+            return true;
+        }
+        return false;
+    }
+    
+    moveFocusToStart() {
+        if (this.items.length > 0) {
+            this.setFocusedIndex(0);
+        }
+    }
+    
+    moveFocusToEnd() {
+        if (this.items.length > 0) {
+            this.setFocusedIndex(this.items.length - 1);
+        }
+    }
+    
+    playActive() {
+        if (this.focusedIndex !== -1 && this.onItemClick) {
+            this.onItemClick(this.focusedIndex);
+        }
+    }
+    
+    getFocusedIndex() {
+        return this.focusedIndex;
     }
     
     scrollToIndex(index) {
