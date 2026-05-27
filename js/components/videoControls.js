@@ -1,7 +1,5 @@
 // ============ VIDEO CONTROLS COMPONENT ==========
-// Handles video playback with defensive coding
-
-export class VideoControls {
+window.VideoControls = class VideoControls {
     constructor(options = {}) {
         this.video = null;
         this.progressBar = null;
@@ -10,7 +8,6 @@ export class VideoControls {
         this.durationDisplay = null;
         this.onEndCallback = null;
         this.isSeeking = false;
-        
         this.init(options);
     }
     
@@ -20,30 +17,20 @@ export class VideoControls {
         this.playPauseBtn = document.getElementById(options.playPauseId || 'playPauseBtn');
         this.currentTimeDisplay = document.getElementById(options.currentTimeId || 'currentTime');
         this.durationDisplay = document.getElementById(options.durationId || 'duration');
-        
-        if (!this.video) {
-            console.warn('Video element not found');
-            return false;
-        }
-        
+        if (!this.video) return false;
         this.bindEvents();
         return true;
     }
     
     bindEvents() {
         if (!this.video) return;
-        
         this.video.addEventListener('timeupdate', () => {
             if (!this.isSeeking && this.video.duration) {
                 this.updateProgress();
                 this.updateCurrentTime();
             }
         });
-        
-        this.video.addEventListener('loadedmetadata', () => {
-            this.updateDuration();
-        });
-        
+        this.video.addEventListener('loadedmetadata', () => this.updateDuration());
         if (this.progressBar) {
             this.progressBar.addEventListener('input', (e) => {
                 this.isSeeking = true;
@@ -52,18 +39,15 @@ export class VideoControls {
                     this.currentTimeDisplay.textContent = this.formatTime(seekTime);
                 }
             });
-            
             this.progressBar.addEventListener('change', (e) => {
                 const seekTime = (e.target.value / 100) * this.video.duration;
                 if (this.video) this.video.currentTime = seekTime;
                 this.isSeeking = false;
             });
         }
-        
         if (this.playPauseBtn) {
             this.playPauseBtn.addEventListener('click', () => this.togglePlay());
         }
-        
         this.video.addEventListener('play', () => this.updatePlayButton(true));
         this.video.addEventListener('pause', () => this.updatePlayButton(false));
         this.video.addEventListener('ended', () => {
@@ -87,9 +71,7 @@ export class VideoControls {
         if (this.durationDisplay) {
             this.durationDisplay.textContent = this.formatTime(this.video.duration);
         }
-        if (this.progressBar) {
-            this.progressBar.max = 100;
-        }
+        if (this.progressBar) this.progressBar.max = 100;
     }
     
     updatePlayButton(isPlaying) {
@@ -99,7 +81,7 @@ export class VideoControls {
     }
     
     formatTime(seconds) {
-        if (isNaN(seconds) || !isFinite(seconds)) return '0:00';
+        if (isNaN(seconds)) return '0:00';
         const mins = Math.floor(seconds / 60);
         const secs = Math.floor(seconds % 60);
         return `${mins}:${secs.toString().padStart(2, '0')}`;
@@ -107,11 +89,8 @@ export class VideoControls {
     
     togglePlay() {
         if (!this.video) return;
-        
         if (this.video.paused) {
-            this.video.play().catch(e => {
-                console.log('Play prevented:', e);
-            });
+            this.video.play().catch(e => console.log('Play prevented:', e));
         } else {
             this.video.pause();
         }
@@ -124,10 +103,8 @@ export class VideoControls {
     
     loadEpisode(videoUrl, autoPlay = false) {
         if (!this.video) return;
-        
         this.video.src = videoUrl;
         this.video.load();
-        
         if (autoPlay) {
             this.video.play().catch(e => console.log('Autoplay prevented:', e));
         }
@@ -144,4 +121,4 @@ export class VideoControls {
             this.video.load();
         }
     }
-}
+};

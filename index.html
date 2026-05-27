@@ -6,7 +6,8 @@
 <title>AJN Hourly Archive</title>
 <meta name="description" content="AJN Hourly Archive - Browse and play episodes from the Alex Jones Network">
 <meta name="theme-color" content="#d32f2f">
-<!-- Updated Content Security Policy - Remove unsafe-eval -->
+
+<!-- Content Security Policy - No unsafe-eval -->
 <meta http-equiv="Content-Security-Policy" content="
     default-src 'self';
     script-src 'self' 'unsafe-inline';
@@ -20,28 +21,11 @@
     base-uri 'self';
     form-action 'self';
 ">
-<!-- Note: 'unsafe-eval' has been removed -->
-<link rel="stylesheet" href="css/skeleton.css">
-
-<!-- Content Security Policy - Mitigates XSS risks -->
-<meta http-equiv="Content-Security-Policy" content="
-    default-src 'self';
-    script-src 'self' 'unsafe-inline' 'unsafe-eval';
-    style-src 'self' 'unsafe-inline';
-    img-src 'self' data: https:;
-    media-src 'self' https:;
-    connect-src 'self' https://api.rss2json.com https://rss.alexjones.media https://ajn.archives.pub;
-    font-src 'self';
-    frame-src 'none';
-    object-src 'none';
-    base-uri 'self';
-    form-action 'self';
-">
 
 <!-- CSS Files -->
-<link rel="stylesheet" href="main.css">
-<link rel="stylesheet" href="virtual-list.css">
-<link rel="stylesheet" href="css/skeleton.css">
+<link rel="stylesheet" href="./main.css">
+<link rel="stylesheet" href="./virtual-list.css">
+<link rel="stylesheet" href="./css/skeleton.css">
 </head>
 <body>
 
@@ -112,6 +96,29 @@
     </div>
 </div>
 
-<script type="module" src="main.js"></script>
+<!-- ============ ALL SCRIPTS - LOAD IN ORDER, NO type="module" ============ -->
+<!-- Utilities first (no dependencies) -->
+<script src="./js/config.js"></script>
+<script src="./js/utils/helpers.js"></script>
+<script src="./js/utils/idGenerator.js"></script>
+<script src="./js/utils/urlSanitizer.js"></script>
+<script src="./js/utils/domSanitizer.js"></script>
+<script src="./js/utils/safeEval.js"></script>
+<script src="./js/utils/keyboardNavigation.js"></script>
+
+<!-- Services -->
+<script src="./js/services/feedService.js"></script>
+
+<!-- State Management -->
+<script src="./js/state/stateManager.js"></script>
+
+<!-- Components -->
+<script src="./js/components/VideoControls.js"></script>
+<script src="./js/components/SkeletonLoader.js"></script>
+<script src="./js/components/VirtualList.js"></script>
+<script src="./js/components/CalendarView.js"></script>
+
+<!-- Main Application (LAST) -->
+<script src="./main.js"></script>
 </body>
 </html>
