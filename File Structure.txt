@@ -1,17 +1,25 @@
-Expected Structure:
-/
-├── index.html                 ✅ Must have <div id="playlistContainer">
-├── main.js                    ✅ Imports all modules correctly
-├── main.css                   ✅ Root level
-├── virtual-list.css           ✅ Root level
+RSS-loader-AJN-/
+├── index.html
+├── main.js
+├── main.css
+├── virtual-list.css
+├── css/
+│   └── skeleton.css              ✅ NOW CREATED
 ├── js/
+│   ├── config.js
 │   ├── services/
-│   │   └── feedService.js     ✅ Exports feedService
+│   │   └── feedService.js
 │   ├── state/
-│   │   └── stateManager.js    ✅ Exports stateManager
+│   │   └── stateManager.js
 │   ├── components/
-│   │   ├── VideoControls.js   ✅ Exports VideoControls
-│   │   ├── VirtualList.js     ✅ Exports VirtualList with retry guard
-│   │   └── CalendarView.js    ✅ Exports CalendarView
+│   │   ├── VideoControls.js      ✅ NOW CREATED
+│   │   ├── VirtualList.js
+│   │   ├── CalendarView.js
+│   │   └── SkeletonLoader.js
 │   └── utils/
-│       └── helpers.js         ✅ Exports all helper functions
+│       ├── helpers.js
+│       ├── idGenerator.js
+│       ├── urlSanitizer.js
+│       ├── domSanitizer.js
+│       ├── safeEval.js
+│       └── keyboardNavigation.js
