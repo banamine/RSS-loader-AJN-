@@ -1,14 +1,9 @@
-// ============ VIRTUAL LIST COMPONENT - CORRECT EXPORT ==========
-// This is the renamed VirtualPlaylist.js file
+// ============ VIRTUAL LIST COMPONENT - WITH LIFECYCLE GUARD ==========
+// This component will retry finding the container until it exists
 
 export class VirtualList {
     constructor(containerId, options = {}) {
-        this.container = document.getElementById(containerId);
-        if (!this.container) {
-            console.error(`Container with id "${containerId}" not found`);
-            return;
-        }
-        
+        this.containerId = containerId;
         this.rowHeight = options.rowHeight || 80;
         this.buffer = options.buffer || 5;
         this.items = [];
@@ -19,11 +14,36 @@ export class VirtualList {
         this.visibleEnd = 0;
         this.totalHeight = 0;
         this.isInitialized = false;
+        this.container = null;
+        this.spacer = null;
+        this.visibleContainer = null;
+        this.scrollHandler = null;
+        this.resizeObserver = null;
+        this.retryCount = 0;
+        this.maxRetries = 20; // 20 * 50ms = 1 second max retry
         
+        // Start initialization with guard
         this.init();
     }
     
     init() {
+        // GUARD: Try to find the container
+        this.container = document.getElementById(this.containerId);
+        
+        // If container doesn't exist yet, retry after delay
+        if (!this.container) {
+            this.retryCount++;
+            if (this.retryCount <= this.maxRetries) {
+                console.warn(`Container "${this.containerId}" not found (attempt ${this.retryCount}/${this.maxRetries}). Retrying in 50ms...`);
+                setTimeout(() => this.init(), 50);
+            } else {
+                console.error(`Container "${this.containerId}" not found after ${this.maxRetries} attempts. Check your HTML for a div with id="${this.containerId}".`);
+            }
+            return;
+        }
+        
+        console.log(`Container "${this.containerId}" found, initializing VirtualList...`);
+        
         // Create spacer for scrollbar
         this.spacer = document.createElement('div');
         this.spacer.style.position = 'relative';
@@ -46,41 +66,50 @@ export class VirtualList {
         this.container.appendChild(this.spacer);
         this.container.appendChild(this.visibleContainer);
         
-        // Bind scroll handler
+        // Bind scroll handler with guard
         this.scrollHandler = this.handleScroll.bind(this);
         this.container.addEventListener('scroll', this.scrollHandler);
         
         // Observe container resize
         this.resizeObserver = new ResizeObserver(() => {
-            this.updateVisibleRange();
+            if (this.isInitialized) {
+                this.updateVisibleRange();
+            }
         });
         this.resizeObserver.observe(this.container);
         
         this.isInitialized = true;
-        console.log('VirtualList initialized');
+        console.log('VirtualList initialized successfully');
+        
+        // If items were set before initialization, render them now
+        if (this.items && this.items.length > 0) {
+            this.setItems(this.items);
+        }
     }
     
     setItems(items) {
+        this.items = items || [];
+        
         if (!this.isInitialized) {
-            console.warn('VirtualList not initialized, items will be set after init');
-            this.items = items;
+            console.log(`VirtualList not ready yet, storing ${this.items.length} items for later`);
             return;
         }
         
-        this.items = items || [];
         this.totalHeight = this.items.length * this.rowHeight;
-        this.spacer.style.height = `${this.totalHeight}px`;
+        if (this.spacer) {
+            this.spacer.style.height = `${this.totalHeight}px`;
+        }
         this.updateVisibleRange();
-        console.log(`VirtualList: ${this.items.length} items set`);
+        console.log(`VirtualList: ${this.items.length} items rendered`);
     }
     
     handleScroll() {
-        if (!this.isInitialized) return;
+        if (!this.isInitialized || !this.container) return;
         requestAnimationFrame(() => this.updateVisibleRange());
     }
     
     updateVisibleRange() {
-        if (!this.items.length || !this.isInitialized) return;
+        if (!this.items.length || !this.isInitialized || !this.container) return;
         
         const scrollTop = this.container.scrollTop;
         const viewportHeight = this.container.clientHeight;
@@ -96,8 +125,8 @@ export class VirtualList {
     }
     
     renderVisibleItems() {
-        if (!this.renderItem) {
-            console.warn('No renderItem function provided');
+        if (!this.renderItem || !this.visibleContainer) {
+            console.warn('No renderItem function provided or container missing');
             return;
         }
         
@@ -116,25 +145,31 @@ export class VirtualList {
                 row.style.height = `${this.rowHeight}px`;
                 
                 if (this.onItemClick) {
-                    const originalClick = row.onclick;
-                    row.addEventListener('click', (e) => {
+                    // Remove any existing click listeners to prevent duplicates
+                    const newRow = row.cloneNode(true);
+                    row.parentNode?.replaceChild(newRow, row);
+                    newRow.addEventListener('click', (e) => {
                         if (!e.target.closest('.menu-trigger') && !e.target.closest('.flyout-menu')) {
-                            if (this.onItemClick) this.onItemClick(actualIndex);
-                            if (originalClick) originalClick(e);
+                            this.onItemClick(actualIndex);
                         }
                     });
+                    this.visibleContainer.appendChild(newRow);
+                    return;
                 }
                 
-                fragment.appendChild(row);
+                this.visibleContainer.appendChild(row);
             }
         });
         
+        // Clear old content and add new fragment
         this.visibleContainer.innerHTML = '';
         this.visibleContainer.appendChild(fragment);
     }
     
     scrollToIndex(index) {
         if (!this.items.length || index < 0 || index >= this.items.length) return;
+        if (!this.isInitialized || !this.container) return;
+        
         const targetScroll = index * this.rowHeight;
         const viewportHeight = this.container.clientHeight;
         const currentScroll = this.container.scrollTop;
@@ -148,15 +183,21 @@ export class VirtualList {
     }
     
     refresh() {
-        this.updateVisibleRange();
+        if (this.isInitialized) {
+            this.updateVisibleRange();
+        }
     }
     
     getCurrentItems() {
         return this.items;
     }
     
+    isReady() {
+        return this.isInitialized && this.container !== null;
+    }
+    
     destroy() {
-        if (this.container) {
+        if (this.container && this.scrollHandler) {
             this.container.removeEventListener('scroll', this.scrollHandler);
         }
         if (this.resizeObserver) {
@@ -166,5 +207,6 @@ export class VirtualList {
             this.container.innerHTML = '';
         }
         this.isInitialized = false;
+        this.container = null;
     }
 }
