@@ -1,8 +1,5 @@
-// ============ MAIN APPLICATION - ROOT-LEVEL IMPORTS ==========
+// ============ MAIN APPLICATION - DOM DIFFING VERSION ==========
 // All files are in the root directory (same as index.html)
-// Using ./ prefix for same-directory imports
-
-// Import from root-level files that actually exist
 import { VideoControls } from './videoControls.js';
 import { 
     showToast, 
@@ -13,29 +10,19 @@ import {
     toCentralTime, 
     transformVideoUrl, 
     parseEpisodeDetails, 
-    formatDateKey,
-    trapFocus,
-    debounce
+    formatDateKey
 } from './helpers.js';
-
-// Note: The following files exist but are NOT imported because they're not needed for basic functionality:
-// - xsltWorkerManager.js (advanced feature)
-// - idGenerator.js (advanced feature)
-// - stateManager.js (advanced feature)
-// - feedService.js (advanced feature)
-// - VirtualPlaylist.js (advanced feature - using simple rendering instead)
 
 // Wait for DOM to be ready
 document.addEventListener('DOMContentLoaded', () => {
-    console.log("Initializing AJN Hourly Archive...");
-    console.log("Files detected at root level - using simple renderer");
+    console.log("Initializing AJN Hourly Archive with DOM diffing...");
     
-    // DOM Elements
+    // DOM Elements - Cache all references
     const videoPlayer = document.getElementById('videoPlayer');
     const playPauseBtn = document.getElementById('playPauseBtn');
     const nextBtn = document.getElementById('nextBtn');
-    const currentTitle = document.getElementById('currentTitle');
-    const playlistStats = document.getElementById('playlistStats');
+    const currentTitleEl = document.getElementById('currentTitle');
+    const playlistStatsEl = document.getElementById('playlistStats');
     const searchInput = document.getElementById('globalSearchInput');
     const clearSearchBtn = document.getElementById('clearSearchBtn');
     const listViewBtn = document.getElementById('listViewBtn');
@@ -59,7 +46,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const queueHeader = document.getElementById('queueHeader');
     const queueContainer = document.getElementById('queueContainer');
     const clearQueueBtn = document.getElementById('clearQueueBtn');
-    const queueStats = document.getElementById('queueStats');
+    const queueStatsEl = document.getElementById('queueStats');
+    const playlistContainer = document.getElementById('playlistContainer');
     
     // State
     let allEpisodes = [];
@@ -68,28 +56,30 @@ document.addEventListener('DOMContentLoaded', () => {
     let videoControls = null;
     let currentCalendarDate = new Date();
     let userQueue = [];
+    let currentSearchTerm = '';
+    let currentViewMode = 'list';
+    let currentFilterDate = null;
     
     // Constants
     const API_URL = 'https://api.rss2json.com/v1/api.json?rss_url=https://rss.alexjones.media/AJNHourlyVideo.xml';
     const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     
-    // Initialize VideoControls (single instance)
-    if (videoPlayer && progressBar && playPauseBtn && currentTimeDisplay && durationDisplay) {
-        videoControls = new VideoControls(
-            videoPlayer, progressBar, playPauseBtn, currentTimeDisplay, durationDisplay
-        );
-        console.log("VideoControls initialized");
-    } else {
-        console.warn("VideoControls elements not found", {
-            videoPlayer: !!videoPlayer,
-            progressBar: !!progressBar,
-            playPauseBtn: !!playPauseBtn,
-            currentTimeDisplay: !!currentTimeDisplay,
-            durationDisplay: !!durationDisplay
-        });
+    // ============ DEFENSIVE UI UPDATE FUNCTIONS ============
+    function updateNowPlayingTitle(title) {
+        if (currentTitleEl) {
+            currentTitleEl.textContent = title;
+        } else {
+            console.warn('currentTitle element not found, skipping UI update');
+        }
     }
     
-    // Queue functions
+    function updatePlaylistStats(count, uniqueDays, filterInfo = '') {
+        if (playlistStatsEl) {
+            playlistStatsEl.innerHTML = `${count} episodes • ${uniqueDays} days${filterInfo}`;
+        }
+    }
+    
+    // ============ QUEUE FUNCTIONS ============
     function loadQueue() {
         try {
             const saved = localStorage.getItem('userQueue');
@@ -106,7 +96,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     function saveQueue() {
         localStorage.setItem('userQueue', JSON.stringify(userQueue));
-        if (queueStats) queueStats.textContent = `${userQueue.length} item${userQueue.length !== 1 ? 's' : ''}`;
+        if (queueStatsEl) queueStatsEl.textContent = `${userQueue.length} item${userQueue.length !== 1 ? 's' : ''}`;
     }
     
     function renderQueue() {
@@ -118,18 +108,36 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         queueContainer.innerHTML = userQueue.map((item, idx) => `
-            <div class="queue-item" data-index="${idx}">
-                <span class="drag-handle">⠿</span>
-                <div class="queue-info" onclick="window.playFromQueue(${idx})" style="flex:1; cursor:pointer;">
-                    <div class="queue-title">${escapeHtml(item.title)}</div>
-                    <div class="queue-date">${escapeHtml(item.show)} ${escapeHtml(item.hour)}</div>
+            <div class="queue-item" data-index="${idx}" style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--border);">
+                <span class="drag-handle" style="cursor: grab;">⠿</span>
+                <div class="queue-info" data-action="play-from-queue" data-index="${idx}" style="flex: 1; cursor: pointer;">
+                    <div class="queue-title" style="font-weight: 500; font-size: 0.8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(item.title)}</div>
+                    <div class="queue-date" style="font-size: 0.65rem; color: var(--text-secondary);">${escapeHtml(item.show)} ${escapeHtml(item.hour)}</div>
                 </div>
-                <button onclick="window.removeFromQueue(${idx})" style="background:none; border:none; cursor:pointer;">×</button>
+                <button class="remove-queue-item" data-index="${idx}" style="background: none; border: none; cursor: pointer; font-size: 1rem;">×</button>
             </div>
         `).join('');
+        
+        // Add event listeners for queue items
+        document.querySelectorAll('.queue-info[data-action="play-from-queue"]').forEach(el => {
+            el.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const idx = parseInt(el.dataset.index);
+                if (!isNaN(idx)) playFromQueue(idx);
+            });
+        });
+        
+        document.querySelectorAll('.remove-queue-item').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const idx = parseInt(btn.dataset.index);
+                if (!isNaN(idx)) removeFromQueue(idx);
+            });
+        });
     }
     
     function addToQueue(episode) {
+        if (!episode) return;
         const queueItem = {
             id: episode.id,
             title: episode.title,
@@ -147,7 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function playFromQueue(index) {
         const item = userQueue[index];
         if (item && videoControls) {
-            currentTitle.textContent = item.title;
+            updateNowPlayingTitle(item.title);
             videoControls.loadEpisode(item.videoUrl, true);
             showToast(`Now playing from queue: ${item.title.substring(0, 40)}...`);
         }
@@ -160,40 +168,238 @@ document.addEventListener('DOMContentLoaded', () => {
         showToast('Removed from queue');
     }
     
-    // Make queue functions global for onclick handlers
-    window.playFromQueue = playFromQueue;
-    window.removeFromQueue = removeFromQueue;
-    window.addToQueueGlobal = addToQueue;
+    // ============ DOM DIFFING RENDER FUNCTION ============
+    // Instead of innerHTML replacement, this updates only what changed
+    function renderPlaylist() {
+        if (!playlistContainer) return;
+        
+        if (!currentPlaylist.length) {
+            playlistContainer.innerHTML = '<div class="empty-state" style="text-align: center; padding: 40px;">📭 No episodes found</div>';
+            return;
+        }
+        
+        // Get existing rows or create new container
+        let listContainer = playlistContainer.querySelector('.playlist-rows');
+        if (!listContainer) {
+            listContainer = document.createElement('div');
+            listContainer.className = 'playlist-rows';
+            playlistContainer.innerHTML = '';
+            playlistContainer.appendChild(listContainer);
+        }
+        
+        // Get current rows map for diffing
+        const existingRows = new Map();
+        listContainer.querySelectorAll('.playlist-item').forEach(row => {
+            const id = row.dataset.id;
+            if (id !== undefined) existingRows.set(id, row);
+        });
+        
+        // Create document fragment for new/changed rows
+        const fragment = document.createDocumentFragment();
+        const processedIds = new Set();
+        
+        currentPlaylist.forEach((ep, idx) => {
+            const isActive = idx === currentIndex;
+            const rowId = `ep-${ep.id}`;
+            processedIds.add(rowId);
+            
+            let row = existingRows.get(rowId);
+            
+            if (row) {
+                // Update existing row - only change what's needed
+                const isActiveClass = row.classList.contains('active');
+                if (isActive && !isActiveClass) {
+                    row.classList.add('active');
+                } else if (!isActive && isActiveClass) {
+                    row.classList.remove('active');
+                }
+                
+                // Update title
+                const titleEl = row.querySelector('.playlist-title');
+                if (titleEl && titleEl.textContent !== ep.title) {
+                    titleEl.textContent = ep.title;
+                }
+                
+                // Update date
+                const dateEl = row.querySelector('.playlist-date');
+                if (dateEl) {
+                    const newDate = `📅 ${ep.formattedDate}`;
+                    if (dateEl.textContent !== newDate) dateEl.textContent = newDate;
+                }
+                
+                // Update duration
+                const durationEl = row.querySelector('.playlist-duration');
+                if (durationEl) {
+                    const newDuration = `🎬 ${ep.show} ${ep.hour}`;
+                    if (durationEl.textContent !== newDuration) durationEl.textContent = newDuration;
+                }
+                
+                // Update data-index
+                row.dataset.index = idx;
+                fragment.appendChild(row);
+            } else {
+                // Create new row
+                row = document.createElement('div');
+                row.className = `playlist-item list-item ${isActive ? 'active' : ''}`;
+                row.dataset.id = rowId;
+                row.dataset.index = idx;
+                row.setAttribute('data-episode-id', ep.id);
+                
+                const flyoutId = `flyout-${ep.id}`;
+                
+                row.innerHTML = `
+                    <div class="menu-trigger" data-flyout="${flyoutId}" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); opacity: 0; transition: opacity 0.2s; cursor: pointer;">⋮</div>
+                    <div class="flyout-menu" id="${flyoutId}" style="position: absolute; right: 12px; top: 50px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: 8px; z-index: 100; display: none; min-width: 140px;">
+                        <div class="flyout-menu-item" data-action="download" data-index="${idx}" style="padding: 8px 12px; cursor: pointer;">⬇️ Download</div>
+                        <div class="flyout-menu-item" data-action="share" data-index="${idx}" style="padding: 8px 12px; cursor: pointer;">📤 Share</div>
+                        <div class="flyout-menu-divider" style="height: 1px; background: var(--border); margin: 4px 0;"></div>
+                        <div class="flyout-menu-item" data-action="queue" data-index="${idx}" style="padding: 8px 12px; cursor: pointer;">📋 Add to Queue</div>
+                        <div class="flyout-menu-item" data-action="details" data-index="${idx}" style="padding: 8px 12px; cursor: pointer;">📄 Details</div>
+                    </div>
+                    <div class="playlist-thumbnail" style="width: 48px; height: 48px; background: linear-gradient(135deg, var(--primary-light), var(--border)); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">🎬</div>
+                    <div class="playlist-info" style="flex: 1; min-width: 0;">
+                        <div class="playlist-title" style="font-weight: 500; font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(ep.title)}</div>
+                        <div class="playlist-date" style="font-size: 0.7rem; color: var(--text-secondary);">📅 ${ep.formattedDate}</div>
+                        <div class="playlist-duration" style="font-size: 0.65rem; color: var(--text-tertiary);">🎬 ${ep.show} ${ep.hour}</div>
+                    </div>
+                    <button class="add-to-queue-btn" data-action="queue" data-index="${idx}" style="padding: 4px 8px; font-size: 0.65rem; background: var(--bg-surface); border: 1px solid var(--border); border-radius: 4px; cursor: pointer;">📋 Add</button>
+                `;
+                
+                fragment.appendChild(row);
+            }
+        });
+        
+        // Remove rows that no longer exist
+        existingRows.forEach((row, id) => {
+            if (!processedIds.has(id)) {
+                row.remove();
+            }
+        });
+        
+        // Append fragment with new/changed rows
+        if (fragment.children.length > 0) {
+            listContainer.appendChild(fragment);
+        }
+        
+        // Attach event listeners (only once using delegation)
+        attachPlaylistEventDelegation();
+    }
     
-    // Play episode function
+    // Event delegation for playlist (attached once to container)
+    let delegationAttached = false;
+    function attachPlaylistEventDelegation() {
+        if (delegationAttached || !playlistContainer) return;
+        delegationAttached = true;
+        
+        // Play item click
+        playlistContainer.addEventListener('click', (e) => {
+            const item = e.target.closest('.playlist-item');
+            if (item && !e.target.closest('.menu-trigger') && !e.target.closest('.flyout-menu') && !e.target.closest('.add-to-queue-btn')) {
+                const indexAttr = item.dataset.index;
+                if (indexAttr !== undefined) {
+                    const index = parseInt(indexAttr, 10);
+                    if (!isNaN(index)) playEpisode(index);
+                }
+            }
+        });
+        
+        // Flyout trigger
+        playlistContainer.addEventListener('click', (e) => {
+            const trigger = e.target.closest('.menu-trigger');
+            if (trigger) {
+                e.stopPropagation();
+                const flyoutId = trigger.getAttribute('data-flyout');
+                const menu = document.getElementById(flyoutId);
+                if (menu) {
+                    document.querySelectorAll('.flyout-menu').forEach(m => {
+                        if (m.id !== flyoutId) m.style.display = 'none';
+                    });
+                    menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+                }
+            }
+        });
+        
+        // Action buttons
+        playlistContainer.addEventListener('click', (e) => {
+            const actionBtn = e.target.closest('[data-action]');
+            if (actionBtn) {
+                e.stopPropagation();
+                const action = actionBtn.getAttribute('data-action');
+                const indexAttr = actionBtn.getAttribute('data-index');
+                
+                if (indexAttr !== null) {
+                    const index = parseInt(indexAttr, 10);
+                    if (!isNaN(index)) {
+                        const episode = currentPlaylist[index];
+                        if (action === 'download' && episode) {
+                            const link = document.createElement('a');
+                            link.href = episode.videoUrl;
+                            link.download = `${episode.title.replace(/[^a-z0-9]/gi, '_')}.m4v`;
+                            link.click();
+                            showToast('Download started');
+                        } else if (action === 'share' && episode) {
+                            if (navigator.share) {
+                                navigator.share({ title: episode.title, url: episode.videoUrl });
+                            } else {
+                                navigator.clipboard.writeText(episode.videoUrl);
+                                showToast('Link copied');
+                            }
+                        } else if (action === 'queue' && episode) {
+                            addToQueue(episode);
+                        } else if (action === 'details' && episode) {
+                            alert(`Title: ${episode.title}\nShow: ${episode.show} ${episode.hour}\nDate: ${episode.formattedDate}`);
+                        }
+                    }
+                }
+                
+                // Close flyout
+                const flyout = actionBtn.closest('.flyout-menu');
+                if (flyout) flyout.style.display = 'none';
+            }
+        });
+        
+        // Close flyouts on outside click
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.menu-trigger')) {
+                document.querySelectorAll('.flyout-menu').forEach(menu => {
+                    menu.style.display = 'none';
+                });
+            }
+        });
+    }
+    
+    // ============ PLAYLIST FUNCTIONS ============
     function playEpisode(index) {
-        if (index < 0 || index >= currentPlaylist.length) return;
+        if (index < 0 || index >= currentPlaylist.length) {
+            console.warn(`Invalid episode index: ${index}`);
+            return;
+        }
+        
         currentIndex = index;
         const episode = currentPlaylist[currentIndex];
-        if (currentTitle) currentTitle.textContent = episode.title;
+        
+        // Defensive UI update - check if element exists
+        if (currentTitleEl) {
+            currentTitleEl.textContent = episode.title;
+        } else {
+            console.warn('currentTitle element not found, skipping UI update');
+        }
         
         if (videoControls) {
             videoControls.loadEpisode(episode.videoUrl, true);
         }
         
-        // Update active state in UI
-        document.querySelectorAll('.playlist-item.list-item').forEach((item, i) => {
-            if (i === currentIndex) {
-                item.classList.add('active');
-            } else {
-                item.classList.remove('active');
-            }
-        });
+        // Re-render playlist to update active state
+        renderPlaylist();
     }
     
-    // Next episode
     function nextEpisode() {
         if (userQueue.length > 0) {
             const nextItem = userQueue[0];
             userQueue.splice(0, 1);
             saveQueue();
             renderQueue();
-            if (currentTitle) currentTitle.textContent = nextItem.title;
+            if (currentTitleEl) currentTitleEl.textContent = nextItem.title;
             if (videoControls) videoControls.loadEpisode(nextItem.videoUrl, true);
             showToast('Playing next from queue');
         } else if (currentIndex + 1 < currentPlaylist.length) {
@@ -204,7 +410,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    // Video event handlers
+    // ============ VIDEO CONTROLS SETUP ============
+    if (videoPlayer && progressBar && playPauseBtn && currentTimeDisplay && durationDisplay) {
+        videoControls = new VideoControls(
+            videoPlayer, progressBar, playPauseBtn, currentTimeDisplay, durationDisplay
+        );
+        console.log("VideoControls initialized");
+    } else {
+        console.warn("VideoControls elements not found");
+    }
+    
     if (playPauseBtn) {
         playPauseBtn.addEventListener('click', () => {
             if (videoControls) videoControls.togglePlayPause();
@@ -235,7 +450,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
-    // Download and Share
     if (downloadBtn) {
         downloadBtn.addEventListener('click', () => {
             const episode = currentPlaylist[currentIndex];
@@ -261,7 +475,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
-    // Process raw episodes
+    // ============ PROCESS EPISODES ============
     function processRawEpisodes(rawEpisodes) {
         return rawEpisodes.map((ep, idx) => {
             const utcDate = new Date(ep.pubDate);
@@ -282,126 +496,20 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
-    // Render playlist (simple version - no virtual scrolling)
-    function renderPlaylist() {
-        const playlistContainer = document.getElementById('playlistContainer');
-        if (!playlistContainer) return;
-        
-        if (!currentPlaylist.length) {
-            playlistContainer.innerHTML = '<div class="empty-state">📭 No episodes found</div>';
-            return;
-        }
-        
-        playlistContainer.innerHTML = currentPlaylist.map((ep, idx) => {
-            const isActive = idx === currentIndex;
-            const flyoutId = `flyout-${idx}`;
-            
-            return `
-                <div class="playlist-item list-item ${isActive ? 'active' : ''}" data-index="${idx}" style="position: relative; display: flex; align-items: center; gap: 16px; padding: 16px; border-bottom: 1px solid var(--border); cursor: pointer;">
-                    <div class="menu-trigger" data-flyout="${flyoutId}" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); opacity: 0; transition: opacity 0.2s; cursor: pointer;">⋮</div>
-                    <div class="flyout-menu" id="${flyoutId}" style="position: absolute; right: 12px; top: 50px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: 8px; z-index: 100; display: none; min-width: 140px;">
-                        <div class="flyout-menu-item" data-action="download" data-index="${idx}" style="padding: 8px 12px; cursor: pointer;">⬇️ Download</div>
-                        <div class="flyout-menu-item" data-action="share" data-index="${idx}" style="padding: 8px 12px; cursor: pointer;">📤 Share</div>
-                        <div class="flyout-menu-divider" style="height: 1px; background: var(--border); margin: 4px 0;"></div>
-                        <div class="flyout-menu-item" data-action="queue" data-index="${idx}" style="padding: 8px 12px; cursor: pointer;">📋 Add to Queue</div>
-                        <div class="flyout-menu-item" data-action="details" data-index="${idx}" style="padding: 8px 12px; cursor: pointer;">📄 Details</div>
-                    </div>
-                    <div class="playlist-thumbnail" style="width: 48px; height: 48px; background: linear-gradient(135deg, var(--primary-light), var(--border)); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">🎬</div>
-                    <div class="playlist-info" style="flex: 1; min-width: 0;">
-                        <div class="playlist-title" style="font-weight: 500; font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(ep.title)}</div>
-                        <div class="playlist-date" style="font-size: 0.7rem; color: var(--text-secondary);">📅 ${ep.formattedDate}</div>
-                        <div class="playlist-duration" style="font-size: 0.65rem; color: var(--text-tertiary);">🎬 ${ep.show} ${ep.hour}</div>
-                    </div>
-                    <button class="add-to-queue-btn" data-action="queue" data-index="${idx}" style="padding: 4px 8px; font-size: 0.65rem; background: var(--bg-surface); border: 1px solid var(--border); border-radius: 4px; cursor: pointer;">📋 Add</button>
-                </div>
-            `;
-        }).join('');
-        
-        // Add event listeners
-        document.querySelectorAll('.playlist-item.list-item').forEach(item => {
-            item.addEventListener('click', (e) => {
-                if (!e.target.closest('.menu-trigger') && !e.target.closest('.flyout-menu') && !e.target.closest('.add-to-queue-btn')) {
-                    const index = parseInt(item.dataset.index);
-                    if (!isNaN(index)) playEpisode(index);
-                }
-            });
-        });
-        
-        // Flyout triggers
-        document.querySelectorAll('.menu-trigger').forEach(trigger => {
-            trigger.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const flyoutId = trigger.getAttribute('data-flyout');
-                const menu = document.getElementById(flyoutId);
-                if (menu) {
-                    document.querySelectorAll('.flyout-menu').forEach(m => {
-                        if (m.id !== flyoutId) m.style.display = 'none';
-                    });
-                    menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
-                }
-            });
-        });
-        
-        // Action handlers
-        document.querySelectorAll('.flyout-menu-item, .add-to-queue-btn').forEach(item => {
-            item.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const action = item.getAttribute('data-action');
-                const index = parseInt(item.getAttribute('data-index'));
-                
-                if (action === 'download') {
-                    const episode = currentPlaylist[index];
-                    if (episode) {
-                        const link = document.createElement('a');
-                        link.href = episode.videoUrl;
-                        link.download = `${episode.title.replace(/[^a-z0-9]/gi, '_')}.m4v`;
-                        link.click();
-                        showToast('Download started');
-                    }
-                } else if (action === 'share') {
-                    const episode = currentPlaylist[index];
-                    if (episode && navigator.share) {
-                        navigator.share({ title: episode.title, url: episode.videoUrl });
-                    } else if (episode) {
-                        navigator.clipboard.writeText(episode.videoUrl);
-                        showToast('Link copied');
-                    }
-                } else if (action === 'queue') {
-                    const episode = currentPlaylist[index];
-                    if (episode) addToQueue(episode);
-                } else if (action === 'details') {
-                    const episode = currentPlaylist[index];
-                    if (episode) {
-                        alert(`Title: ${episode.title}\nShow: ${episode.show} ${episode.hour}\nDate: ${episode.formattedDate}`);
-                    }
-                }
-                
-                // Close flyout if it was a flyout item
-                const flyout = item.closest('.flyout-menu');
-                if (flyout) flyout.style.display = 'none';
-            });
-        });
-        
-        // Close flyouts on outside click
-        document.addEventListener('click', (e) => {
-            if (!e.target.closest('.menu-trigger')) {
-                document.querySelectorAll('.flyout-menu').forEach(menu => {
-                    menu.style.display = 'none';
-                });
-            }
-        });
-    }
-    
-    // Apply filters
+    // ============ FILTER FUNCTIONS ============
     function applyFilters() {
         let filtered = [...allEpisodes];
-        const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
         
-        if (searchTerm) {
+        if (currentSearchTerm) {
+            const term = currentSearchTerm.toLowerCase();
             filtered = filtered.filter(ep => 
-                ep.title.toLowerCase().includes(searchTerm) || 
-                ep.description.toLowerCase().includes(searchTerm)
+                ep.title.toLowerCase().includes(term) || 
+                ep.description.toLowerCase().includes(term)
             );
+        }
+        
+        if (currentFilterDate) {
+            filtered = filtered.filter(ep => ep.dateKey === currentFilterDate);
         }
         
         currentPlaylist = filtered;
@@ -410,37 +518,42 @@ document.addEventListener('DOMContentLoaded', () => {
         renderPlaylist();
         
         const uniqueDates = new Set(currentPlaylist.map(e => e.dateKey));
-        if (playlistStats) {
-            playlistStats.innerHTML = `${currentPlaylist.length} episodes • ${uniqueDates.size} days`;
-        }
+        let filterInfo = '';
+        if (currentSearchTerm) filterInfo += ` 🔍 "${currentSearchTerm}"`;
+        if (currentFilterDate) filterInfo += ` 📅 ${new Date(currentFilterDate).toLocaleDateString()}`;
+        
+        updatePlaylistStats(currentPlaylist.length, uniqueDates.size, filterInfo);
         
         if (currentPlaylist.length > 0 && videoControls) {
             const episode = currentPlaylist[0];
-            if (currentTitle) currentTitle.textContent = episode.title;
+            updateNowPlayingTitle(episode.title);
             videoControls.loadEpisode(episode.videoUrl, false);
         }
     }
     
-    // Search
     if (searchInput) {
-        searchInput.addEventListener('input', () => {
-            applyFilters();
+        searchInput.addEventListener('input', (e) => {
+            currentSearchTerm = e.target.value;
             if (clearSearchBtn) {
-                clearSearchBtn.classList.toggle('visible', searchInput.value.length > 0);
+                clearSearchBtn.classList.toggle('visible', currentSearchTerm.length > 0);
             }
+            applyFilters();
         });
     }
     
     if (clearSearchBtn) {
         clearSearchBtn.addEventListener('click', () => {
             if (searchInput) searchInput.value = '';
+            currentSearchTerm = '';
             clearSearchBtn.classList.remove('visible');
             applyFilters();
         });
     }
     
-    // Calendar functions
+    // ============ CALENDAR FUNCTIONS ============
     function renderCalendar() {
+        if (!calendarGrid) return;
+        
         const year = currentCalendarDate.getFullYear();
         const month = currentCalendarDate.getMonth();
         const firstDay = new Date(year, month, 1);
@@ -482,36 +595,18 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
         }
         
-        if (calendarGrid) calendarGrid.innerHTML = html;
+        calendarGrid.innerHTML = html;
         
         document.querySelectorAll('.calendar-day[data-date]').forEach(day => {
             day.addEventListener('click', () => {
                 const dateKey = day.getAttribute('data-date');
+                currentFilterDate = dateKey;
                 if (searchInput) searchInput.value = '';
+                currentSearchTerm = '';
                 if (clearSearchBtn) clearSearchBtn.classList.remove('visible');
-                
-                const filtered = allEpisodes.filter(ep => ep.dateKey === dateKey);
-                currentPlaylist = filtered;
-                currentIndex = 0;
-                
-                renderPlaylist();
-                
-                const formattedDate = new Date(dateKey).toLocaleDateString();
-                if (playlistStats) {
-                    playlistStats.innerHTML = `${currentPlaylist.length} episodes • Filtered to ${formattedDate}`;
-                }
-                
-                if (currentPlaylist.length > 0 && videoControls) {
-                    const episode = currentPlaylist[0];
-                    if (currentTitle) currentTitle.textContent = episode.title;
-                    videoControls.loadEpisode(episode.videoUrl, false);
-                }
-                
-                if (calendarOverlay) {
-                    calendarOverlay.classList.remove('is-visible');
-                }
-                
-                showToast(`Showing ${currentPlaylist.length} episodes for ${formattedDate}`);
+                applyFilters();
+                if (calendarOverlay) calendarOverlay.classList.remove('is-visible');
+                showToast(`Filtered to ${new Date(dateKey).toLocaleDateString()}`);
             });
         });
     }
@@ -552,24 +647,28 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.key === 'Escape') closeCalendar();
     });
     
-    // View mode toggle
+    // ============ VIEW MODE TOGGLE ============
     if (listViewBtn && gridViewBtn) {
         listViewBtn.addEventListener('click', () => {
             listViewBtn.classList.add('active');
             gridViewBtn.classList.remove('active');
+            currentViewMode = 'list';
             const container = document.getElementById('playlistContainer');
             if (container) container.classList.remove('grid-view');
+            renderPlaylist();
         });
         
         gridViewBtn.addEventListener('click', () => {
             gridViewBtn.classList.add('active');
             listViewBtn.classList.remove('active');
+            currentViewMode = 'grid';
             const container = document.getElementById('playlistContainer');
             if (container) container.classList.add('grid-view');
+            renderPlaylist();
         });
     }
     
-    // Dark mode
+    // ============ DARK MODE ============
     function initDarkMode() {
         const isDark = localStorage.getItem('darkMode') === 'true';
         if (isDark) document.body.classList.add('dark');
@@ -584,14 +683,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    // Queue toggle
+    // ============ QUEUE UI TOGGLE ============
     if (queueHeader && queueContainer) {
         queueHeader.addEventListener('click', () => {
             queueContainer.classList.toggle('expanded');
         });
     }
     
-    // Clear queue button
     if (clearQueueBtn) {
         clearQueueBtn.addEventListener('click', () => {
             userQueue = [];
@@ -601,9 +699,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
-    // Load episodes
+    // ============ LOAD EPISODES ============
     async function loadEpisodes() {
-        const playlistContainer = document.getElementById('playlistContainer');
         if (playlistContainer) {
             playlistContainer.innerHTML = '<div class="loading-state" style="text-align: center; padding: 40px;"><div class="loader" style="display: inline-block; width: 30px; height: 30px; border: 3px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.6s linear infinite;"></div><div style="margin-top: 12px;">Loading episodes...</div></div>';
         }
@@ -626,22 +723,19 @@ document.addEventListener('DOMContentLoaded', () => {
             renderPlaylist();
             
             const uniqueDates = new Set(currentPlaylist.map(e => e.dateKey));
-            if (playlistStats) {
-                playlistStats.innerHTML = `${currentPlaylist.length} episodes • ${uniqueDates.size} days`;
-            }
+            updatePlaylistStats(currentPlaylist.length, uniqueDates.size);
             
             if (currentPlaylist.length > 0 && videoControls) {
                 const episode = currentPlaylist[0];
-                if (currentTitle) currentTitle.textContent = episode.title;
+                updateNowPlayingTitle(episode.title);
                 videoControls.loadEpisode(episode.videoUrl, false);
             }
             
             showToast(`Loaded ${allEpisodes.length} episodes`);
-            console.log('Application ready - All root-level imports resolved');
+            console.log('Application ready - DOM diffing active');
             
         } catch (error) {
             console.error('Error loading episodes:', error);
-            const playlistContainer = document.getElementById('playlistContainer');
             if (playlistContainer) {
                 playlistContainer.innerHTML = `<div class="error-state" style="text-align: center; padding: 40px; color: var(--primary);">❌ Failed to load episodes: ${error.message}</div>`;
             }
@@ -649,10 +743,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    // Initialize
+    // ============ INITIALIZE ============
     initDarkMode();
     loadQueue();
     loadEpisodes();
     
-    console.log("Main.js loaded - Using root-level imports only");
+    console.log("Main.js loaded - Defensive DOM updates with diffing");
 });
