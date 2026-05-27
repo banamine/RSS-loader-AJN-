@@ -1,8 +1,8 @@
-// ============ MAIN APPLICATION - ORCHESTRATION ==========
+// ============ MAIN APPLICATION - WAIT FOR DATA BEFORE INIT ==========
 import { feedService } from './js/services/feedService.js';
 import { stateManager } from './js/state/stateManager.js';
 import { VideoControls } from './js/components/VideoControls.js';
-import { VirtualPlaylist } from './js/components/VirtualList.js';
+import { VirtualList } from './js/components/VirtualList.js';
 import { CalendarView } from './js/components/CalendarView.js';
 import { 
     escapeHtml, 
@@ -17,18 +17,23 @@ import {
 
 // Constants
 const RSS_URL = 'https://api.rss2json.com/v1/api.json?rss_url=https://rss.alexjones.media/AJNHourlyVideo.xml';
+
+// Global references
 let videoControls = null;
 let virtualList = null;
 let calendarView = null;
+let allEpisodes = [];
 
 // Process raw episodes into structured objects
 function processRawEpisodes(rawEpisodes) {
+    if (!rawEpisodes || !rawEpisodes.length) return [];
+    
     return rawEpisodes.map((ep, idx) => {
         const utcDate = new Date(ep.pubDate);
         const centralDate = toCentralTime(utcDate);
         const { show, hour } = parseEpisodeDetails(ep.title);
         return {
-            id: `ep_${idx}_${Date.now()}`,
+            id: `ep_${idx}_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
             title: ep.title || 'Untitled Episode',
             description: ep.description ? ep.description.replace(/<[^>]*>/g, '') : 'No description',
             pubDate: ep.pubDate,
@@ -44,11 +49,10 @@ function processRawEpisodes(rawEpisodes) {
 
 // Render function for virtual list items
 function renderPlaylistItem(episode, index) {
-    const isActive = episode.id === stateManager.getState().nowPlayingId;
     const flyoutId = `flyout-${episode.id}`;
     
     const div = document.createElement('div');
-    div.className = `playlist-item ${isActive ? 'active' : ''}`;
+    div.className = 'playlist-item';
     div.dataset.id = episode.id;
     div.dataset.index = index;
     
@@ -72,9 +76,281 @@ function renderPlaylistItem(episode, index) {
     return div;
 }
 
-// Handle playlist item actions
+// Update now playing display
+function updateNowPlayingDisplay(episode) {
+    const titleEl = document.getElementById('currentTitle');
+    const metaEl = document.getElementById('nowPlayingMeta');
+    
+    if (titleEl) titleEl.textContent = episode?.title || 'Select an episode';
+    if (metaEl) metaEl.textContent = episode ? `${episode.show} ${episode.hour} • ${episode.formattedDate}` : '';
+}
+
+// Load episodes and initialize VirtualList AFTER data arrives
+async function loadAndInitialize() {
+    const playlistContainer = document.getElementById('playlistContainer');
+    if (playlistContainer) {
+        playlistContainer.innerHTML = '<div class="loading-state"><div class="loader"></div><div>Loading episodes...</div></div>';
+    }
+    
+    try {
+        console.log('Fetching RSS feed...');
+        const result = await feedService.fetchFeed(RSS_URL);
+        
+        if (result.success && result.episodes) {
+            allEpisodes = processRawEpisodes(result.episodes);
+            allEpisodes.sort((a, b) => b.centralDate - a.centralDate);
+            
+            console.log(`Loaded ${allEpisodes.length} episodes`);
+            
+            // CRITICAL: Initialize VirtualList ONLY after we have data
+            if (playlistContainer && !virtualList) {
+                virtualList = new VirtualList('playlistContainer', {
+                    rowHeight: 80,
+                    buffer: 5,
+                    renderItem: renderPlaylistItem,
+                    onItemClick: (index) => {
+                        const episode = allEpisodes[index];
+                        if (episode) {
+                            if (videoControls) {
+                                videoControls.loadEpisode(episode.videoUrl, true);
+                            }
+                            updateNowPlayingDisplay(episode);
+                        }
+                    }
+                });
+                console.log('VirtualList initialized after data load');
+            }
+            
+            // Set items in virtual list
+            if (virtualList) {
+                virtualList.setItems(allEpisodes);
+            }
+            
+            // Update calendar
+            if (calendarView) {
+                calendarView.setEpisodes(allEpisodes);
+            }
+            
+            // Set first episode as now playing
+            if (allEpisodes.length > 0) {
+                updateNowPlayingDisplay(allEpisodes[0]);
+                if (videoControls) {
+                    videoControls.loadEpisode(allEpisodes[0].videoUrl, false);
+                }
+            }
+            
+            showToast(`Loaded ${allEpisodes.length} episodes`);
+        } else {
+            throw new Error(result.error || 'Failed to load feed');
+        }
+    } catch (error) {
+        console.error('Failed to load episodes:', error);
+        if (playlistContainer) {
+            playlistContainer.innerHTML = `<div class="error-state">❌ Failed to load: ${error.message}</div>`;
+        }
+        showToast(`Failed to load: ${error.message}`);
+    }
+}
+
+// Render queue
+function renderQueue() {
+    const state = stateManager.getState();
+    const queueContainer = document.getElementById('queueContainer');
+    const queueStats = document.getElementById('queueStats');
+    
+    if (!queueContainer) return;
+    
+    if (!state.queue || state.queue.length === 0) {
+        queueContainer.innerHTML = '<div class="empty-queue">Queue is empty</div>';
+    } else {
+        queueContainer.innerHTML = state.queue.map((item, idx) => `
+            <div class="queue-item" data-index="${idx}">
+                <span class="drag-handle">⠿</span>
+                <div class="queue-info" data-action="play-queue" data-index="${idx}">
+                    <div class="queue-title">${escapeHtml(item.title)}</div>
+                    <div class="queue-date">${item.show} ${item.hour}</div>
+                </div>
+                <button class="remove-queue-item" data-action="remove-queue" data-index="${idx}">×</button>
+            </div>
+        `).join('');
+    }
+    
+    if (queueStats) queueStats.textContent = `${state.queue?.length || 0} items`;
+}
+
+// Setup video controls
+function setupVideoControls() {
+    videoControls = new VideoControls({
+        videoId: 'mainVideo',
+        progressId: 'progressBar',
+        playPauseId: 'playPauseBtn',
+        currentTimeId: 'currentTime',
+        durationId: 'duration'
+    });
+    
+    const skipBackBtn = document.getElementById('skipBackBtn');
+    const skipForwardBtn = document.getElementById('skipForwardBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const shareBtn = document.getElementById('shareBtn');
+    const autoplayToggle = document.getElementById('autoplayToggle');
+    
+    if (skipBackBtn) skipBackBtn.addEventListener('click', () => videoControls?.skip(-10));
+    if (skipForwardBtn) skipForwardBtn.addEventListener('click', () => videoControls?.skip(10));
+    
+    if (nextBtn) {
+        nextBtn.addEventListener('click', () => {
+            if (virtualList && allEpisodes.length) {
+                const currentVideo = videoControls?.video;
+                if (currentVideo) {
+                    // Find current episode index
+                    const currentSrc = currentVideo.src;
+                    const currentIndex = allEpisodes.findIndex(ep => ep.videoUrl === currentSrc);
+                    if (currentIndex !== -1 && currentIndex + 1 < allEpisodes.length) {
+                        const nextEpisode = allEpisodes[currentIndex + 1];
+                        videoControls.loadEpisode(nextEpisode.videoUrl, true);
+                        updateNowPlayingDisplay(nextEpisode);
+                        virtualList.scrollToIndex(currentIndex + 1);
+                    } else if (stateManager.getState().queue?.length > 0) {
+                        const nextFromQueue = stateManager.getState().queue[0];
+                        stateManager.removeFromQueue(0);
+                        videoControls.loadEpisode(nextFromQueue.videoUrl, true);
+                        updateNowPlayingDisplay(nextFromQueue);
+                        renderQueue();
+                    }
+                }
+            }
+        });
+    }
+    
+    if (downloadBtn) {
+        downloadBtn.addEventListener('click', () => {
+            const videoSrc = videoControls?.video?.src;
+            const episode = allEpisodes.find(ep => ep.videoUrl === videoSrc);
+            if (episode) {
+                const link = document.createElement('a');
+                link.href = episode.videoUrl;
+                link.download = `${episode.title.replace(/[^a-z0-9]/gi, '_')}.m4v`;
+                link.click();
+                showToast('Download started');
+            }
+        });
+    }
+    
+    if (shareBtn) {
+        shareBtn.addEventListener('click', () => {
+            const videoSrc = videoControls?.video?.src;
+            const episode = allEpisodes.find(ep => ep.videoUrl === videoSrc);
+            if (episode && navigator.share) {
+                navigator.share({ title: episode.title, url: episode.videoUrl });
+            } else if (episode) {
+                navigator.clipboard.writeText(episode.videoUrl);
+                showToast('Link copied');
+            }
+        });
+    }
+    
+    if (videoControls && autoplayToggle) {
+        videoControls.setOnEnd(() => {
+            if (autoplayToggle.checked && nextBtn) {
+                nextBtn.click();
+            }
+        });
+    }
+}
+
+// Setup search
+function setupSearch() {
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        const debouncedSearch = debounce((e) => {
+            const term = e.target.value.toLowerCase();
+            if (term) {
+                const filtered = allEpisodes.filter(ep => 
+                    ep.title.toLowerCase().includes(term) || 
+                    ep.description.toLowerCase().includes(term)
+                );
+                if (virtualList) virtualList.setItems(filtered);
+            } else {
+                if (virtualList) virtualList.setItems(allEpisodes);
+            }
+        }, 300);
+        searchInput.addEventListener('input', debouncedSearch);
+    }
+}
+
+// Setup view mode
+function setupViewMode() {
+    const listBtn = document.getElementById('listViewBtn');
+    const gridBtn = document.getElementById('gridViewBtn');
+    const playlistContainer = document.getElementById('playlistContainer');
+    
+    if (listBtn) {
+        listBtn.addEventListener('click', () => {
+            listBtn.classList.add('active');
+            gridBtn.classList.remove('active');
+            if (playlistContainer) playlistContainer.classList.remove('grid-view');
+            if (virtualList) virtualList.refresh();
+        });
+    }
+    
+    if (gridBtn) {
+        gridBtn.addEventListener('click', () => {
+            gridBtn.classList.add('active');
+            listBtn.classList.remove('active');
+            if (playlistContainer) playlistContainer.classList.add('grid-view');
+            if (virtualList) virtualList.refresh();
+        });
+    }
+}
+
+// Setup dark mode
+function setupDarkMode() {
+    const darkBtn = document.getElementById('darkModeToggle');
+    const isDark = localStorage.getItem('darkMode') === 'true';
+    
+    if (isDark) {
+        document.body.classList.add('dark');
+        if (darkBtn) darkBtn.textContent = '☀️ Light';
+    }
+    
+    if (darkBtn) {
+        darkBtn.addEventListener('click', () => {
+            document.body.classList.toggle('dark');
+            const dark = document.body.classList.contains('dark');
+            localStorage.setItem('darkMode', dark);
+            darkBtn.textContent = dark ? '☀️ Light' : '🌙 Dark';
+        });
+    }
+}
+
+// Setup calendar
+function setupCalendar() {
+    const calendarContainer = document.getElementById('calendarContainer');
+    const calendarToggleBtn = document.getElementById('calendarToggleBtn');
+    
+    if (calendarContainer) {
+        calendarView = new CalendarView(calendarContainer, {
+            onDateSelect: (date) => {
+                const filtered = allEpisodes.filter(ep => ep.dateKey === date);
+                if (virtualList) virtualList.setItems(filtered);
+                showToast(`Filtered to ${date}`);
+                calendarView.hide();
+            }
+        });
+    }
+    
+    if (calendarToggleBtn) {
+        calendarToggleBtn.addEventListener('click', () => {
+            if (calendarView) calendarView.toggle();
+        });
+    }
+}
+
+// Setup playlist actions (delegation)
 function setupPlaylistActions() {
     document.addEventListener('click', (e) => {
+        // Flyout triggers
         const trigger = e.target.closest('.menu-trigger');
         if (trigger) {
             e.stopPropagation();
@@ -88,13 +364,14 @@ function setupPlaylistActions() {
             }
         }
         
+        // Flyout actions
         const actionBtn = e.target.closest('.flyout-menu-item');
         if (actionBtn) {
             e.stopPropagation();
             const action = actionBtn.dataset.action;
             const row = actionBtn.closest('.playlist-item');
             const index = row ? parseInt(row.dataset.index) : -1;
-            const episode = stateManager.getState().filteredEpisodes[index];
+            const episode = virtualList?.getCurrentItems()?.[index];
             
             if (action === 'download' && episode) {
                 const link = document.createElement('a');
@@ -111,7 +388,8 @@ function setupPlaylistActions() {
                 }
             } else if (action === 'queue' && episode) {
                 stateManager.addToQueue(episode);
-                showToast(`Added to queue`);
+                renderQueue();
+                showToast('Added to queue');
             } else if (action === 'details' && episode) {
                 alert(`Title: ${episode.title}\nShow: ${episode.show} ${episode.hour}\nDate: ${episode.formattedDate}`);
             }
@@ -120,37 +398,11 @@ function setupPlaylistActions() {
             if (flyout) flyout.style.display = 'none';
         }
         
-        // Close flyouts on outside click
+        // Close flyouts
         if (!e.target.closest('.menu-trigger') && !e.target.closest('.flyout-menu')) {
             document.querySelectorAll('.flyout-menu').forEach(f => f.style.display = 'none');
         }
     });
-}
-
-// Render queue
-function renderQueue() {
-    const queueContainer = document.getElementById('queueContainer');
-    const queueStats = document.getElementById('queueStats');
-    const state = stateManager.getState();
-    
-    if (!queueContainer) return;
-    
-    if (state.queue.length === 0) {
-        queueContainer.innerHTML = '<div class="empty-queue">Queue is empty</div>';
-    } else {
-        queueContainer.innerHTML = state.queue.map((item, idx) => `
-            <div class="queue-item" data-index="${idx}">
-                <span class="drag-handle">⠿</span>
-                <div class="queue-info" data-action="play-queue" data-index="${idx}">
-                    <div class="queue-title">${escapeHtml(item.title)}</div>
-                    <div class="queue-date">${item.show} ${item.hour}</div>
-                </div>
-                <button class="remove-queue-item" data-action="remove-queue" data-index="${idx}">×</button>
-            </div>
-        `).join('');
-    }
-    
-    if (queueStats) queueStats.textContent = `${state.queue.length} items`;
 }
 
 // Setup queue actions
@@ -159,10 +411,10 @@ function setupQueueActions() {
         const playBtn = e.target.closest('[data-action="play-queue"]');
         if (playBtn) {
             const index = parseInt(playBtn.dataset.index);
-            const episode = stateManager.getState().queue[index];
-            if (episode) {
-                stateManager.setState({ nowPlayingId: episode.id });
-                if (videoControls) videoControls.loadEpisode(episode.videoUrl, true);
+            const episode = stateManager.getState().queue?.[index];
+            if (episode && videoControls) {
+                videoControls.loadEpisode(episode.videoUrl, true);
+                updateNowPlayingDisplay(episode);
             }
         }
         
@@ -183,267 +435,25 @@ function setupQueueActions() {
     }
 }
 
-// Setup search
-function setupSearch() {
-    const searchInput = document.getElementById('searchInput');
-    if (searchInput) {
-        const debouncedSearch = debounce((e) => {
-            stateManager.setState({ searchTerm: e.target.value });
-        }, 300);
-        searchInput.addEventListener('input', debouncedSearch);
-    }
-}
-
-// Setup view mode
-function setupViewMode() {
-    const listBtn = document.getElementById('listViewBtn');
-    const gridBtn = document.getElementById('gridViewBtn');
-    
-    if (listBtn) {
-        listBtn.addEventListener('click', () => {
-            stateManager.setViewMode('list');
-            listBtn.classList.add('active');
-            gridBtn.classList.remove('active');
-            if (virtualList) virtualList.refresh();
-        });
-    }
-    
-    if (gridBtn) {
-        gridBtn.addEventListener('click', () => {
-            stateManager.setViewMode('grid');
-            gridBtn.classList.add('active');
-            listBtn.classList.remove('active');
-            if (virtualList) virtualList.refresh();
-        });
-    }
-}
-
-// Setup dark mode
-function setupDarkMode() {
-    const darkBtn = document.getElementById('darkModeToggle');
-    if (darkBtn) {
-        darkBtn.addEventListener('click', () => {
-            stateManager.toggleDarkMode();
-            darkBtn.textContent = stateManager.getState().darkMode ? '☀️ Light' : '🌙 Dark';
-        });
-    }
-}
-
-// Setup calendar
-function setupCalendar() {
-    const calendarContainer = document.getElementById('calendarContainer');
-    const calendarToggleBtn = document.getElementById('calendarToggleBtn');
-    
-    if (calendarContainer) {
-        calendarView = new CalendarView(calendarContainer, {
-            onDateSelect: (date) => {
-                stateManager.setState({ filterDate: date });
-                showToast(`Filtered to ${date}`);
-            }
-        });
-    }
-    
-    if (calendarToggleBtn) {
-        calendarToggleBtn.addEventListener('click', () => {
-            if (calendarView) calendarView.toggle();
-        });
-    }
-}
-
-// Setup video controls
-function setupVideoControls() {
-    videoControls = new VideoControls({
-        videoId: 'mainVideo',
-        progressId: 'progressBar',
-        playPauseId: 'playPauseBtn',
-        currentTimeId: 'currentTime',
-        durationId: 'duration'
-    });
-    
-    const skipBackBtn = document.getElementById('skipBackBtn');
-    const skipForwardBtn = document.getElementById('skipForwardBtn');
-    const nextBtn = document.getElementById('nextBtn');
-    const downloadBtn = document.getElementById('downloadBtn');
-    const shareBtn = document.getElementById('shareBtn');
-    const autoplayToggle = document.getElementById('autoplayToggle');
-    
-    if (skipBackBtn) skipBackBtn.addEventListener('click', () => videoControls.skip(-10));
-    if (skipForwardBtn) skipForwardBtn.addEventListener('click', () => videoControls.skip(10));
-    
-    if (nextBtn) {
-        nextBtn.addEventListener('click', () => {
-            const state = stateManager.getState();
-            const currentIndex = state.filteredEpisodes.findIndex(ep => ep.id === state.nowPlayingId);
-            if (currentIndex !== -1 && currentIndex + 1 < state.filteredEpisodes.length) {
-                stateManager.setState({ nowPlayingId: state.filteredEpisodes[currentIndex + 1].id });
-            } else if (state.queue.length > 0) {
-                const nextFromQueue = state.queue[0];
-                stateManager.removeFromQueue(0);
-                stateManager.setState({ nowPlayingId: nextFromQueue.id });
-                renderQueue();
-            }
-        });
-    }
-    
-    if (downloadBtn) {
-        downloadBtn.addEventListener('click', () => {
-            const episode = stateManager.getNowPlaying();
-            if (episode) {
-                const link = document.createElement('a');
-                link.href = episode.videoUrl;
-                link.download = `${episode.title.replace(/[^a-z0-9]/gi, '_')}.m4v`;
-                link.click();
-                showToast('Download started');
-            }
-        });
-    }
-    
-    if (shareBtn) {
-        shareBtn.addEventListener('click', () => {
-            const episode = stateManager.getNowPlaying();
-            if (episode && navigator.share) {
-                navigator.share({ title: episode.title, url: episode.videoUrl });
-            } else if (episode) {
-                navigator.clipboard.writeText(episode.videoUrl);
-                showToast('Link copied');
-            }
-        });
-    }
-    
-    if (videoControls) {
-        videoControls.setOnEnd(() => {
-            if (autoplayToggle && autoplayToggle.checked) {
-                nextBtn.click();
-            }
-        });
-    }
-}
-
-// Load episodes
-async function loadEpisodes() {
-    stateManager.setState({ loading: true });
-    
-    try {
-        const result = await feedService.fetchFeed(RSS_URL);
-        
-        if (result.success && result.episodes) {
-            const processedEpisodes = processRawEpisodes(result.episodes);
-            processedEpisodes.sort((a, b) => b.centralDate - a.centralDate);
-            
-            stateManager.setState({
-                episodes: processedEpisodes,
-                filteredEpisodes: processedEpisodes,
-                loading: false,
-                nowPlayingId: processedEpisodes.length > 0 ? processedEpisodes[0].id : null
-            });
-            
-            if (calendarView) calendarView.setEpisodes(processedEpisodes);
-            showToast(`Loaded ${processedEpisodes.length} episodes`);
-        } else {
-            throw new Error(result.error || 'Failed to load feed');
-        }
-    } catch (error) {
-        console.error('Failed to load episodes:', error);
-        stateManager.setState({ loading: false, error: error.message });
-        showToast(`Failed to load: ${error.message}`);
-    }
-}
-
-// Initialize virtual list
-function initVirtualList() {
-    const container = document.getElementById('playlistContainer');
-    if (!container) return;
-    
-    virtualList = new VirtualList(container, {
-        rowHeight: 80,
-        buffer: 5,
-        renderItem: renderPlaylistItem,
-        onItemClick: (index) => {
-            const episode = stateManager.getState().filteredEpisodes[index];
-            if (episode) {
-                stateManager.setState({ nowPlayingId: episode.id });
-                if (videoControls) videoControls.loadEpisode(episode.videoUrl, true);
-                updateNowPlayingDisplay(episode);
-            }
-        }
-    });
-}
-
-// Update now playing display
-function updateNowPlayingDisplay(episode) {
-    const titleEl = document.getElementById('currentTitle');
-    const metaEl = document.getElementById('nowPlayingMeta');
-    
-    if (titleEl) titleEl.textContent = episode.title;
-    if (metaEl) metaEl.textContent = `${episode.show} ${episode.hour} • ${episode.formattedDate}`;
-}
-
-// Subscribe to state changes
-function subscribeToState() {
-    stateManager.subscribe((state) => {
-        // Update virtual list
-        if (virtualList) {
-            virtualList.setItems(state.filteredEpisodes);
-        }
-        
-        // Update now playing video
-        const nowPlaying = state.episodes.find(ep => ep.id === state.nowPlayingId);
-        if (nowPlaying && videoControls) {
-            if (videoControls.video?.src !== nowPlaying.videoUrl) {
-                videoControls.loadEpisode(nowPlaying.videoUrl, true);
-                updateNowPlayingDisplay(nowPlaying);
-            }
-        }
-        
-        // Update queue display
-        renderQueue();
-        
-        // Update view mode class
-        const container = document.getElementById('playlistContainer');
-        if (container) {
-            container.classList.toggle('grid-view', state.viewMode === 'grid');
-        }
-        
-        // Update loading state
-        if (state.loading) {
-            const loadingEl = document.getElementById('playlistContainer');
-            if (loadingEl && !state.filteredEpisodes.length) {
-                loadingEl.innerHTML = '<div class="loading-state"><div class="loader"></div><div>Loading episodes...</div></div>';
-            }
-        }
-    });
-}
-
 // Initialize app
 document.addEventListener('DOMContentLoaded', () => {
     console.log('Initializing AJN Hourly Archive...');
     
-    // Apply saved dark mode
-    if (stateManager.getState().darkMode) {
-        document.body.classList.add('dark');
-    }
-    
-    // Setup components
+    // Setup basic UI first
+    setupDarkMode();
     setupVideoControls();
     setupSearch();
     setupViewMode();
-    setupDarkMode();
     setupCalendar();
-    setupQueueActions();
     setupPlaylistActions();
-    
-    // Initialize virtual list
-    initVirtualList();
-    
-    // Subscribe to state
-    subscribeToState();
+    setupQueueActions();
     
     // Load queue from storage
     stateManager.loadQueueFromStorage();
     renderQueue();
     
-    // Load episodes
-    loadEpisodes();
+    // Load episodes and initialize VirtualList AFTER data arrives
+    loadAndInitialize();
     
-    console.log('Application ready');
+    console.log('Application ready - waiting for data');
 });
