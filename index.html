@@ -2,98 +2,426 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AJN Hourly Archive</title>
-    <meta name="description" content="AJN Hourly Archive - Browse and play episodes">
-    <meta name="theme-color" content="#d32f2f">
-
-    <link rel="icon" href="data:,">
-
-    <link rel="stylesheet" href="./main.css">
-    <link rel="stylesheet" href="./virtual-list.css">
-    <link rel="stylesheet" href="./css/skeleton.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            background: #121212;
+            color: #e0e0e0;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        #app {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        
+        .header {
+            background: #1e1e1e;
+            padding: 16px 24px;
+            border-bottom: 1px solid #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo h1 {
+            font-size: 1.3rem;
+            color: #ef5350;
+        }
+        
+        .content {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            padding: 20px;
+            gap: 20px;
+        }
+        
+        .video-section {
+            flex: 2;
+            background: #1e1e1e;
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        
+        .playlist-section {
+            flex: 1;
+            background: #1e1e1e;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .playlist-header {
+            padding: 16px;
+            border-bottom: 1px solid #333;
+        }
+        
+        .playlist-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px;
+        }
+        
+        video {
+            width: 100%;
+            border-radius: 8px;
+            background: #000;
+        }
+        
+        .now-playing-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            padding: 8px 16px;
+            background: #2d2d2d;
+            border: 1px solid #444;
+            color: #e0e0e0;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        
+        button:hover {
+            background: #ef5350;
+            border-color: #ef5350;
+        }
+        
+        .playlist-item {
+            padding: 12px;
+            margin-bottom: 8px;
+            background: #2d2d2d;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .playlist-item:hover {
+            background: #3d3d3d;
+            transform: translateX(4px);
+        }
+        
+        .playlist-item.active {
+            background: #ef5350;
+        }
+        
+        .playlist-title {
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+        
+        .playlist-date {
+            font-size: 0.75rem;
+            color: #aaa;
+        }
+        
+        .search-input {
+            width: 100%;
+            padding: 10px;
+            background: #2d2d2d;
+            border: 1px solid #444;
+            color: #e0e0e0;
+            border-radius: 6px;
+            margin-bottom: 16px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #aaa;
+        }
+        
+        .error {
+            text-align: center;
+            padding: 40px;
+            color: #ef5350;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .loader {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            border: 2px solid #444;
+            border-top-color: #ef5350;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+        }
+    </style>
 </head>
 <body>
-
     <div id="app">
-        <header class="app-header">
+        <div class="header">
             <div class="logo">
                 <h1>🎙️ AJN Hourly Archive</h1>
-                <span class="logo-badge">Central Time</span>
             </div>
-            <div class="view-toggle-container">
-                <button id="listViewBtn" class="view-toggle-btn active">📋 List</button>
-                <button id="gridViewBtn" class="view-toggle-btn">🎴 Grid</button>
-            </div>
-            <div class="header-controls">
-                <button id="darkModeToggle" class="dark-mode-toggle">🌙 Dark</button>
-            </div>
-        </header>
-
-        <div class="app-content">
-            <div class="col-left">
-                <div class="video-wrapper">
-                    <video id="mainVideo" controls playsinline preload="metadata"></video>
+            <button id="darkModeBtn" style="background: #2d2d2d;">🌙 Dark</button>
+        </div>
+        
+        <div class="content">
+            <div class="video-section">
+                <video id="videoPlayer" controls></video>
+                <div class="now-playing-title" id="nowPlayingTitle">Select an episode to play</div>
+                <div class="controls">
+                    <button id="playBtn">▶ Play</button>
+                    <button id="pauseBtn">⏸ Pause</button>
+                    <button id="nextBtn">⏭ Next</button>
                 </div>
-                <div class="now-playing-card">
-                    <div class="now-playing-label">▶ NOW PLAYING</div>
-                    <div class="now-playing-title" id="currentTitle">Select an episode</div>
-                    <div id="nowPlayingMeta" class="now-playing-meta"></div>
-                    <div class="controls-ui">
-                        <div class="progress-container">
-                            <input type="range" id="progressBar" value="0" max="100" step="0.1">
-                            <div class="time-display">
-                                <span id="currentTime">0:00</span>
-                                <span id="duration">0:00</span>
-                            </div>
-                        </div>
-                        <div class="video-controls-row">
-                            <button id="playPauseBtn" class="btn-secondary">⏯ Play</button>
-                            <button id="skipBackBtn" class="btn-secondary">⏪ 10s</button>
-                            <button id="skipForwardBtn" class="btn-secondary">⏩ 10s</button>
-                            <label class="btn-secondary">
-                                <input type="checkbox" id="autoplayToggle" checked> Autoplay
-                            </label>
-                            <button id="downloadBtn" class="btn-secondary">⬇️</button>
-                            <button id="shareBtn" class="btn-secondary">📤</button>
-                            <button id="nextBtn" class="btn-primary">⏭️ Next</button>
-                        </div>
+            </div>
+            
+            <div class="playlist-section">
+                <div class="playlist-header">
+                    <h3>📋 Episodes</h3>
+                    <input type="text" id="searchInput" class="search-input" placeholder="Search episodes...">
+                    <div id="stats" style="font-size: 0.75rem; color: #aaa; margin-top: 8px;"></div>
+                </div>
+                <div id="playlistContainer" class="playlist-container">
+                    <div class="loading">
+                        <div class="loader"></div>
+                        <div style="margin-top: 12px;">Loading episodes...</div>
                     </div>
                 </div>
-                <div id="playlistContainer" class="playlist-container"></div>
-            </div>
-            <div class="col-right">
-                <div class="queue-section">
-                    <div class="queue-header">
-                        <h3>📋 Play Queue <span id="queueStats" class="queue-stats">0 items</span></h3>
-                        <button id="clearQueueBtn" class="clear-queue-btn">Clear</button>
-                    </div>
-                    <div id="queueContainer" class="queue-container"></div>
-                </div>
-                <div class="search-section">
-                    <div class="search-input-wrapper">
-                        <span class="search-icon">🔍</span>
-                        <input type="text" id="searchInput" class="search-input" placeholder="Search episodes...">
-                    </div>
-                </div>
-                <button id="calendarToggleBtn" class="calendar-toggle-btn">📅 Show Calendar</button>
-                <div id="calendarContainer"></div>
             </div>
         </div>
     </div>
 
-    <script src="./js/config.js"></script>
-
-    <script src="./js/state/stateManager.js"></script>
-
-    <script src="./js/services/feedService.js"></script>
-
-    <script src="./js/components/VideoControls.js"></script>
-    <script src="./js/components/SkeletonLoader.js"></script>
-    <script src="./js/components/VirtualList.js"></script>
-    <script src="./js/components/CalendarView.js"></script>
-
-    <script src="./main.js"></script>
-
+    <script>
+        // ============ SIMPLE WORKING VERSION ============
+        
+        // State
+        let allEpisodes = [];
+        let filteredEpisodes = [];
+        let currentIndex = 0;
+        let currentVideoUrl = '';
+        
+        // DOM Elements
+        const videoPlayer = document.getElementById('videoPlayer');
+        const playBtn = document.getElementById('playBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const nowPlayingTitle = document.getElementById('nowPlayingTitle');
+        const playlistContainer = document.getElementById('playlistContainer');
+        const searchInput = document.getElementById('searchInput');
+        const statsDiv = document.getElementById('stats');
+        const darkModeBtn = document.getElementById('darkModeBtn');
+        
+        // Helper functions
+        function formatDate(dateString) {
+            try {
+                const date = new Date(dateString);
+                return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+            } catch {
+                return dateString;
+            }
+        }
+        
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        function showLoading() {
+            playlistContainer.innerHTML = '<div class="loading"><div class="loader"></div><div>Loading episodes...</div></div>';
+        }
+        
+        function showError(message) {
+            playlistContainer.innerHTML = `<div class="error">❌ ${escapeHtml(message)}</div>`;
+        }
+        
+        // Transform video URL
+        function transformVideoUrl(url) {
+            if (!url) return '';
+            const filename = url.split('/').pop();
+            if (filename.endsWith('.m4v') || filename.endsWith('.mp4')) {
+                return `https://ajn.archives.pub/hourly-m4v/${filename}`;
+            }
+            return url;
+        }
+        
+        // Render playlist
+        function renderPlaylist() {
+            if (!filteredEpisodes.length) {
+                playlistContainer.innerHTML = '<div class="loading">No episodes found</div>';
+                statsDiv.textContent = '0 episodes';
+                return;
+            }
+            
+            statsDiv.textContent = `${filteredEpisodes.length} episodes`;
+            
+            playlistContainer.innerHTML = filteredEpisodes.map((ep, idx) => `
+                <div class="playlist-item ${idx === currentIndex ? 'active' : ''}" data-index="${idx}">
+                    <div class="playlist-title">${escapeHtml(ep.title)}</div>
+                    <div class="playlist-date">📅 ${escapeHtml(ep.formattedDate || ep.pubDate)}</div>
+                    <div style="font-size: 0.7rem; color: #aaa;">${escapeHtml(ep.show)} ${escapeHtml(ep.hour)}</div>
+                </div>
+            `).join('');
+            
+            // Add click handlers
+            document.querySelectorAll('.playlist-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const index = parseInt(item.dataset.index);
+                    if (!isNaN(index)) playEpisode(index);
+                });
+            });
+        }
+        
+        // Play episode
+        function playEpisode(index) {
+            if (index < 0 || index >= filteredEpisodes.length) return;
+            
+            currentIndex = index;
+            const episode = filteredEpisodes[currentIndex];
+            const videoUrl = transformVideoUrl(episode.videoUrl);
+            
+            nowPlayingTitle.textContent = episode.title;
+            videoPlayer.src = videoUrl;
+            videoPlayer.load();
+            videoPlayer.play().catch(e => console.log('Autoplay prevented:', e));
+            
+            renderPlaylist();
+        }
+        
+        // Next episode
+        function nextEpisode() {
+            if (currentIndex + 1 < filteredEpisodes.length) {
+                playEpisode(currentIndex + 1);
+            }
+        }
+        
+        // Search
+        function filterEpisodes() {
+            const searchTerm = searchInput.value.toLowerCase();
+            if (searchTerm) {
+                filteredEpisodes = allEpisodes.filter(ep => 
+                    ep.title.toLowerCase().includes(searchTerm) || 
+                    (ep.description && ep.description.toLowerCase().includes(searchTerm))
+                );
+            } else {
+                filteredEpisodes = [...allEpisodes];
+            }
+            currentIndex = 0;
+            renderPlaylist();
+            if (filteredEpisodes.length > 0) {
+                playEpisode(0);
+            }
+        }
+        
+        // Fetch episodes
+        async function fetchEpisodes() {
+            showLoading();
+            
+            try {
+                // Use RSS2JSON API
+                const rssUrl = 'https://rss.alexjones.media/AJNHourlyVideo.xml';
+                const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
+                
+                console.log('Fetching from:', apiUrl);
+                const response = await fetch(apiUrl);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.status !== 'ok') {
+                    throw new Error(data.message || 'API error');
+                }
+                
+                console.log(`Found ${data.items?.length || 0} episodes`);
+                
+                // Process episodes
+                allEpisodes = (data.items || []).map((item, idx) => {
+                    // Parse show details from title
+                    let show = 'Episode';
+                    let hour = '';
+                    const title = item.title || '';
+                    
+                    if (title.includes('WarRoom')) {
+                        show = 'War Room';
+                        const match = title.match(/Hr(\d+)/i);
+                        if (match) hour = `Hour ${match[1]}`;
+                    } else if (title.includes('Alex Jones')) {
+                        show = 'Alex Jones Show';
+                        const match = title.match(/Hr(\d+)/i);
+                        if (match) hour = `Hour ${match[1]}`;
+                    }
+                    
+                    return {
+                        id: idx,
+                        title: title,
+                        description: item.description ? item.description.replace(/<[^>]*>/g, '') : '',
+                        pubDate: item.pubDate || '',
+                        formattedDate: formatDate(item.pubDate),
+                        link: item.link || '',
+                        videoUrl: item.link || '',
+                        show: show,
+                        hour: hour
+                    };
+                });
+                
+                // Sort by date (newest first)
+                allEpisodes.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
+                filteredEpisodes = [...allEpisodes];
+                
+                renderPlaylist();
+                
+                if (filteredEpisodes.length > 0) {
+                    playEpisode(0);
+                }
+                
+                console.log(`✅ Loaded ${allEpisodes.length} episodes`);
+                
+            } catch (error) {
+                console.error('Error:', error);
+                showError(error.message);
+            }
+        }
+        
+        // Event listeners
+        playBtn.addEventListener('click', () => videoPlayer.play());
+        pauseBtn.addEventListener('click', () => videoPlayer.pause());
+        nextBtn.addEventListener('click', nextEpisode);
+        searchInput.addEventListener('input', filterEpisodes);
+        
+        // Dark mode toggle
+        let isDark = true;
+        darkModeBtn.addEventListener('click', () => {
+            isDark = !isDark;
+            document.body.style.background = isDark ? '#121212' : '#f5f5f5';
+            document.body.style.color = isDark ? '#e0e0e0' : '#111';
+            darkModeBtn.textContent = isDark ? '☀️ Light' : '🌙 Dark';
+        });
+        
+        // Initialize
+        console.log('App starting...');
+        fetchEpisodes();
+    </script>
 </body>
 </html>
