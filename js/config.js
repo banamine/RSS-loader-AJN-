@@ -1,4 +1,4 @@
-// ============ CENTRALIZED CONFIGURATION ==========
+// ============ CENTRALIZED CONFIGURATION - GLOBAL SCOPE ==========
 
 const CONFIG = {
     LAYOUT: { ROW_HEIGHT: 80, GRID_ROW_HEIGHT: 220, BUFFER: 5, HEADER_HEIGHT: 70, QUEUE_MAX_HEIGHT: 300 },
@@ -21,3 +21,7 @@ function applyCssVariables() {
     root.style.setProperty('--header-height', `${CONFIG.LAYOUT.HEADER_HEIGHT}px`);
     root.style.setProperty('--queue-max-height', `${CONFIG.LAYOUT.QUEUE_MAX_HEIGHT}px`);
 }
+
+// Make available globally
+window.CONFIG = CONFIG;
+window.applyCssVariables = applyCssVariables;
