@@ -1,649 +1,672 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-  <title>AJN Video Hub | Audio Control + Video Player</title>
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
-    body {
-      background: linear-gradient(145deg, #111318 0%, #0a0c10 100%);
-      min-height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      font-family: system-ui, 'Segoe UI', 'Inter', 'Helvetica Neue', sans-serif;
-      padding: 24px 20px;
-    }
-
-    /* main card */
-    .embed-card {
-      background: rgba(20, 22, 32, 0.75);
-      backdrop-filter: blur(2px);
-      border-radius: 32px;
-      box-shadow: 0 25px 45px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05);
-      padding: 20px;
-      transition: all 0.2s ease;
-    }
-
-    /* outer container: respects fixed width or 100% */
-    .video-wrapper-outer {
-      width: 640px;
-      max-width: 100%;
-      margin: 0 auto;
-      transition: width 0.25s cubic-bezier(0.2, 0.9, 0.4, 1.1);
-    }
-
-    /* responsive inner container with aspect-ratio technique */
-    .video-container {
-      position: relative;
-      width: 100%;
-      padding-top: 37.5%;  /* 240/640 = 37.5% for initial fixed 640x240 */
-      overflow: hidden;
-      background: #000000;
-      border-radius: 20px;
-      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5);
-      transition: border-radius 0.2s;
-    }
-
-    .video-container iframe {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      border: 0;
-      display: block;
-      background: #000;
-    }
-
-    /* button row */
-    .button-bar {
-      margin-top: 20px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 14px;
-      justify-content: center;
-      align-items: center;
-    }
-
-    /* custom audio control panel */
-    .audio-control-panel {
-      margin-top: 18px;
-      padding: 12px 14px;
-      background: rgba(0, 0, 0, 0.45);
-      backdrop-filter: blur(8px);
-      border-radius: 60px;
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      justify-content: center;
-      gap: 14px;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    .action-btn {
-      background: #1e1f2c;
-      border: none;
-      font-weight: 600;
-      font-size: 0.9rem;
-      padding: 10px 22px;
-      border-radius: 60px;
-      color: #eef2ff;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-      backdrop-filter: blur(4px);
-      letter-spacing: 0.3px;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      font-family: inherit;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-    }
-
-    .action-btn:hover {
-      background: #2d2f42;
-      transform: translateY(-2px);
-      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.3);
-      border-color: rgba(255, 255, 255, 0.2);
-    }
-
-    .action-btn:active {
-      transform: translateY(1px);
-    }
-
-    .audio-status {
-      font-size: 0.8rem;
-      background: #00000066;
-      padding: 6px 16px;
-      border-radius: 60px;
-      color: #cdd9ff;
-      font-weight: 500;
-      letter-spacing: 0.2px;
-      backdrop-filter: blur(2px);
-    }
-
-    /* fullscreen mode style adjustments */
-    .video-container:fullscreen {
-      border-radius: 0;
-      background: black;
-      padding-top: 0 !important;
-      height: 100vh;
-      width: 100vw;
-      max-width: 100vw;
-    }
-
-    .video-container:fullscreen iframe {
-      height: 100%;
-      width: 100%;
-    }
-
-    /* small mobile tuning */
-    @media (max-width: 680px) {
-      .embed-card {
-        padding: 14px;
-      }
-      .action-btn {
-        padding: 8px 18px;
-        font-size: 0.8rem;
-      }
-      .audio-control-panel {
-        padding: 8px 12px;
-        gap: 10px;
-      }
-      .audio-status {
-        font-size: 0.7rem;
-        padding: 4px 12px;
-      }
-    }
-
-    /* subtle highlight */
-    .badge-info {
-      font-size: 0.7rem;
-      background: #00000055;
-      border-radius: 40px;
-      padding: 4px 12px;
-      margin-left: 8px;
-      font-weight: normal;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>AJN Archive Player · Sirius Edition · Full Archive + Weekends</title>
+    <meta name="description" content="AJN Hourly Video Archive - Full feed with weekend shows and robust CORS proxy handling">
+    <meta name="theme-color" content="#0a0f1c">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background: #0a0f1c; }
+        .player-container { background: #000; border-radius: 1.2rem; overflow: hidden; position: relative; }
+        .segment-item { transition: all 0.2s ease; cursor: pointer; }
+        .segment-item:hover { background: #1e293b; transform: translateX(4px); }
+        .segment-active { background: #0f2b3d; border-left: 3px solid #3b82f6; }
+        .playlist-scroll { max-height: 400px; overflow-y: auto; scrollbar-width: thin; }
+        .playlist-scroll::-webkit-scrollbar { width: 5px; }
+        .playlist-scroll::-webkit-scrollbar-track { background: #1e293b; }
+        .playlist-scroll::-webkit-scrollbar-thumb { background: #3b82f6; border-radius: 10px; }
+        .update-toast {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            background: #1e293b; border: 1px solid #3b82f6; border-radius: 50px;
+            padding: 12px 24px; display: flex; gap: 16px; align-items: center;
+            z-index: 9999; backdrop-filter: blur(10px); animation: slideUp 0.3s ease;
+        }
+        @keyframes slideUp { from { opacity: 0; transform: translateX(-50%) translateY(20px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+        .flatpickr-calendar { background: #1e293b !important; border-color: #334155 !important; }
+        .flatpickr-day { color: #cbd5e1 !important; }
+        .flatpickr-day.selected { background: #3b82f6 !important; }
+        .flatpickr-day.today { border-color: #10b981 !important; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        .music-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(10, 15, 28, 0.94);
+            backdrop-filter: blur(12px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            z-index: 20;
+            transition: opacity 0.6s ease;
+        }
+        .music-overlay-content {
+            text-align: center;
+            padding: 2rem;
+            background: rgba(30, 41, 59, 0.75);
+            border-radius: 2rem;
+            border: 1px solid #3b82f6;
+            max-width: 85%;
+            box-shadow: 0 20px 35px -12px rgba(0,0,0,0.5);
+        }
+        .vinyl-spinner {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, #1e293b, #0f172a);
+            box-shadow: 0 0 0 4px #334155, 0 0 0 8px #1e293b;
+            margin: 0 auto 20px auto;
+            animation: spin 2s linear infinite;
+            position: relative;
+        }
+        .vinyl-spinner::after {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 12px;
+            height: 12px;
+            background: #3b82f6;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .pulse-wave {
+            display: flex;
+            gap: 6px;
+            justify-content: center;
+            margin-top: 16px;
+        }
+        .pulse-wave span {
+            width: 4px;
+            height: 20px;
+            background: #3b82f6;
+            border-radius: 2px;
+            animation: wave 0.8s ease-in-out infinite;
+        }
+        .pulse-wave span:nth-child(2) { animation-delay: 0.1s; height: 30px; }
+        .pulse-wave span:nth-child(3) { animation-delay: 0.2s; height: 25px; }
+        .pulse-wave span:nth-child(4) { animation-delay: 0.3s; height: 35px; }
+        .pulse-wave span:nth-child(5) { animation-delay: 0.4s; height: 20px; }
+        @keyframes wave { 0%, 100% { transform: scaleY(0.5); } 50% { transform: scaleY(1); } }
+        .overlay-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #e2e8f0;
+            margin: 16px 0 8px;
+        }
+        .overlay-sub {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            margin-bottom: 20px;
+        }
+        .stop-music-btn, .init-audio-btn, .retry-fetch-btn {
+            border: none;
+            border-radius: 40px;
+            padding: 10px 24px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin: 4px;
+        }
+        .stop-music-btn { background: #ef4444; color: white; }
+        .stop-music-btn:hover { background: #dc2626; transform: scale(1.02); }
+        .init-audio-btn { background: #10b981; color: white; }
+        .init-audio-btn:hover { background: #059669; transform: scale(1.02); }
+        .retry-fetch-btn { background: #f59e0b; color: #0f172a; }
+        .retry-fetch-btn:hover { background: #d97706; transform: scale(1.02); }
+        .system-ready-btn {
+            background: #22c55e;
+            box-shadow: 0 0 15px rgba(34,197,94,0.5);
+            animation: pulse-green 1.2s infinite;
+        }
+        @keyframes pulse-green { 0%, 100% { box-shadow: 0 0 5px #22c55e; } 50% { box-shadow: 0 0 20px #22c55e; } }
+        .hidden-overlay { opacity: 0; pointer-events: none; }
+        .hidden { display: none !important; }
+        
+        .audio-pill {
+            position: fixed;
+            bottom: 16px;
+            right: 16px;
+            z-index: 10000;
+            background: rgba(30, 41, 59, 0.95);
+            backdrop-filter: blur(8px);
+            border-radius: 40px;
+            padding: 6px 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border: 1px solid #3b82f6;
+            font-size: 11px;
+        }
+        .audio-pill button {
+            background: #ef4444;
+            border: none;
+            border-radius: 30px;
+            padding: 3px 12px;
+            color: white;
+            font-size: 10px;
+            cursor: pointer;
+        }
+        .fade-out { opacity: 0; pointer-events: none; transition: opacity 0.6s ease; }
+        .proxy-status {
+            font-size: 9px;
+            color: #94a3b8;
+            margin-top: 8px;
+            word-break: break-word;
+        }
+        .date-input {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 9999px;
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+            color: #e2e8f0;
+            cursor: pointer;
+            width: 140px;
+            text-align: center;
+        }
+        .date-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+    </style>
 </head>
-<body>
-<div class="embed-card">
-  <div class="video-wrapper-outer" id="videoWrapperOuter">
-    <div class="video-container" id="videoContainer">
-      <iframe id="ajnVideoIframe"
-              src="https://banamine.github.io/RSS-loader-AJN-/"
-              title="AJN Video-Only Player"
-              allow="fullscreen; autoplay; encrypted-media"
-              referrerpolicy="strict-origin-when-cross-origin"
-              loading="lazy">
-      </iframe>
+<body class="font-sans antialiased text-gray-200">
+
+    <div id="audioPill" class="audio-pill" style="display: none;">
+        <span class="status-text">🎵 Sirius</span>
+        <button id="pillStopBtn">Stop</button>
     </div>
-  </div>
 
-  <div class="button-bar">
-    <button id="fullscreenBtn" class="action-btn" type="button">
-      ⛶ Open Fullscreen
-    </button>
-    <button id="toggleSizeBtn" class="action-btn" type="button">
-      □ Toggle 640×240 / Responsive
-    </button>
-  </div>
+    <div id="update-toast" style="display: none;" class="update-toast">
+        <span>🔄 New dates available!</span>
+        <button id="refresh-cache-btn" class="bg-blue-600 px-4 py-1 rounded-full text-sm">Refresh</button>
+    </div>
 
-  <!-- NEW AUDIO CONTROL SECTION: exactly as required - audio play button + muted by default + user control -->
-  <div class="audio-control-panel" id="audioControlPanel">
-    <button id="audioToggleBtn" class="action-btn" type="button">
-      🔊 Unmute & Play Audio
-    </button>
-    <span id="audioStatusMsg" class="audio-status">🔇 Muted by default | Auto-loaded (silent)</span>
-  </div>
+    <main id="main-content">
+        <div class="max-w-7xl mx-auto px-4 py-5 md:py-7">
+            <header class="flex flex-col md:flex-row justify-between items-center gap-4 border-b border-slate-800 pb-5 mb-6">
+                <div>
+                    <h1 class="text-3xl font-extrabold bg-gradient-to-r from-emerald-400 to-blue-500 bg-clip-text text-transparent">AJN Archive Player · Full Archive</h1>
+                    <p class="text-sm text-slate-400">Alex Jones + WarRoom + Sunday Night Live · RSS XML + Worker Proxy</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <input type="text" id="datePickerInput" class="date-input" placeholder="Pick a date" readonly>
+                    <div class="text-xs bg-slate-800 px-3 py-1.5 rounded-full">
+                        <span id="feed-status">Initializing...</span>
+                    </div>
+                </div>
+            </header>
 
-  <div style="text-align: center; margin-top: 14px; font-size: 0.7rem; opacity: 0.6; color: #bbb;">
-    🎵 Audio control: loaded automatically, muted, user-controlled • Video-only section • AJN Resource Hub
-  </div>
-</div>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-2">
+                    <div class="player-container bg-slate-900 border border-slate-700 rounded-2xl overflow-hidden relative">
+                        <div class="bg-black aspect-video relative">
+                            <video id="main-video" controls class="w-full h-full object-contain" poster="https://placehold.co/1280x720/0f172a/3b82f6?text=AJN+Archive"></video>
+                            
+                            <div id="musicOverlay" class="music-overlay" style="display: none;">
+                                <div class="music-overlay-content">
+                                    <div class="vinyl-spinner"></div>
+                                    <div class="pulse-wave">
+                                        <span></span><span></span><span></span><span></span><span></span>
+                                    </div>
+                                    <div class="overlay-title">🎵 The Alan Parsons Project · Sirius</div>
+                                    <div class="overlay-sub" id="overlayStatusMsg">Loading AJN full archive — please wait</div>
+                                    <div class="flex flex-col gap-2 max-w-xs mx-auto">
+                                        <button id="startAudioBtn" class="init-audio-btn hidden">🔊 Initialize Audio Stream</button>
+                                        <button id="stopMusicAndPlayBtn" class="stop-music-btn">⏹ Stop Music & Play Video</button>
+                                        <button id="manualRetryBtn" class="retry-fetch-btn hidden">🔄 Retry Archive Fetch</button>
+                                    </div>
+                                    <div id="proxyStatusMsg" class="proxy-status"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="p-4 bg-slate-800/80 border-t border-slate-700">
+                            <div class="flex flex-wrap justify-between items-center gap-3">
+                                <div class="flex-1 min-w-0">
+                                    <h2 id="current-title" class="text-white font-bold text-lg truncate">Select a date to begin</h2>
+                                    <div class="flex items-center gap-3 mt-1">
+                                        <span id="position-badge" class="text-[10px] bg-slate-700 px-2 py-0.5 rounded-full">0 / 0</span>
+                                    </div>
+                                </div>
+                                <div class="flex gap-2">
+                                    <button id="prev-segment-btn" class="bg-slate-700 hover:bg-slate-600 px-3 py-1.5 rounded-full text-sm transition">◀ Prev</button>
+                                    <button id="next-segment-btn" class="bg-blue-700 hover:bg-blue-600 px-3 py-1.5 rounded-full text-sm transition">Next ▶</button>
+                                </div>
+                            </div>
+                            <div class="mt-3 w-full bg-slate-700 rounded-full h-1.5 overflow-hidden">
+                                <div id="progress-bar" class="bg-blue-500 h-full w-0 transition-all duration-300"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-<script>
-  (function() {
-    // ----- DOM elements for video/fullscreen/toggle (original functionality)
-    const iframe = document.getElementById('ajnVideoIframe');
-    const fullscreenBtn = document.getElementById('fullscreenBtn');
-    const toggleSizeBtn = document.getElementById('toggleSizeBtn');
-    const videoContainer = document.getElementById('videoContainer');
-    const outerWrapper = document.getElementById('videoWrapperOuter');
+                <div class="bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden flex flex-col h-[560px]">
+                    <div class="bg-slate-950 px-4 py-3 border-b border-slate-800 flex justify-between">
+                        <h3 class="font-bold text-white text-sm">📋 Playlist · Weekends Included</h3>
+                        <span id="segment-count" class="text-[11px] text-slate-400">0 items</span>
+                    </div>
+                    <div id="playlist-container" class="playlist-scroll p-2 space-y-2 flex-1">
+                        <div class="text-center text-slate-500 text-sm py-10 italic">Loading episodes from RSS feed...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
 
-    // State management for size toggle
-    let isFixedMode = true;   // true = fixed 640px width & 37.5% padding (240px height)
-    
-    // Helper: apply fixed 640x240 mode (classic aspect 240/640 = 0.375)
-    function applyFixedMode() {
-      outerWrapper.style.width = '640px';
-      videoContainer.style.paddingTop = '37.5%';   // 240/640 = 37.5% exact
-      isFixedMode = true;
-      toggleSizeBtn.innerHTML = '□ Toggle 640×240 / Responsive';
-      videoContainer.style.height = 'auto';
-    }
-    
-    // Helper: apply fully responsive mode (16:9)
-    function applyResponsiveMode() {
-      outerWrapper.style.width = '100%';
-      videoContainer.style.paddingTop = '56.25%';   // 16:9
-      isFixedMode = false;
-      toggleSizeBtn.innerHTML = '□ Toggle Responsive / 640×240';
-    }
-    
-    // ----- 1) FULLSCREEN logic
-    const requestFullscreenElement = (element) => {
-      const requestMethod = element.requestFullscreen ||
-                            element.webkitRequestFullscreen ||
-                            element.mozRequestFullScreen ||
-                            element.msRequestFullscreen;
-      if (requestMethod) {
-        return requestMethod.call(element);
-      }
-      return Promise.reject(new Error('Fullscreen API not supported'));
-    };
-    
-    async function enterFullscreen() {
-      try {
-        await requestFullscreenElement(videoContainer);
-      } catch (err) {
-        console.warn('Fullscreen request failed, fallback to new tab:', err);
-        if (iframe && iframe.src) {
-          window.open(iframe.src, '_blank', 'noopener,noreferrer');
-        } else {
-          window.open('https://banamine.github.io/RSS-loader-AJN-/', '_blank');
+    <script>
+        // ========== ALL STATE VARIABLES ==========
+        let allEpisodes = [];          // raw episodes from RSS
+        let episodesByDate = {};       // grouped by YYYY-MM-DD
+        let availableDates = [];
+        let currentFilterDate = null;
+        let currentPlaylist = [];
+        let currentIndex = 0;
+        let flatpickrInstance = null;
+        
+        // Audio / UI elements
+        let audioElement = null;
+        let loadingStarted = false;
+        let backgroundFetchComplete = false;
+        let fetchInProgress = false;
+        
+        const musicOverlay = document.getElementById('musicOverlay');
+        const overlayStatusMsg = document.getElementById('overlayStatusMsg');
+        const stopMusicAndPlayBtn = document.getElementById('stopMusicAndPlayBtn');
+        const startAudioBtn = document.getElementById('startAudioBtn');
+        const manualRetryBtn = document.getElementById('manualRetryBtn');
+        const audioPill = document.getElementById('audioPill');
+        const pillStopBtn = document.getElementById('pillStopBtn');
+        const videoPlayer = document.getElementById('main-video');
+        const proxyStatusSpan = document.getElementById('proxyStatusMsg');
+        const currentTitleSpan = document.getElementById('current-title');
+        const positionBadge = document.getElementById('position-badge');
+        const progressFill = document.getElementById('progress-bar');
+        const feedStatusSpan = document.getElementById('feed-status');
+        const segmentCountSpan = document.getElementById('segment-count');
+        const playlistContainer = document.getElementById('playlist-container');
+        const datePickerInput = document.getElementById('datePickerInput');
+        
+        // ========== UTILITIES ==========
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
         }
-      }
-    }
-    
-    function exitFullscreen() {
-      if (document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement) {
-        const exitMethod = document.exitFullscreen ||
-                           document.webkitExitFullscreen ||
-                           document.mozCancelFullScreen ||
-                           document.msExitFullscreen;
-        if (exitMethod) exitMethod.call(document);
-      }
-    }
-    
-    fullscreenBtn.addEventListener('click', async () => {
-      if (document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement) {
-        exitFullscreen();
-      } else {
-        await enterFullscreen();
-      }
-    });
-    
-    function updateFullscreenButtonLabel() {
-      const isFS = !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement);
-      if (isFS) {
-        fullscreenBtn.innerHTML = '✕ Exit Fullscreen';
-      } else {
-        fullscreenBtn.innerHTML = '⛶ Open Fullscreen';
-      }
-    }
-    
-    document.addEventListener('fullscreenchange', updateFullscreenButtonLabel);
-    document.addEventListener('webkitfullscreenchange', updateFullscreenButtonLabel);
-    document.addEventListener('mozfullscreenchange', updateFullscreenButtonLabel);
-    updateFullscreenButtonLabel();
-    
-    // ----- 2) TOGGLE SIZE with enhanced fullscreen awareness (same as original UX)
-    toggleSizeBtn.addEventListener('click', () => {
-      const fsActive = !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement);
-      if (fsActive) {
-        const exitDoc = document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen;
-        if (exitDoc) {
-          exitDoc.call(document).then(() => {
-            setTimeout(() => {
-              if (isFixedMode) applyResponsiveMode();
-              else applyFixedMode();
-            }, 50);
-          }).catch(() => {
-            if (isFixedMode) applyResponsiveMode();
-            else applyFixedMode();
-          });
-        } else {
-          if (isFixedMode) applyResponsiveMode();
-          else applyFixedMode();
+        
+        function formatDateKey(date) {
+            return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
         }
-      } else {
-        if (isFixedMode) applyResponsiveMode();
-        else applyFixedMode();
-      }
-    });
-    
-    // ensure iframe attributes
-    if (iframe) {
-      if (!iframe.hasAttribute('allowfullscreen')) iframe.setAttribute('allowfullscreen', 'true');
-      if (!iframe.hasAttribute('webkitallowfullscreen')) iframe.setAttribute('webkitallowfullscreen', 'true');
-      iframe.setAttribute('allow', 'fullscreen; autoplay; encrypted-media');
-      iframe.loading = 'eager';
-    }
-    
-    // initial fixed mode sync
-    applyFixedMode();
-    videoContainer.style.backgroundColor = '#000000';
-    
-    // ========================
-    // NEW AUDIO IMPLEMENTATION (meets all requirements)
-    // - Audio play button, muted by default
-    // - Script loads and attempts to auto-play (muted)
-    // - Full user control: toggle unmute/play vs mute/pause
-    // ========================
-    const audioToggleBtn = document.getElementById('audioToggleBtn');
-    const audioStatusSpan = document.getElementById('audioStatusMsg');
-    
-    // Create hidden audio element (loads automatically, no visual footprint)
-    const hiddenAudio = new Audio();
-    // Use reliable short audio sample (MDN t-rex roar - safe, CORS-friendly, small)
-    // It will load and can be played without issues.
-    const AUDIO_SRC = 'https://interactive-examples.mdn.mozilla.net/media/cc0-audio/t-rex-roar.mp3';
-    hiddenAudio.src = AUDIO_SRC;
-    hiddenAudio.preload = 'auto';
-    hiddenAudio.loop = false;
-    hiddenAudio.volume = 1.0;
-    // CRITICAL: muted by default -> no auto-sound pollution
-    hiddenAudio.muted = true;
-    
-    // store state for UI sync
-    let isAudioUserUnmuted = false;     // tracks if user intentionally turned off mute (unmuted)
-    let isPlayingTrack = false;
-    
-    // Helper to update UI text and button label based on current audio state
-    function updateAudioUI() {
-      // Determine final representation:
-      // If audio is muted -> show muted state / inactive
-      // else if audio is unmuted and playing -> active
-      // else if unmuted but paused -> can resume
-      const isCurrentlyMuted = hiddenAudio.muted;
-      const isPaused = hiddenAudio.paused;
-      const hasEnded = hiddenAudio.ended;
-      
-      if (isCurrentlyMuted) {
-        // Muted state: no sound, and either auto-play loading or user muted
-        audioToggleBtn.innerHTML = '🔊 Unmute & Play Audio';
-        if (hiddenAudio.readyState >= 2) {
-          audioStatusSpan.innerHTML = '🔇 Muted | Audio ready (click to unmute & play)';
-        } else {
-          audioStatusSpan.innerHTML = '🔇 Muted | Loading audio...';
+        
+        function formatDisplayDate(dateStr) { // expects YYYY-MM-DD
+            const parts = dateStr.split('-');
+            return `${parts[1]}/${parts[2]}/${parts[0]}`;
         }
-      } else {
-        // Unmuted state: user can hear sound if playing
-        if (!isPaused && !hasEnded) {
-          // Playing and unmuted
-          audioToggleBtn.innerHTML = '🔇 Mute & Pause Audio';
-          audioStatusSpan.innerHTML = '🔊 Audio playing • Click to mute/pause';
-        } else if (hasEnded) {
-          // Finished playing: user can replay
-          audioToggleBtn.innerHTML = '🔊 Replay Audio (unmuted)';
-          audioStatusSpan.innerHTML = '⏹️ Audio ended • Click replay';
-        } else {
-          // Paused but unmuted
-          audioToggleBtn.innerHTML = '🔊 Resume Audio (unmuted)';
-          audioStatusSpan.innerHTML = '⏸️ Paused • Click to resume';
+        
+        // Parse show/hour from title (e.g., "Alex Jones Show Hr1")
+        function parseShowAndHour(title) {
+            let show = 'Unknown';
+            let hour = '';
+            const lower = title.toLowerCase();
+            if (lower.includes('war room')) show = 'War Room';
+            else if (lower.includes('sunday night live') || lower.includes('snl')) show = 'Sunday Night Live';
+            else if (lower.includes('alex jones')) show = 'Alex Jones';
+            
+            const hourMatch = title.match(/Hr(\d)/i);
+            if (hourMatch) hour = `Hr${hourMatch[1]}`;
+            return { show, hour };
         }
-      }
-    }
-    
-    // Function to handle auto-load & autoplay (muted) as required: "load and play audio auto but turned off (muted) to user control"
-    function initAutoPlayMuted() {
-      hiddenAudio.muted = true;
-      // attempt to play automatically (muted) - this will be allowed by modern browsers if muted
-      const playPromise = hiddenAudio.play();
-      if (playPromise !== undefined) {
-        playPromise.then(() => {
-          // Auto-play started successfully while muted -> perfect, user will unmute later if they want.
-          console.log('[Audio] Auto-play started (muted). Audio ready for user control.');
-          updateAudioUI();
-        }).catch((error) => {
-          // Even if autoplay blocked (some strict browsers), we still ensure user can manually start.
-          // This does not break requirement: we provide button control anyway.
-          console.warn('[Audio] Auto-play blocked or failed. User will start via button.', error);
-          updateAudioUI();
+        
+        // ========== SIRIUS AUDIO (unchanged, working) ==========
+        const SIRIUS_PRIMARY = 'https://raw.githubusercontent.com/banamine/AJN-Resource-Hub/main/The%20Alan%20Parsons%20Project%20-%20Sirius%20(Official%20Audio).mp3';
+        const SIRIUS_FALLBACK = 'https://archive.org/download/a-132-5_20260424/1.%20The%20Alan%20Parsons%20Project%20-%20Sirius%20%28Official%20Audio%29.mp4';
+        const SEEK_TO_SECONDS = 25;
+        
+        function initSiriusAudio() {
+            if (audioElement) return;
+            audioElement = new Audio();
+            audioElement.loop = true;
+            audioElement.volume = 0.28;
+            const loadAudio = (url) => {
+                audioElement.src = url;
+                audioElement.load();
+                audioElement.addEventListener('canplay', () => {
+                    if (audioElement.duration > SEEK_TO_SECONDS) audioElement.currentTime = SEEK_TO_SECONDS;
+                }, { once: true });
+            };
+            loadAudio(SIRIUS_PRIMARY);
+            audioElement.addEventListener('error', () => {
+                if (currentAudioSource === 0) {
+                    currentAudioSource = 1;
+                    loadAudio(SIRIUS_FALLBACK);
+                } else {
+                    if (overlayStatusMsg) overlayStatusMsg.textContent = 'Loading archive (audio unavailable)';
+                }
+            });
+        }
+        let currentAudioSource = 0;
+        
+        async function startSiriusAndOverlay() {
+            if (!audioElement) initSiriusAudio();
+            if (musicOverlay) {
+                musicOverlay.style.display = 'flex';
+                setTimeout(() => musicOverlay.classList.remove('hidden-overlay'), 10);
+            }
+            if (audioPill) audioPill.style.display = 'flex';
+            try {
+                await audioElement.play();
+                if (audioElement.currentTime < SEEK_TO_SECONDS && audioElement.duration > SEEK_TO_SECONDS) {
+                    audioElement.currentTime = SEEK_TO_SECONDS;
+                }
+                startAudioBtn.classList.add('hidden');
+                if (overlayStatusMsg) overlayStatusMsg.textContent = '🎙️ Streaming AJN Matrix Interlude...';
+            } catch (autoplayError) {
+                if (overlayStatusMsg) overlayStatusMsg.textContent = '🔇 Browser blocked autoplay — click below to activate audio.';
+                startAudioBtn.classList.remove('hidden');
+            }
+        }
+        
+        function stopMusicAndPlayVideo() {
+            if (audioElement) {
+                audioElement.pause();
+                audioElement.currentTime = 0;
+            }
+            if (musicOverlay) {
+                musicOverlay.classList.add('hidden-overlay');
+                setTimeout(() => { if(musicOverlay) musicOverlay.style.display = 'none'; }, 600);
+            }
+            if (audioPill) {
+                audioPill.classList.add('fade-out');
+                setTimeout(() => { if(audioPill) audioPill.style.display = 'none'; }, 600);
+            }
+            if (currentPlaylist.length && currentIndex !== undefined) {
+                loadVideoByIndex(currentIndex);
+            } else if (backgroundFetchComplete && currentPlaylist.length) {
+                loadVideoByIndex(0);
+            }
+        }
+        
+        startAudioBtn?.addEventListener('click', async () => {
+            if (audioElement) {
+                try {
+                    await audioElement.play();
+                    if (audioElement.duration > SEEK_TO_SECONDS) audioElement.currentTime = SEEK_TO_SECONDS;
+                    startAudioBtn.classList.add('hidden');
+                    if (overlayStatusMsg) overlayStatusMsg.textContent = '🎙️ Streaming AJN Matrix Interlude...';
+                } catch(e) {}
+            }
         });
-      } else {
-        updateAudioUI();
-      }
-    }
-    
-    // Main toggle action: user control to enable/disable audio (unmute/play vs mute/pause)
-    async function handleAudioToggle() {
-      const isMuted = hiddenAudio.muted;
-      const isPaused = hiddenAudio.paused;
-      const ended = hiddenAudio.ended;
-      
-      try {
-        if (isMuted) {
-          // --- USER ACTION: UNMUTE AND ENSURE PLAYBACK ---
-          hiddenAudio.muted = false;
-          // If track is paused or ended, start playing it (or restart)
-          if (isPaused || ended) {
-            // Reset position if ended to give fresh playback
-            if (ended) {
-              hiddenAudio.currentTime = 0;
+        stopMusicAndPlayBtn?.addEventListener('click', stopMusicAndPlayVideo);
+        pillStopBtn?.addEventListener('click', stopMusicAndPlayVideo);
+        
+        // ========== FETCH RSS XML VIA WORKER PROXY ==========
+        const WORKER_PROXY = 'https://muddy-unit-f498.banamine.workers.dev/?url=';
+        const RSS_FEED_URL = 'https://rss.alexjones.media/AJNHourlyVideo.xml';
+        
+        async function fetchRSSFeed() {
+            feedStatusSpan.innerHTML = '📡 Fetching RSS feed via Cloudflare Worker...';
+            updateProxyStatus('Connecting to worker proxy...');
+            try {
+                const response = await fetch(WORKER_PROXY + encodeURIComponent(RSS_FEED_URL));
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const xmlText = await response.text();
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(xmlText, 'application/xml');
+                const parseError = xmlDoc.querySelector('parsererror');
+                if (parseError) throw new Error('Invalid XML');
+                return xmlDoc;
+            } catch (err) {
+                updateProxyStatus(`Worker fetch failed: ${err.message}`);
+                throw err;
             }
-            await hiddenAudio.play();
-          }
-          // If already playing but muted only (muted autoplay case), unmute and it continues.
-          updateAudioUI();
-        } else {
-          // --- USER ACTION: MUTE AND PAUSE (silence + stop) ---
-          hiddenAudio.muted = true;
-          if (!isPaused && !ended) {
-            // if currently playing, pause as well for full "off" experience
-            hiddenAudio.pause();
-          }
-          updateAudioUI();
         }
-      } catch (err) {
-        console.warn('Audio control error:', err);
-        // fallback: try to force reset state
-        if (hiddenAudio.muted === false && hiddenAudio.paused) {
-          // retry play
-          try {
-            await hiddenAudio.play();
-          } catch (e) {}
+        
+        function parseEpisodesFromXML(xmlDoc) {
+            const items = xmlDoc.querySelectorAll('item');
+            const episodes = [];
+            items.forEach(item => {
+                const title = item.querySelector('title')?.textContent?.trim() || '';
+                const enclosure = item.querySelector('enclosure');
+                const videoUrl = enclosure?.getAttribute('url') || '';
+                const pubDateStr = item.querySelector('pubDate')?.textContent;
+                if (!videoUrl || !videoUrl.includes('.m4v')) return;
+                
+                let pubDate = pubDateStr ? new Date(pubDateStr) : new Date(0);
+                const dateKey = formatDateKey(pubDate);
+                const { show, hour } = parseShowAndHour(title);
+                
+                episodes.push({
+                    id: videoUrl.split('/').pop() + '_' + dateKey,
+                    title,
+                    videoUrl,
+                    pubDate,
+                    dateKey,
+                    formattedDate: dateKey,
+                    show,
+                    hour
+                });
+            });
+            // sort descending (newest first)
+            episodes.sort((a,b) => b.pubDate - a.pubDate);
+            return episodes;
         }
-        updateAudioUI();
-        audioStatusSpan.innerHTML = '⚠️ Audio interaction needed (click again)';
-        setTimeout(() => updateAudioUI(), 1200);
-      }
-    }
-    
-    // Event listeners for audio state changes (ended, play, pause) to keep UI consistent
-    hiddenAudio.addEventListener('play', () => {
-      updateAudioUI();
-    });
-    hiddenAudio.addEventListener('pause', () => {
-      updateAudioUI();
-    });
-    hiddenAudio.addEventListener('ended', () => {
-      updateAudioUI();
-    });
-    hiddenAudio.addEventListener('volumechange', () => {
-      // If volume changes or muted changes externally (rare) sync UI
-      updateAudioUI();
-    });
-    hiddenAudio.addEventListener('canplaythrough', () => {
-      updateAudioUI();
-    });
-    
-    // Attach button click event for user control
-    if (audioToggleBtn) {
-      audioToggleBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        handleAudioToggle();
-      });
-    }
-    
-    // Start the process: audio is created, muted by default and script tries to autoplay muted.
-    // This fulfills: "make a audio play button and mute by default this script will load and play audio auto we want this turned off to user control"
-    // Load + auto (muted) play attempt, user control via button (unmute & play vs mute & pause).
-    initAutoPlayMuted();
-    
-    // Edge: ensure audio loads properly even if user never interacts (but still muted)
-    hiddenAudio.load();  // start loading metadata
-    
-    // Additional graceful handling: if the page visibility changes, we don't force any intrusive behavior.
-    // Also ensure that user can always regain control.
-    // Provide status about the audio sample source (optional, but hidden)
-    
-    // Optional: if the iframe inside tries to autoplay with sound, we cannot control it,
-    // but the dedicated audio feature satisfies the requirement perfectly.
-    // For extra clarity, we append a small tooltip that audio is muted by design.
-    
-    // Inline fix to avoid badge issues on toggleSizeBtn (preserve existing tooltip from previous script)
-    // but we keep audio control fully separate.
-    
-    // One more robust improvement: if the user clicks the audio button before audio metadata loaded, ensure we load again
-    hiddenAudio.addEventListener('error', (e) => {
-      console.warn('Audio resource loading warning, but button will still work');
-      audioStatusSpan.innerHTML = '⚠️ Audio stream warning - click to retry';
-    });
-    
-    // Ensure that any previous conflicts with original script's final elements are avoided
-    // Also make final adjustments to guarantee that initial Fixed mode badge & behaviour remain intact.
-    const existingBadge = toggleSizeBtn.querySelector('.badge-info');
-    if (!existingBadge) {
-      const badgeSpan = document.createElement('span');
-      badgeSpan.className = 'badge-info';
-      badgeSpan.innerText = '✓ fixed 640x240';
-      toggleSizeBtn.appendChild(badgeSpan);
-    }
-    
-    // Update badge on toggle as per original styling
-    const updateSizeBadge = () => {
-      const badge = toggleSizeBtn.querySelector('.badge-info');
-      if (badge) {
-        if (isFixedMode) {
-          badge.innerText = '□ fixed 640x240';
-        } else {
-          badge.innerText = '□ responsive 16:9';
+        
+        function groupEpisodesByDate(episodes) {
+            const groups = {};
+            episodes.forEach(ep => {
+                if (!groups[ep.dateKey]) groups[ep.dateKey] = [];
+                groups[ep.dateKey].push(ep);
+            });
+            return groups;
         }
-      }
-    };
-    
-    // Override apply functions to also update badge
-    const origApplyFixed = applyFixedMode;
-    const origApplyResp = applyResponsiveMode;
-    window.applyFixedMode = applyFixedMode;
-    window.applyResponsiveMode = applyResponsiveMode;
-    
-    const enhancedApplyFixed = function() {
-      origApplyFixed();
-      updateSizeBadge();
-    };
-    const enhancedApplyResponsive = function() {
-      origApplyResp();
-      updateSizeBadge();
-    };
-    
-    // Replace methods to keep badge consistency
-    window.applyFixedMode = enhancedApplyFixed;
-    window.applyResponsiveMode = enhancedApplyResponsive;
-    // rebind toggleSizeBtn events without duplication (original event uses closures)
-    // Better: manually swap references to preserve new badge update
-    const toggleBtnClone = toggleSizeBtn.cloneNode(true);
-    if (toggleSizeBtn.parentNode) {
-      toggleSizeBtn.parentNode.replaceChild(toggleBtnClone, toggleSizeBtn);
-      const newToggleBtn = document.getElementById('toggleSizeBtn');
-      if (newToggleBtn) {
-        // detach old listeners by replacing with fresh listener
-        const newHandler = () => {
-          const fsActive = !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement);
-          if (fsActive) {
-            const exitDoc = document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen;
-            if (exitDoc) {
-              exitDoc.call(document).then(() => {
-                setTimeout(() => {
-                  if (isFixedMode) enhancedApplyResponsive();
-                  else enhancedApplyFixed();
-                }, 50);
-              }).catch(() => {
-                if (isFixedMode) enhancedApplyResponsive();
-                else enhancedApplyFixed();
-              });
+        
+        // ========== RENDER PLAYLIST (simple DOM) ==========
+        function renderPlaylist() {
+            if (!playlistContainer) return;
+            if (!currentPlaylist.length) {
+                playlistContainer.innerHTML = '<div class="text-center text-slate-500 text-sm py-10">No episodes for selected date</div>';
+                segmentCountSpan.innerText = '0 items';
+                return;
+            }
+            
+            const fragment = document.createDocumentFragment();
+            for (let idx = 0; idx < currentPlaylist.length; idx++) {
+                const ep = currentPlaylist[idx];
+                const isActive = (idx === currentIndex);
+                const showType = ep.show;
+                
+                const div = document.createElement('div');
+                div.className = `segment-item p-3 rounded-xl border-l-4 ${isActive ? 'segment-active border-blue-500 bg-slate-800/60' : 'border-transparent bg-slate-800/30 hover:bg-slate-800/70'}`;
+                div.setAttribute('data-index', idx);
+                
+                const flexDiv = document.createElement('div');
+                flexDiv.className = 'flex justify-between items-center gap-2';
+                const leftDiv = document.createElement('div');
+                leftDiv.className = 'flex-1 min-w-0';
+                const topRow = document.createElement('div');
+                topRow.className = 'flex items-center gap-2 flex-wrap';
+                const showSpan = document.createElement('span');
+                showSpan.className = `text-xs font-semibold ${ep.show === 'War Room' ? 'text-purple-400' : (ep.show === 'Sunday Night Live' ? 'text-amber-400' : 'text-blue-400')}`;
+                showSpan.textContent = escapeHtml(ep.show);
+                topRow.appendChild(showSpan);
+                if (ep.hour) {
+                    const hourSpan = document.createElement('span');
+                    hourSpan.className = 'text-xs font-mono text-slate-300';
+                    hourSpan.textContent = escapeHtml(ep.hour);
+                    topRow.appendChild(hourSpan);
+                }
+                const dateSpan = document.createElement('span');
+                dateSpan.className = 'text-[10px] bg-slate-700 px-1.5 py-0.5 rounded-full';
+                dateSpan.textContent = formatDisplayDate(ep.dateKey);
+                topRow.appendChild(dateSpan);
+                leftDiv.appendChild(topRow);
+                const titleP = document.createElement('p');
+                titleP.className = 'text-sm font-medium text-white truncate mt-1';
+                titleP.textContent = escapeHtml(ep.title.substring(0, 70));
+                leftDiv.appendChild(titleP);
+                flexDiv.appendChild(leftDiv);
+                const indicatorSpan = document.createElement('span');
+                indicatorSpan.className = isActive ? 'text-green-400 text-xs' : 'text-slate-500 text-xs';
+                indicatorSpan.textContent = isActive ? '▶' : '●';
+                flexDiv.appendChild(indicatorSpan);
+                div.appendChild(flexDiv);
+                div.addEventListener('click', () => {
+                    currentIndex = idx;
+                    loadVideoByIndex(currentIndex);
+                    renderPlaylist();
+                });
+                fragment.appendChild(div);
+            }
+            playlistContainer.innerHTML = '';
+            playlistContainer.appendChild(fragment);
+            segmentCountSpan.innerText = `${currentPlaylist.length} videos`;
+            
+            // scroll active into view
+            const activeEl = playlistContainer.querySelector('.segment-active');
+            if (activeEl) activeEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+        
+        function loadVideoByIndex(index) {
+            if (!currentPlaylist[index]) return;
+            const ep = currentPlaylist[index];
+            videoPlayer.pause();
+            videoPlayer.src = ep.videoUrl;
+            videoPlayer.load();
+            videoPlayer.play().catch(e => console.log('Playback error:', e));
+            currentTitleSpan.textContent = escapeHtml(ep.title);
+            positionBadge.innerText = `${index + 1} / ${currentPlaylist.length}`;
+            progressFill.style.width = '0%';
+            if (loadingStarted) {
+                if (audioElement && !audioElement.paused) stopMusicAndPlayVideo();
+                loadingStarted = false;
+            }
+        }
+        
+        function applyDateFilter(dateKey) {
+            if (!dateKey || !episodesByDate[dateKey]) {
+                currentPlaylist = [];
             } else {
-              if (isFixedMode) enhancedApplyResponsive();
-              else enhancedApplyFixed();
+                currentPlaylist = episodesByDate[dateKey];
             }
-          } else {
-            if (isFixedMode) enhancedApplyResponsive();
-            else enhancedApplyFixed();
-          }
-          updateSizeBadge();
-        };
-        newToggleBtn.addEventListener('click', newHandler);
-        // initial sync
-        if (isFixedMode) enhancedApplyFixed(); else enhancedApplyResponsive();
-      }
-    } else {
-      // just update
-      updateSizeBadge();
-    }
-    
-    // Also fix fullscreen button text after any potential clone (avoid double button)
-    const freshFullBtn = document.getElementById('fullscreenBtn');
-    if (freshFullBtn && freshFullBtn !== fullscreenBtn) {
-      // reattach fullscreen event if needed
-      const existingFullParent = freshFullBtn.parentNode;
-      if (existingFullParent) {
-        const newFullBtn = freshFullBtn.cloneNode(true);
-        existingFullParent.replaceChild(newFullBtn, freshFullBtn);
-        const finalFullBtn = document.getElementById('fullscreenBtn');
-        if (finalFullBtn) {
-          finalFullBtn.addEventListener('click', async () => {
-            if (document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement) {
-              const exitFs = document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen;
-              if (exitFs) exitFs.call(document);
-            } else {
-              try {
-                const containerEl = document.getElementById('videoContainer');
-                if (containerEl) {
-                  await (containerEl.requestFullscreen?.() || containerEl.webkitRequestFullscreen?.() || containerEl.mozRequestFullScreen?.());
-                } else throw new Error('no container');
-              } catch(e) {
-                window.open(iframe?.src || 'https://banamine.github.io/RSS-loader-AJN-/', '_blank');
-              }
+            currentIndex = 0;
+            renderPlaylist();
+            if (currentPlaylist.length) loadVideoByIndex(0);
+        }
+        
+        // ========== MAIN INITIALIZATION ==========
+        async function loadAndInitialize(manualRetry = false) {
+            if (fetchInProgress) return;
+            fetchInProgress = true;
+            if (manualRetry) {
+                feedStatusSpan.innerHTML = '🔄 Manual retry...';
+                overlayStatusMsg.textContent = 'Retrying RSS fetch via Worker...';
+                manualRetryBtn.classList.add('hidden');
             }
-            updateFullscreenButtonLabel();
-          });
-          document.addEventListener('fullscreenchange', updateFullscreenButtonLabel);
-          document.addEventListener('webkitfullscreenchange', updateFullscreenButtonLabel);
+            try {
+                const xmlDoc = await fetchRSSFeed();
+                const episodes = parseEpisodesFromXML(xmlDoc);
+                if (!episodes.length) throw new Error('No episodes found in RSS feed');
+                allEpisodes = episodes;
+                episodesByDate = groupEpisodesByDate(episodes);
+                availableDates = Object.keys(episodesByDate).sort().reverse();
+                backgroundFetchComplete = true;
+                feedStatusSpan.innerHTML = `✅ ${availableDates.length} dates (RSS XML)`;
+                updateProxyStatus('Feed loaded via Worker proxy');
+                
+                // initialize flatpickr with available dates
+                if (flatpickrInstance) flatpickrInstance.destroy();
+                flatpickrInstance = flatpickr(datePickerInput, {
+                    dateFormat: "Y-m-d",
+                    onChange: (dates) => {
+                        if (dates.length) {
+                            const ymd = formatDateKey(dates[0]);
+                            if (episodesByDate[ymd]) {
+                                currentFilterDate = ymd;
+                                applyDateFilter(ymd);
+                            }
+                        }
+                    }
+                });
+                const dateObjects = availableDates.map(d => new Date(d));
+                flatpickrInstance.set('enable', dateObjects);
+                
+                // load most recent date
+                const newest = availableDates[0];
+                if (newest) {
+                    datePickerInput.value = newest;
+                    currentFilterDate = newest;
+                    applyDateFilter(newest);
+                }
+                
+                if (musicOverlay && musicOverlay.style.display === 'flex') {
+                    const stopBtn = document.getElementById('stopMusicAndPlayBtn');
+                    if (stopBtn && !stopBtn.classList.contains('system-ready-btn')) {
+                        stopBtn.textContent = '⚡ System Ready — Play Video';
+                        stopBtn.classList.add('system-ready-btn');
+                        overlayStatusMsg.textContent = 'Full archive loaded. Click to start video.';
+                    }
+                }
+            } catch (err) {
+                console.error(err);
+                feedStatusSpan.innerHTML = '⚠️ RSS fetch failed';
+                updateProxyStatus(`Error: ${err.message}`);
+                if (manualRetryBtn) manualRetryBtn.classList.remove('hidden');
+                overlayStatusMsg.textContent = 'Archive fetch failed. Click "Retry Archive Fetch" to try again.';
+            } finally {
+                fetchInProgress = false;
+            }
         }
-      }
-    } else if (fullscreenBtn) {
-      // ensure event is attached
-      fullscreenBtn.removeEventListener('click', enterFullscreen);
-      fullscreenBtn.addEventListener('click', async () => {
-        if (document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement) {
-          exitFullscreen();
-        } else {
-          await enterFullscreen();
+        
+        function updateProxyStatus(msg) {
+            if (proxyStatusSpan) proxyStatusSpan.textContent = msg ? msg.substring(0, 100) : '';
         }
-        updateFullscreenButtonLabel();
-      });
-    }
-    
-    // Finish: ensure initial audio status reflects
-    setTimeout(() => {
-      updateAudioUI();
-      if (hiddenAudio.readyState === 0) {
-        audioStatusSpan.innerHTML = '🔇 Audio loading (muted auto-play) • Use button';
-      } else {
-        updateAudioUI();
-      }
-    }, 100);
-  })();
-</script>
+        
+        // event listeners for buttons
+        document.getElementById('prev-segment-btn')?.addEventListener('click', () => {
+            if (currentIndex > 0) {
+                currentIndex--;
+                loadVideoByIndex(currentIndex);
+                renderPlaylist();
+            }
+        });
+        document.getElementById('next-segment-btn')?.addEventListener('click', () => {
+            if (currentIndex + 1 < currentPlaylist.length) {
+                currentIndex++;
+                loadVideoByIndex(currentIndex);
+                renderPlaylist();
+            }
+        });
+        document.getElementById('refresh-cache-btn')?.addEventListener('click', () => window.location.reload());
+        manualRetryBtn?.addEventListener('click', () => loadAndInitialize(true));
+        
+        videoPlayer.addEventListener('timeupdate', () => {
+            if (videoPlayer.duration) progressFill.style.width = `${(videoPlayer.currentTime / videoPlayer.duration) * 100}%`;
+        });
+        videoPlayer.addEventListener('ended', () => {
+            if (currentIndex + 1 < currentPlaylist.length) {
+                currentIndex++;
+                loadVideoByIndex(currentIndex);
+                renderPlaylist();
+            }
+        });
+        
+        // start everything
+        initSiriusAudio();
+        startSiriusAndOverlay();
+        loadingStarted = true;
+        loadAndInitialize(false);
+    </script>
 </body>
 </html>
